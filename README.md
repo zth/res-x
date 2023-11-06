@@ -19,10 +19,10 @@ The `demo/` folder contains a comprehensive example of using ResX.
 
 ## Getting started
 
-First, make sure you have [`Bun`](https://bun.sh) installed and setup. Then, install `res-x` and the dependencies needed:
+First, make sure you have [`Bun`](https://bun.sh) installed and setup. Then, install `rescript-x` and the dependencies needed:
 
 ```bash
-npm i res-x vite @rescript/core
+npm i rescript-x vite @rescript/core
 ```
 
 Go ahead and install the dependencies for Tailwind as well if you want to use it:
@@ -35,7 +35,7 @@ Let's set everything up. Start by setting up `vite.config.js`:
 
 ```javascript
 import { defineConfig } from "vite";
-import { resXVitePlugin } from "res-x";
+import { resXVitePlugin } from "rescript-x";
 
 export default defineConfig({
   plugins: [resXVitePlugin()],
@@ -653,6 +653,6 @@ This section will be expanded as we go along.
 - Auth
 - Enhanced cookies
 - Router abstraction
-- Relay for Res-X
+- Relay for ResX
 - Static and semi-static generation
 - Suspense and (out of order) streaming
