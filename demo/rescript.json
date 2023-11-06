@@ -1,0 +1,20 @@
+{
+  "jsx": {
+    "mode": "automatic",
+    "module": "react",
+    "version": 4
+  },
+  "uncurried": true,
+  "name": "res-x-demo",
+  "sources": {
+    "dir": "src",
+    "subdirs": true
+  },
+  "package-specs": {
+    "module": "commonjs",
+    "in-source": true
+  },
+  "suffix": ".js",
+  "bs-dependencies": ["@rescript/core", "res-x"],
+  "bsc-flags": ["-open RescriptCore", "-open ResXJsx"]
+}

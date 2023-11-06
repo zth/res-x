@@ -1,0 +1,5 @@
+node_modules
+lib
+dist
+out
+src/__generated__/res-x-assets.js

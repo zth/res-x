@@ -1,0 +1,33 @@
+{
+  "name": "rescript-htmx",
+  "version": "0.0.0",
+  "scripts": {
+    "start": "NODE_ENV=production bun run src/Demo.js",
+    "build": "NODE_ENV=production && bun run build:vite && bun run build:res",
+    "build:vite": "vite build",
+    "build:res": "rescript",
+    "clean:res": "rescript clean",
+    "dev:res": "rescript build -w",
+    "dev:server": "bun --watch run src/Demo.js",
+    "dev:vite": "vite",
+    "dev": "concurrently 'bun:dev:*'"
+  },
+  "keywords": [
+    "rescript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@rescript/core": "^0.5.0",
+    "concurrently": "^8.2.1",
+    "fast-glob": "^3.3.1",
+    "res-x": "../",
+    "rescript": "11.0.0-rc.5",
+    "vite": "^4.4.11"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.31",
+    "tailwindcss": "^3.3.3"
+  }
+}
