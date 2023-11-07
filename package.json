@@ -1,17 +1,17 @@
 {
   "name": "rescript-x",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.2",
   "scripts": {
     "res:build": "rescript",
     "res:clean": "rescript clean",
-    "res:dev": "rescript build -w",
-    "prepublish": "res:build"
+    "res:dev": "rescript build -w"
   },
   "keywords": [
     "rescript"
   ],
   "files": [
     "README.md",
+    "CHANGELOG.md",
     "rescript.json",
     "src/**/*.res",
     "src/**/*.js",
