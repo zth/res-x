@@ -28,13 +28,8 @@ type element = {
 }
 type event = {"target": element}
 
-module Actions = {
-  external parseActions: string => array<ResX.Client.Actions.action> = "JSON.parse"
-}
-
-module ValidityMessage = {
-  external parseValidityMessage: string => ResX.Client.ValidityMessage.config = "JSON.parse"
-}
+external parseActions: string => array<ResX.Client.Actions.action> = "JSON.parse"
+external parseValidityMessage: string => ResX.Client.ValidityMessage.config = "JSON.parse"
 
 (
   () => {
@@ -68,7 +63,7 @@ module ValidityMessage = {
       let this = event["target"]
       let actions = switch this["attributes"]["resx-onclick"] {
       | None => []
-      | Some({value}) => Actions.parseActions(value)
+      | Some({value}) => parseActions(value)
       }
 
       actions->Array.forEach(action => handleAction(action, this))
@@ -78,7 +73,7 @@ module ValidityMessage = {
       let this = event["target"]
       switch (this["validity"], this["attributes"]["resx-validity-message"]) {
       | (Some({valid: false} as validity), Some({value})) =>
-        let validityMessages = ValidityMessage.parseValidityMessage(value)
+        let validityMessages = parseValidityMessage(value)
         let messageToSet = switch validity {
         | {badInput: true} => validityMessages.badInput
         | {patternMismatch: true} => validityMessages.patternMismatch

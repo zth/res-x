@@ -2,9 +2,9 @@
 'use strict';
 
 var HtmxHandler = require("./HtmxHandler.js");
-var ResX__Utils = require("res-x/src/ResX__Utils.js");
-var ResX__ReactDOM = require("res-x/src/ResX__ReactDOM.js");
-var ResX__RequestController = require("res-x/src/ResX__RequestController.js");
+var ResX__Utils = require("rescript-x/src/ResX__Utils.js");
+var ResX__ReactDOM = require("rescript-x/src/ResX__ReactDOM.js");
+var ResX__RequestController = require("rescript-x/src/ResX__RequestController.js");
 
 function SiteMap(props) {
   var context = HtmxHandler.useContext();

@@ -5,7 +5,7 @@
     "version": 4
   },
   "uncurried": true,
-  "name": "res-x",
+  "name": "rescript-x",
   "sources": {
     "dir": "src"
   },

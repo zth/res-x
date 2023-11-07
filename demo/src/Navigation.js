@@ -3,7 +3,7 @@
 
 var U = require("./U.js");
 var HtmxHandler = require("./HtmxHandler.js");
-var ResX__ReactDOM = require("res-x/src/ResX__ReactDOM.js");
+var ResX__ReactDOM = require("rescript-x/src/ResX__ReactDOM.js");
 
 function $$Navigation(props) {
   var context = HtmxHandler.useContext();

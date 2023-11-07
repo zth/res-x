@@ -7,7 +7,7 @@ export default function resXVitePlugin(options = {}) {
   const {
     generated = "src/__generated__",
     serverUri = "http://localhost:4444",
-    resXClientLocation = "node_modules/res-x/src/ResXClient.js",
+    resXClientLocation = "node_modules/rescript-x/src/ResXClient.js",
   } = options;
 
   const assetDir = "assets";

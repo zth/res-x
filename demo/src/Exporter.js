@@ -2,7 +2,7 @@
 'use strict';
 
 var Demo = require("./Demo.js");
-var StaticExporter = require("res-x/src/StaticExporter.js");
+var StaticExporter = require("rescript-x/src/StaticExporter.js");
 
 var urls = [
   "/",

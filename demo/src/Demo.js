@@ -3,16 +3,16 @@
 
 var Html = require("./Html.js");
 var SiteMap = require("./SiteMap.js");
-var BunUtils = require("res-x/src/BunUtils.js");
+var BunUtils = require("rescript-x/src/BunUtils.js");
 var FourOhFour = require("./FourOhFour.js");
 var $$Navigation = require("./Navigation.js");
 var UserRoutes = require("./UserRoutes.js");
 var Caml_option = require("rescript/lib/js/caml_option.js");
 var HtmxHandler = require("./HtmxHandler.js");
-var ResX__React = require("res-x/src/ResX__React.js");
-var ResX__Handlers = require("res-x/src/ResX__Handlers.js");
-var ResX__ReactDOM = require("res-x/src/ResX__ReactDOM.js");
-var ResX__RequestController = require("res-x/src/ResX__RequestController.js");
+var ResX__React = require("rescript-x/src/ResX__React.js");
+var ResX__Handlers = require("rescript-x/src/ResX__Handlers.js");
+var ResX__ReactDOM = require("rescript-x/src/ResX__ReactDOM.js");
+var ResX__RequestController = require("rescript-x/src/ResX__RequestController.js");
 
 var server = Bun.serve({
       development: BunUtils.isDev,

@@ -3,9 +3,9 @@
 
 var UserPage = require("./UserPage.js");
 var FourOhFour = require("./FourOhFour.js");
-var ResX__React = require("res-x/src/ResX__React.js");
+var ResX__React = require("rescript-x/src/ResX__React.js");
 var UserFriends = require("./UserFriends.js");
-var ResX__RequestController = require("res-x/src/ResX__RequestController.js");
+var ResX__RequestController = require("rescript-x/src/ResX__RequestController.js");
 
 function match(userRoutes, headers, requestController) {
   ResX__RequestController.appendTitleSegment(requestController, "Users");
