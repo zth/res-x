@@ -1,6 +1,6 @@
 {
   "name": "rescript-x",
-  "version": "0.1.0-alpha.2",
+  "version": "0.1.0-alpha.3",
   "scripts": {
     "res:build": "rescript",
     "res:clean": "rescript clean",
@@ -13,8 +13,7 @@
     "README.md",
     "CHANGELOG.md",
     "rescript.json",
-    "src/**/*.res",
-    "src/**/*.js",
+    "src/**/*",
     "res-x-vite-plugin.mjs"
   ],
   "author": "Gabriel Nordeborn",
