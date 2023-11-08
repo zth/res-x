@@ -133,6 +133,14 @@ function get(t, path, handler) {
   return path;
 }
 
+function makeGet(path) {
+  return path;
+}
+
+function implementGet(t, path, handler) {
+  get(t, path, handler);
+}
+
 function post(t, path, handler) {
   t.handlers.push([
         "POST",
@@ -140,6 +148,14 @@ function post(t, path, handler) {
         handler
       ]);
   return path;
+}
+
+function makePost(path) {
+  return path;
+}
+
+function implementPost(t, path, handler) {
+  post(t, path, handler);
 }
 
 function put(t, path, handler) {
@@ -151,6 +167,14 @@ function put(t, path, handler) {
   return path;
 }
 
+function makePut(path) {
+  return path;
+}
+
+function implementPut(t, path, handler) {
+  put(t, path, handler);
+}
+
 function $$delete(t, path, handler) {
   t.handlers.push([
         "DELETE",
@@ -160,6 +184,14 @@ function $$delete(t, path, handler) {
   return path;
 }
 
+function makeDelete(path) {
+  return path;
+}
+
+function implementDelete(t, path, handler) {
+  $$delete(t, path, handler);
+}
+
 function patch(t, path, handler) {
   t.handlers.push([
         "PATCH",
@@ -167,6 +199,14 @@ function patch(t, path, handler) {
         handler
       ]);
   return path;
+}
+
+function makePatch(path) {
+  return path;
+}
+
+function implementPatch(t, path, handler) {
+  patch(t, path, handler);
 }
 
 function getHandlers(t) {
@@ -179,10 +219,20 @@ var Internal = {
 
 exports.make = make;
 exports.get = get;
+exports.makeGet = makeGet;
+exports.implementGet = implementGet;
 exports.post = post;
+exports.makePost = makePost;
+exports.implementPost = implementPost;
 exports.put = put;
+exports.makePut = makePut;
+exports.implementPut = implementPut;
 exports.$$delete = $$delete;
+exports.makeDelete = makeDelete;
+exports.implementDelete = implementDelete;
 exports.patch = patch;
+exports.makePatch = makePatch;
+exports.implementPatch = implementPatch;
 exports.useContext = useContext;
 exports.handleRequest = handleRequest;
 exports.Internal = Internal;

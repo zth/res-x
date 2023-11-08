@@ -170,25 +170,55 @@ let get = (t, path, ~handler) => {
   t.handlers->Array.push((GET, path, handler))
   path
 }
+let makeGet = path => {
+  path
+}
+let implementGet = (t, path, ~handler) => {
+  let _: hxGet = get(t, path, ~handler)
+}
 
 let post = (t, path, ~handler) => {
   t.handlers->Array.push((POST, path, handler))
   path
+}
+let makePost = path => {
+  path
+}
+let implementPost = (t, path, ~handler) => {
+  let _: hxPost = post(t, path, ~handler)
 }
 
 let put = (t, path, ~handler) => {
   t.handlers->Array.push((PUT, path, handler))
   path
 }
+let makePut = path => {
+  path
+}
+let implementPut = (t, path, ~handler) => {
+  let _: hxPut = put(t, path, ~handler)
+}
 
 let delete = (t, path, ~handler) => {
   t.handlers->Array.push((DELETE, path, handler))
   path
 }
+let makeDelete = path => {
+  path
+}
+let implementDelete = (t, path, ~handler) => {
+  let _: hxDelete = delete(t, path, ~handler)
+}
 
 let patch = (t, path, ~handler) => {
   t.handlers->Array.push((PATCH, path, handler))
   path
+}
+let makePatch = path => {
+  path
+}
+let implementPatch = (t, path, ~handler) => {
+  let _: hxPatch = patch(t, path, ~handler)
 }
 
 module Internal = {

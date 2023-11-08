@@ -327,6 +327,45 @@ let make = () => {
 
 This is all wired up automatically via `ResX.Handlers.handleRequest`. Also notice that as all of this is server side, you don't need to worry about accidentally leaking things to the client.
 
+##### Handling cyclic dependencies
+
+Sometimes you end up in a situation where you want to refer to the `hxGet` (or any other `hx` handler) you're implementing inside of the implementation itself. For example, a component that can "refresh" itself. This can't be done with the regular `ResX.Handlers.get` etc because that'd create a situation of cyclic dependencies where the definition of the handler refers to itself. In order to handle these specific scenarios, you can leverage `ResX.Handlers.makeGet` + `ResX.Handlers.implementGet` to first get a `hxGet` identifier you can attach to your DOM nodes, and _then_ implement it in a place where you won't get cyclic dependencies.
+
+Let's look at the example above and adjust it to work that way instead:
+
+```rescript
+// User.res
+let onForm = ResX.Handlers.makePost("/user-single")
+
+HtmxHandler.handler->ResX.Handlers.implementPost(onForm, ~handler=async ({request}) => {
+  let formData = await request->Bun.Request.formData
+  try {
+    let name = formData->FormData.expectString("name")
+    <div>{H.string(`Hi ${name}!`)}</div>
+  } catch {
+  | Exn.Error(err) =>
+    Console.error(err)
+    <div> {H.string("Failed...")} </div>
+  }
+})
+
+@react.component
+let make = () => {
+  <form
+    hxPost={onForm}
+    hxSwap={Htmx.Swap.make(InnerHTML)}
+    hxTarget={Htmx.Target.make(CssSelector("#user-single"))}>
+    <input type_="text" name="name" />
+    <div id="user-single">
+      {H.string("Hello...")}
+    </div>
+    <button>{H.string("Submit")}</button>
+  </form>
+}
+```
+
+Notice how producing the `hxPost` identitifer is now separate from implementing it. This means you can put the implementation in a place where it won't suffer from circular dependencies.
+
 #### Other hx-attributes are handled type safely
 
 > Note: All `hx`-attributes have equivalent `raw` versions, so you can always opt out of the type safe handling if it doesn't suite your needs.
