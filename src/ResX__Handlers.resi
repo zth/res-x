@@ -17,25 +17,25 @@ type hxDelete
 
 let make: (~requestToContext: Bun.Request.t => promise<'ctx>) => t<'ctx>
 
-let get: (t<'ctx>, string, ~handler: htmxHandler<'ctx>) => hxGet
-let makeGet: string => hxGet
-let implementGet: (t<'ctx>, hxGet, ~handler: htmxHandler<'ctx>) => unit
+let hxGet: (t<'ctx>, string, ~handler: htmxHandler<'ctx>) => hxGet
+let makeHxGetIdentifier: string => hxGet
+let implementHxGetIdentifier: (t<'ctx>, hxGet, ~handler: htmxHandler<'ctx>) => unit
 
-let post: (t<'ctx>, string, ~handler: htmxHandler<'ctx>) => hxPost
-let makePost: string => hxPost
-let implementPost: (t<'ctx>, hxPost, ~handler: htmxHandler<'ctx>) => unit
+let hxPost: (t<'ctx>, string, ~handler: htmxHandler<'ctx>) => hxPost
+let makeHxPostIdentifier: string => hxPost
+let implementHxPostIdentifier: (t<'ctx>, hxPost, ~handler: htmxHandler<'ctx>) => unit
 
-let put: (t<'ctx>, string, ~handler: htmxHandler<'ctx>) => hxPut
-let makePut: string => hxPut
-let implementPut: (t<'ctx>, hxPut, ~handler: htmxHandler<'ctx>) => unit
+let hxPut: (t<'ctx>, string, ~handler: htmxHandler<'ctx>) => hxPut
+let makeHxPutIdentifier: string => hxPut
+let implementHxPutIdentifier: (t<'ctx>, hxPut, ~handler: htmxHandler<'ctx>) => unit
 
-let delete: (t<'ctx>, string, ~handler: htmxHandler<'ctx>) => hxDelete
-let makeDelete: string => hxDelete
-let implementDelete: (t<'ctx>, hxDelete, ~handler: htmxHandler<'ctx>) => unit
+let hxDelete: (t<'ctx>, string, ~handler: htmxHandler<'ctx>) => hxDelete
+let makeHxDeleteIdentifier: string => hxDelete
+let implementHxDeleteIdentifier: (t<'ctx>, hxDelete, ~handler: htmxHandler<'ctx>) => unit
 
-let patch: (t<'ctx>, string, ~handler: htmxHandler<'ctx>) => hxPatch
-let makePatch: string => hxPatch
-let implementPatch: (t<'ctx>, hxPatch, ~handler: htmxHandler<'ctx>) => unit
+let hxPatch: (t<'ctx>, string, ~handler: htmxHandler<'ctx>) => hxPatch
+let makeHxPatchIdentifier: string => hxPatch
+let implementHxPatchIdentifier: (t<'ctx>, hxPatch, ~handler: htmxHandler<'ctx>) => unit
 
 type renderConfig<'ctx> = {
   request: Bun.Request.t,

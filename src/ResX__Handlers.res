@@ -166,59 +166,59 @@ let handleRequest = async (t, {request, render, ?experimental_stream} as config)
   })
 }
 
-let get = (t, path, ~handler) => {
+let hxGet = (t, path, ~handler) => {
   t.handlers->Array.push((GET, path, handler))
   path
 }
-let makeGet = path => {
+let makeHxGetIdentifier = path => {
   path
 }
-let implementGet = (t, path, ~handler) => {
-  let _: hxGet = get(t, path, ~handler)
+let implementHxGetIdentifier = (t, path, ~handler) => {
+  let _: hxGet = hxGet(t, path, ~handler)
 }
 
-let post = (t, path, ~handler) => {
+let hxPost = (t, path, ~handler) => {
   t.handlers->Array.push((POST, path, handler))
   path
 }
-let makePost = path => {
+let makeHxPostIdentifier = path => {
   path
 }
-let implementPost = (t, path, ~handler) => {
-  let _: hxPost = post(t, path, ~handler)
+let implementHxPostIdentifier = (t, path, ~handler) => {
+  let _: hxPost = hxPost(t, path, ~handler)
 }
 
-let put = (t, path, ~handler) => {
+let hxPut = (t, path, ~handler) => {
   t.handlers->Array.push((PUT, path, handler))
   path
 }
-let makePut = path => {
+let makeHxPutIdentifier = path => {
   path
 }
-let implementPut = (t, path, ~handler) => {
-  let _: hxPut = put(t, path, ~handler)
+let implementHxPutIdentifier = (t, path, ~handler) => {
+  let _: hxPut = hxPut(t, path, ~handler)
 }
 
-let delete = (t, path, ~handler) => {
+let hxDelete = (t, path, ~handler) => {
   t.handlers->Array.push((DELETE, path, handler))
   path
 }
-let makeDelete = path => {
+let makeHxDeleteIdentifier = path => {
   path
 }
-let implementDelete = (t, path, ~handler) => {
-  let _: hxDelete = delete(t, path, ~handler)
+let implementHxDeleteIdentifier = (t, path, ~handler) => {
+  let _: hxDelete = hxDelete(t, path, ~handler)
 }
 
-let patch = (t, path, ~handler) => {
+let hxPatch = (t, path, ~handler) => {
   t.handlers->Array.push((PATCH, path, handler))
   path
 }
-let makePatch = path => {
+let makeHxPatchIdentifier = path => {
   path
 }
-let implementPatch = (t, path, ~handler) => {
-  let _: hxPatch = patch(t, path, ~handler)
+let implementHxPatchIdentifier = (t, path, ~handler) => {
+  let _: hxPatch = hxPatch(t, path, ~handler)
 }
 
 module Internal = {

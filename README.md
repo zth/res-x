@@ -298,7 +298,7 @@ Now, we can attach and use actions via this handler:
 
 ```rescript
 // User.res
-let onForm = HtmxHandler.handler->ResX.Handlers.post("/user-single", ~handler=async ({request}) => {
+let onForm = HtmxHandler.handler->ResX.Handlers.hxPost("/user-single", ~handler=async ({request}) => {
   let formData = await request->Bun.Request.formData
   try {
     let name = formData->FormData.expectString("name")
@@ -335,9 +335,9 @@ Let's look at the example above and adjust it to work that way instead:
 
 ```rescript
 // User.res
-let onForm = ResX.Handlers.makePost("/user-single")
+let onForm = ResX.Handlers.makeHxPostIdentifier("/user-single")
 
-HtmxHandler.handler->ResX.Handlers.implementPost(onForm, ~handler=async ({request}) => {
+HtmxHandler.handler->ResX.Handlers.implementHxPostIdentifier(onForm, ~handler=async ({request}) => {
   let formData = await request->Bun.Request.formData
   try {
     let name = formData->FormData.expectString("name")

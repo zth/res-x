@@ -1,6 +1,7 @@
 # master
 
 - Add `BunUtils.URLSearchParams.copy` helper.
+- Rename handler creators: `get` -> `hxGet`, `makeGet` -> `makeHxGetIdentifier`, `implementGet` -> `implementHxGetIdentifier`. Same for post/put/delete/patch.
 
 # 0.1.0-alpha.4
 

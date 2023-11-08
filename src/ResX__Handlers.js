@@ -124,7 +124,7 @@ async function handleRequest(t, config) {
               }));
 }
 
-function get(t, path, handler) {
+function hxGet(t, path, handler) {
   t.handlers.push([
         "GET",
         path,
@@ -133,15 +133,15 @@ function get(t, path, handler) {
   return path;
 }
 
-function makeGet(path) {
+function makeHxGetIdentifier(path) {
   return path;
 }
 
-function implementGet(t, path, handler) {
-  get(t, path, handler);
+function implementHxGetIdentifier(t, path, handler) {
+  hxGet(t, path, handler);
 }
 
-function post(t, path, handler) {
+function hxPost(t, path, handler) {
   t.handlers.push([
         "POST",
         path,
@@ -150,15 +150,15 @@ function post(t, path, handler) {
   return path;
 }
 
-function makePost(path) {
+function makeHxPostIdentifier(path) {
   return path;
 }
 
-function implementPost(t, path, handler) {
-  post(t, path, handler);
+function implementHxPostIdentifier(t, path, handler) {
+  hxPost(t, path, handler);
 }
 
-function put(t, path, handler) {
+function hxPut(t, path, handler) {
   t.handlers.push([
         "PUT",
         path,
@@ -167,15 +167,15 @@ function put(t, path, handler) {
   return path;
 }
 
-function makePut(path) {
+function makeHxPutIdentifier(path) {
   return path;
 }
 
-function implementPut(t, path, handler) {
-  put(t, path, handler);
+function implementHxPutIdentifier(t, path, handler) {
+  hxPut(t, path, handler);
 }
 
-function $$delete(t, path, handler) {
+function hxDelete(t, path, handler) {
   t.handlers.push([
         "DELETE",
         path,
@@ -184,15 +184,15 @@ function $$delete(t, path, handler) {
   return path;
 }
 
-function makeDelete(path) {
+function makeHxDeleteIdentifier(path) {
   return path;
 }
 
-function implementDelete(t, path, handler) {
-  $$delete(t, path, handler);
+function implementHxDeleteIdentifier(t, path, handler) {
+  hxDelete(t, path, handler);
 }
 
-function patch(t, path, handler) {
+function hxPatch(t, path, handler) {
   t.handlers.push([
         "PATCH",
         path,
@@ -201,12 +201,12 @@ function patch(t, path, handler) {
   return path;
 }
 
-function makePatch(path) {
+function makeHxPatchIdentifier(path) {
   return path;
 }
 
-function implementPatch(t, path, handler) {
-  patch(t, path, handler);
+function implementHxPatchIdentifier(t, path, handler) {
+  hxPatch(t, path, handler);
 }
 
 function getHandlers(t) {
@@ -218,21 +218,21 @@ var Internal = {
 };
 
 exports.make = make;
-exports.get = get;
-exports.makeGet = makeGet;
-exports.implementGet = implementGet;
-exports.post = post;
-exports.makePost = makePost;
-exports.implementPost = implementPost;
-exports.put = put;
-exports.makePut = makePut;
-exports.implementPut = implementPut;
-exports.$$delete = $$delete;
-exports.makeDelete = makeDelete;
-exports.implementDelete = implementDelete;
-exports.patch = patch;
-exports.makePatch = makePatch;
-exports.implementPatch = implementPatch;
+exports.hxGet = hxGet;
+exports.makeHxGetIdentifier = makeHxGetIdentifier;
+exports.implementHxGetIdentifier = implementHxGetIdentifier;
+exports.hxPost = hxPost;
+exports.makeHxPostIdentifier = makeHxPostIdentifier;
+exports.implementHxPostIdentifier = implementHxPostIdentifier;
+exports.hxPut = hxPut;
+exports.makeHxPutIdentifier = makeHxPutIdentifier;
+exports.implementHxPutIdentifier = implementHxPutIdentifier;
+exports.hxDelete = hxDelete;
+exports.makeHxDeleteIdentifier = makeHxDeleteIdentifier;
+exports.implementHxDeleteIdentifier = implementHxDeleteIdentifier;
+exports.hxPatch = hxPatch;
+exports.makeHxPatchIdentifier = makeHxPatchIdentifier;
+exports.implementHxPatchIdentifier = implementHxPatchIdentifier;
 exports.useContext = useContext;
 exports.handleRequest = handleRequest;
 exports.Internal = Internal;
