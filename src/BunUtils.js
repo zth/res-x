@@ -78,7 +78,16 @@ function runDevServer(port) {
       });
 }
 
+function copy(search) {
+  return new URLSearchParams(Object.fromEntries(search.entries()));
+}
+
+var $$URLSearchParams$1 = {
+  copy: copy
+};
+
 exports.serveStaticFile = serveStaticFile;
 exports.runDevServer = runDevServer;
 exports.isDev = isDev;
+exports.$$URLSearchParams = $$URLSearchParams$1;
 /* isDev Not a pure module */

@@ -92,3 +92,13 @@ let runDevServer = (~port) => {
     },
   })
 }
+
+module URLSearchParams = {
+  let copy = search =>
+    Bun.URLSearchParams.makeWithInit(
+      search
+      ->Bun.URLSearchParams.entries
+      ->Dict.fromIterator
+      ->Object,
+    )
+}
