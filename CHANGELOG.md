@@ -1,5 +1,7 @@
 # master
 
+# 0.1.0-alpha.4
+
 - Add `hxGet/Post/Put/Delete/Patch` helpers suitable for when you need to handle cyclic dependencies.
 
 # 0.1.0-alpha.3
