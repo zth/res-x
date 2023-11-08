@@ -4,7 +4,9 @@ type inputValue = | @as("on") On | @as("off") Off
 @unboxed
 type inputValueDecode = | ...inputValue | Other(string)
 
-let onForm = HtmxHandler.handler->ResX.Handlers.post("/user-single", ~handler=async ({request}) => {
+let onForm = HtmxHandler.handler->ResX.Handlers.hxPost("/user-single", ~handler=async ({
+  request,
+}) => {
   let formData = await request->Bun.Request.formData
   try {
     let name = formData->FormData.expectString("name")

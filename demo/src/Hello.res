@@ -7,7 +7,7 @@ let myVariantFromString = a => {
   | other => Error(`Unknown value: "${String.make(other)}"`)
   }
 }
-let onButtonBlick = HtmxHandler.handler->ResX.Handlers.post("/button-click", ~handler=async ({
+let onButtonBlick = HtmxHandler.handler->ResX.Handlers.hxPost("/button-click", ~handler=async ({
   request,
 }) => {
   try {

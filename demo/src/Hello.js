@@ -35,7 +35,7 @@ function myVariantFromString(a) {
         };
 }
 
-var onButtonBlick = ResX__Handlers.post(HtmxHandler.handler, "/button-click", (async function (param) {
+var onButtonBlick = ResX__Handlers.hxPost(HtmxHandler.handler, "/button-click", (async function (param) {
         try {
           var formData = await param.request.formData();
           var firstName = $$FormData.expectString(formData, "firstName", undefined);

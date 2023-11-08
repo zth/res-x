@@ -17,7 +17,7 @@ var FormDataHelpers = require("rescript-x/src/FormDataHelpers.js");
 var FailingComponent = require("./FailingComponent.js");
 var Caml_js_exceptions = require("rescript/lib/js/caml_js_exceptions.js");
 
-var onForm = ResX__Handlers.post(HtmxHandler.handler, "/user-single", (async function (param) {
+var onForm = ResX__Handlers.hxPost(HtmxHandler.handler, "/user-single", (async function (param) {
         var formData = await param.request.formData();
         try {
           var name = $$FormData.expectString(formData, "name", undefined);
@@ -76,6 +76,14 @@ function UserPage(props) {
                                             }))
                                   }),
                               className: "p-2"
+                            }),
+                        ResX__ReactDOM.jsxs("details", {
+                              children: [
+                                ResX__ReactDOM.jsx("summary", {
+                                      children: "What is HTML?"
+                                    }),
+                                "HTML stands for HyperText Markup Language. It's the standard markup language for documents designed to be displayed in a web browser."
+                              ]
                             }),
                         ResX__ReactDOM.jsx("div", {
                               children: ResX__ReactDOM.jsx("input", {
