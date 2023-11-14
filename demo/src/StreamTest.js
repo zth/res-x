@@ -21,7 +21,7 @@ var server = Bun.serve({
                   })
               });
           var writer = match.writable.getWriter();
-          var textEncoder = new TextEncoder();
+          var textEncoder = new TextEncoder(undefined);
           writer.write(textEncoder.encode("Hello!"));
           writer.close();
           var response = new Response(match.readable, undefined);

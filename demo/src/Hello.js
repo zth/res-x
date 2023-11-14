@@ -3,13 +3,13 @@
 
 var Htmx = require("rescript-x/src/Htmx.js");
 var Js_exn = require("rescript/lib/js/js_exn.js");
-var $$FormData = require("rescript-x/src/FormData.js");
 var Caml_option = require("rescript/lib/js/caml_option.js");
 var HtmxHandler = require("./HtmxHandler.js");
 var ResX__React = require("rescript-x/src/ResX__React.js");
 var ErrorMessage = require("./ErrorMessage.js");
 var ResX__Handlers = require("rescript-x/src/ResX__Handlers.js");
 var ResX__ReactDOM = require("rescript-x/src/ResX__ReactDOM.js");
+var FormDataHelpers = require("rescript-x/src/FormDataHelpers.js");
 var Caml_js_exceptions = require("rescript/lib/js/caml_js_exceptions.js");
 
 function myVariantFromString(a) {
@@ -38,9 +38,9 @@ function myVariantFromString(a) {
 var onButtonBlick = ResX__Handlers.hxPost(HtmxHandler.handler, "/button-click", (async function (param) {
         try {
           var formData = await param.request.formData();
-          var firstName = $$FormData.expectString(formData, "firstName", undefined);
-          var lastName = $$FormData.expectString(formData, "lastName", undefined);
-          $$FormData.expectCustom(formData, "myVariant", myVariantFromString);
+          var firstName = FormDataHelpers.expectString(formData, "firstName", undefined);
+          var lastName = FormDataHelpers.expectString(formData, "lastName", undefined);
+          FormDataHelpers.expectCustom(formData, "myVariant", myVariantFromString);
           return ResX__ReactDOM.jsx("span", {
                       children: "Hi " + firstName + " " + lastName + "!"
                     });

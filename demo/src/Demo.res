@@ -4,8 +4,6 @@ let server = Bun.serve({
   port,
   development: BunUtils.isDev,
   fetch: async (request, server) => {
-    open Bun
-
     switch await BunUtils.serveStaticFile(request) {
     | Some(staticResponse) => staticResponse
     | None =>
@@ -13,7 +11,7 @@ let server = Bun.serve({
         request,
         server,
         setupHeaders: () => {
-          Headers.makeWithInit(FromArray([("Content-Type", "text/html")]))
+          Headers.make(~init=FromArray([("Content-Type", "text/html")]))
         },
         render: async ({path, requestController, headers}) => {
           switch path {

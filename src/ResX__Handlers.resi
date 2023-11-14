@@ -1,7 +1,7 @@
 type htmxHandlerConfig<'ctx> = {
-  request: Bun.Request.t,
+  request: Request.t,
   context: 'ctx,
-  headers: Bun.Headers.t,
+  headers: Headers.t,
   requestController: ResX__RequestController.t,
 }
 
@@ -15,7 +15,7 @@ type hxPut
 type hxPatch
 type hxDelete
 
-let make: (~requestToContext: Bun.Request.t => promise<'ctx>) => t<'ctx>
+let make: (~requestToContext: Request.t => promise<'ctx>) => t<'ctx>
 
 let hxGet: (t<'ctx>, string, ~handler: htmxHandler<'ctx>) => hxGet
 let makeHxGetIdentifier: string => hxGet
@@ -38,27 +38,27 @@ let makeHxPatchIdentifier: string => hxPatch
 let implementHxPatchIdentifier: (t<'ctx>, hxPatch, ~handler: htmxHandler<'ctx>) => unit
 
 type renderConfig<'ctx> = {
-  request: Bun.Request.t,
-  headers: Bun.Headers.t,
+  request: Request.t,
+  headers: Headers.t,
   context: 'ctx,
   path: list<string>,
-  url: Bun.URL.t,
+  url: URL.t,
   requestController: ResX__RequestController.t,
 }
 
 let useContext: t<'ctx> => renderConfig<'ctx>
 
 type handleRequestConfig<'ctx> = {
-  request: Bun.Request.t,
+  request: Request.t,
   server: Bun.Server.t,
   render: renderConfig<'ctx> => promise<Jsx.element>,
-  setupHeaders?: unit => Bun.Headers.t,
+  setupHeaders?: unit => Headers.t,
   renderTitle?: array<string> => string,
   experimental_stream?: bool,
 }
 
-let handleRequest: (t<'ctx>, handleRequestConfig<'ctx>) => promise<Bun.Response.t>
+let handleRequest: (t<'ctx>, handleRequestConfig<'ctx>) => promise<Response.t>
 
 module Internal: {
-  let getHandlers: t<'ctx> => array<(Bun.method, string, htmxHandler<'ctx>)>
+  let getHandlers: t<'ctx> => array<(method, string, htmxHandler<'ctx>)>
 }

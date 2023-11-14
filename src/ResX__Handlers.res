@@ -1,25 +1,25 @@
 type htmxHandlerConfig<'ctx> = {
-  request: Bun.Request.t,
+  request: Request.t,
   context: 'ctx,
-  headers: Bun.Headers.t,
+  headers: Headers.t,
   requestController: ResX__RequestController.t,
 }
 
 type htmxHandler<'ctx> = htmxHandlerConfig<'ctx> => promise<Jsx.element>
 
 type renderConfig<'ctx> = {
-  request: Bun.Request.t,
-  headers: Bun.Headers.t,
+  request: Request.t,
+  headers: Headers.t,
   context: 'ctx,
   path: list<string>,
-  url: Bun.URL.t,
+  url: URL.t,
   requestController: ResX__RequestController.t,
 }
 
 type t<'ctx> = {
-  handlers: array<(Bun.method, string, htmxHandler<'ctx>)>,
-  requestToContext: Bun.Request.t => promise<'ctx>,
-  asyncLocalStorage: Bun.AsyncLocalStorage.t<renderConfig<'ctx>>,
+  handlers: array<(method, string, htmxHandler<'ctx>)>,
+  requestToContext: Request.t => promise<'ctx>,
+  asyncLocalStorage: AsyncHooks.AsyncLocalStorage.t<renderConfig<'ctx>>,
 }
 
 type hxGet = string
@@ -31,10 +31,10 @@ type hxDelete = string
 let make = (~requestToContext) => {
   handlers: [],
   requestToContext,
-  asyncLocalStorage: Bun.AsyncLocalStorage.make(),
+  asyncLocalStorage: AsyncHooks.AsyncLocalStorage.make(),
 }
 
-let useContext = t => t.asyncLocalStorage->Bun.AsyncLocalStorage.getStore
+let useContext = t => t.asyncLocalStorage->AsyncHooks.AsyncLocalStorage.getStoreUnsafe
 
 let defaultRenderTitle = segments => segments->Array.joinWith(" | ")
 
@@ -71,16 +71,15 @@ let renderWithDocType = async (
 let defaultHeaders = [("Content-Type", "text/html")]
 
 type handleRequestConfig<'ctx> = {
-  request: Bun.Request.t,
+  request: Request.t,
   server: Bun.Server.t,
   render: renderConfig<'ctx> => promise<Jsx.element>,
-  setupHeaders?: unit => Bun.Headers.t,
+  setupHeaders?: unit => Headers.t,
   renderTitle?: array<string> => string,
   experimental_stream?: bool,
 }
 
 let handleRequest = async (t, {request, render, ?experimental_stream} as config) => {
-  open Bun
   let stream = experimental_stream->Option.getWithDefault(false)
 
   let url = request->Request.url->URL.make
@@ -98,7 +97,7 @@ let handleRequest = async (t, {request, render, ?experimental_stream} as config)
 
   let headers = switch config.setupHeaders {
   | Some(setupHeaders) => setupHeaders()
-  | None => Bun.Headers.makeWithInit(FromArray(defaultHeaders))
+  | None => Headers.make(~init=FromArray(defaultHeaders))
   }
   let renderConfig = {
     context: ctx,
@@ -112,7 +111,7 @@ let handleRequest = async (t, {request, render, ?experimental_stream} as config)
     requestController,
   }
 
-  await t.asyncLocalStorage->AsyncLocalStorage.run(renderConfig, async _token => {
+  await t.asyncLocalStorage->AsyncHooks.AsyncLocalStorage.run(renderConfig, async _token => {
     let content = switch targetHandler {
     | None => await render(renderConfig)
     | Some(handler) =>
@@ -135,10 +134,10 @@ let handleRequest = async (t, {request, render, ?experimental_stream} as config)
 
       H.renderToStream(content, ~onChunk=chunk => {
         let encoded = textEncoder->TextEncoder.encode(chunk)
-        writer->WritableStream.Writer.write(encoded)
+        writer->WritableStream.WritableStreamDefaultWriter.write(encoded)->Promise.done
       })
       ->Promise.thenResolve(_ => {
-        writer->WritableStream.Writer.close
+        writer->WritableStream.WritableStreamDefaultWriter.close
       })
       ->Promise.done
 

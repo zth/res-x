@@ -3,7 +3,6 @@
 
 var Htmx = require("rescript-x/src/Htmx.js");
 var Js_exn = require("rescript/lib/js/js_exn.js");
-var $$FormData = require("rescript-x/src/FormData.js");
 var ResXAssets = require("./__generated__/ResXAssets.js");
 var Caml_option = require("rescript/lib/js/caml_option.js");
 var HtmxHandler = require("./HtmxHandler.js");
@@ -20,7 +19,7 @@ var Caml_js_exceptions = require("rescript/lib/js/caml_js_exceptions.js");
 var onForm = ResX__Handlers.hxPost(HtmxHandler.handler, "/user-single", (async function (param) {
         var formData = await param.request.formData();
         try {
-          var name = $$FormData.expectString(formData, "name", undefined);
+          var name = FormDataHelpers.expectString(formData, "name", undefined);
           var active = FormDataHelpers.expectCheckbox(formData, "active");
           return ResX__ReactDOM.jsx("div", {
                       children: "Some user " + name + " is " + (
@@ -76,14 +75,6 @@ function UserPage(props) {
                                             }))
                                   }),
                               className: "p-2"
-                            }),
-                        ResX__ReactDOM.jsxs("details", {
-                              children: [
-                                ResX__ReactDOM.jsx("summary", {
-                                      children: "What is HTML?"
-                                    }),
-                                "HTML stands for HyperText Markup Language. It's the standard markup language for documents designed to be displayed in a web browser."
-                              ]
                             }),
                         ResX__ReactDOM.jsx("div", {
                               children: ResX__ReactDOM.jsx("input", {

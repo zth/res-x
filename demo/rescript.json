@@ -15,6 +15,11 @@
     "in-source": true
   },
   "suffix": ".js",
-  "bs-dependencies": ["@rescript/core", "rescript-x"],
-  "bsc-flags": ["-open RescriptCore", "-open ResXJsx"]
+  "bs-dependencies": ["@rescript/core", "rescript-x", "rescript-bun"],
+  "bsc-flags": [
+    "-open RescriptCore",
+    "-open RescriptBun",
+    "-open RescriptBun.Globals",
+    "-open ResXJsx"
+  ]
 }

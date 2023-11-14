@@ -95,12 +95,12 @@ async function handleRequest(t, config) {
                           })
                       });
                   var writer = match.writable.getWriter();
-                  var textEncoder = new TextEncoder();
+                  var textEncoder = new TextEncoder(undefined);
                   H.renderToStream(content, (function (chunk) {
                             var encoded = textEncoder.encode(chunk);
                             writer.write(encoded);
                           })).then(function () {
-                        writer.close();
+                        return writer.close();
                       });
                   return new Response(match.readable, {
                               status: 200,

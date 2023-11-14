@@ -11,8 +11,6 @@ let server = Bun.serve({
   port,
   development: BunUtils.isDev,
   fetch: async (_request, _server) => {
-    open Bun
-
     let {readable, writable} = TransformStream.make({
       transform: (chunk, controller) => {
         controller->TransformStream.Controller.enqueue(chunk)
@@ -22,9 +20,11 @@ let server = Bun.serve({
     let writer = writable->WritableStream.getWriter
 
     let textEncoder = TextEncoder.make()
-    writer->WritableStream.Writer.write(textEncoder->TextEncoder.encode("Hello!"))
+    writer
+    ->WritableStream.WritableStreamDefaultWriter.write(textEncoder->TextEncoder.encode("Hello!"))
+    ->Promise.done
 
-    writer->WritableStream.Writer.close
+    writer->WritableStream.WritableStreamDefaultWriter.close->Promise.done
 
     let response = Response.makeFromReadableStream(readable)
     response->Response.headers->Headers.set("Content-Type", "text/html")

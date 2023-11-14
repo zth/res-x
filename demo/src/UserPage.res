@@ -7,9 +7,9 @@ type inputValueDecode = | ...inputValue | Other(string)
 let onForm = HtmxHandler.handler->ResX.Handlers.hxPost("/user-single", ~handler=async ({
   request,
 }) => {
-  let formData = await request->Bun.Request.formData
+  let formData = await request->Request.formData
   try {
-    let name = formData->FormData.expectString("name")
+    let name = formData->FormDataHelpers.expectString("name")
     let active = formData->FormDataHelpers.expectCheckbox("active")
 
     <div>
@@ -30,7 +30,7 @@ let onForm = HtmxHandler.handler->ResX.Handlers.hxPost("/user-single", ~handler=
 @react.component
 let make = (~innerContent, ~userId) => {
   let ctx = HtmxHandler.useContext()
-  ctx.headers->Bun.Headers.set("Content-Type", "text/html")
+  ctx.headers->Headers.set("Content-Type", "text/html")
   <div className="p-8">
     <form
       hxPost={onForm}

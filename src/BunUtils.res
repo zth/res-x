@@ -73,7 +73,7 @@ let serveStaticFile = async request => {
 }
 
 let runDevServer = (~port) => {
-  let _devServer = Bun.serve({
+  let _devServer = Bun.serveWithWebSocket({
     port: port + 1,
     development: true,
     websocket: {
@@ -95,9 +95,9 @@ let runDevServer = (~port) => {
 
 module URLSearchParams = {
   let copy = search =>
-    Bun.URLSearchParams.makeWithInit(
+    URLSearchParams.makeWithInit(
       search
-      ->Bun.URLSearchParams.entries
+      ->URLSearchParams.entries
       ->Dict.fromIterator
       ->Object,
     )

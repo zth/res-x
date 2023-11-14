@@ -50,7 +50,7 @@ async function serveStaticFile(request) {
   if (fileLoc === undefined) {
     return ;
   }
-  var bunFile = Bun.file("./" + fileLoc);
+  var bunFile = Bun.file("./" + fileLoc, undefined);
   var match = bunFile.size;
   return Caml_option.some(match !== 0 ? new Response(bunFile) : new Response("", {
                     status: 404

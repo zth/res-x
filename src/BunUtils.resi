@@ -1,9 +1,9 @@
-let serveStaticFile: Bun.Request.t => promise<option<Bun.Response.t>>
+let serveStaticFile: Request.t => promise<option<Response.t>>
 
 let runDevServer: (~port: int) => unit
 
 let isDev: bool
 
 module URLSearchParams: {
-  let copy: Bun.URLSearchParams.t => Bun.URLSearchParams.t
+  let copy: URLSearchParams.t => URLSearchParams.t
 }

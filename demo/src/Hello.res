@@ -1,8 +1,8 @@
 type myVariant = One | Two
 
-let myVariantFromString = a => {
+let myVariantFromString = (a: FormData.formDataValueResult) => {
   switch a {
-  | FormData.String("one") => Ok(One)
+  | String("one") => Ok(One)
   | String("two") => Ok(Two)
   | other => Error(`Unknown value: "${String.make(other)}"`)
   }
@@ -11,10 +11,11 @@ let onButtonBlick = HtmxHandler.handler->ResX.Handlers.hxPost("/button-click", ~
   request,
 }) => {
   try {
-    let formData = await request->Bun.Request.formData
-    let firstName = formData->FormData.expectString("firstName")
-    let lastName = formData->FormData.expectString("lastName")
-    let _myvariant = formData->FormData.expectCustom("myVariant", ~decoder=myVariantFromString)
+    let formData = await request->Request.formData
+    let firstName = formData->FormDataHelpers.expectString("firstName")
+    let lastName = formData->FormDataHelpers.expectString("lastName")
+    let _myvariant =
+      formData->FormDataHelpers.expectCustom("myVariant", ~decoder=myVariantFromString)
 
     <span> {H.string("Hi " ++ firstName ++ " " ++ lastName ++ "!")} </span>
   } catch {

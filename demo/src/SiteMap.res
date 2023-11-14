@@ -6,8 +6,8 @@ let make = () => {
     Some(`<?xml version="1.0" encoding="UTF-8"?>`),
   )
 
-  context.headers->Bun.Headers.set("Content-Type", "application/xml; charset=UTF-8")
-  context.headers->Bun.Headers.set(
+  context.headers->Headers.set("Content-Type", "application/xml; charset=UTF-8")
+  context.headers->Headers.set(
     "Cache-Control",
     ResX.Utils.CacheControl.make(~cacheability=Public, ~expiration=[MaxAge(Days(1.))]),
   )
