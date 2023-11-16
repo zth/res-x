@@ -24,10 +24,13 @@
     "vite": ">=4.4.11",
     "rescript-bun": ">=0.1.0"
   },
-  "dependencies": {
+  "devDependencies": {
     "@rescript/core": "^0.5.0",
     "fast-glob": "^3.3.1",
     "rescript": "11.0.0-rc.5",
     "rescript-bun": "0.1.0"
+  },
+  "dependencies": {
+    "fast-glob": "^3.3.1"
   }
 }
