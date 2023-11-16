@@ -3,26 +3,26 @@
 
 var Html = require("./Html.js");
 var SiteMap = require("./SiteMap.js");
-var BunUtils = require("rescript-x/src/BunUtils.js");
 var FourOhFour = require("./FourOhFour.js");
 var $$Navigation = require("./Navigation.js");
 var UserRoutes = require("./UserRoutes.js");
 var Caml_option = require("rescript/lib/js/caml_option.js");
 var HtmxHandler = require("./HtmxHandler.js");
-var ResX__React = require("rescript-x/src/ResX__React.js");
-var ResX__Handlers = require("rescript-x/src/ResX__Handlers.js");
-var ResX__ReactDOM = require("rescript-x/src/ResX__ReactDOM.js");
-var ResX__RequestController = require("rescript-x/src/ResX__RequestController.js");
+var BunUtils$ResX = require("rescript-x/src/BunUtils.js");
+var Handlers$ResX = require("rescript-x/src/Handlers.js");
+var ResX__React$ResX = require("rescript-x/src/ResX__React.js");
+var ResX__ReactDOM$ResX = require("rescript-x/src/ResX__ReactDOM.js");
+var RequestController$ResX = require("rescript-x/src/RequestController.js");
 
 var server = Bun.serve({
-      development: BunUtils.isDev,
+      development: BunUtils$ResX.isDev,
       port: 4444,
       fetch: (async function (request, server) {
-          var staticResponse = await BunUtils.serveStaticFile(request);
+          var staticResponse = await BunUtils$ResX.serveStaticFile(request);
           if (staticResponse !== undefined) {
             return Caml_option.valFromOption(staticResponse);
           } else {
-            return await ResX__Handlers.handleRequest(HtmxHandler.handler, {
+            return await Handlers$ResX.handleRequest(HtmxHandler.handler, {
                         request: request,
                         server: server,
                         render: (async function (param) {
@@ -32,23 +32,23 @@ var server = Bun.serve({
                             var exit = 0;
                             if (path && path.hd === "sitemap.xml") {
                               if (!path.tl) {
-                                return ResX__React.jsx(SiteMap.make, {});
+                                return ResX__React$ResX.jsx(SiteMap.make, {});
                               }
                               exit = 1;
                             } else {
                               exit = 1;
                             }
                             if (exit === 1) {
-                              ResX__RequestController.appendTitleSegment(requestController, "Test App");
+                              RequestController$ResX.appendTitleSegment(requestController, "Test App");
                               var tmp;
                               var exit$1 = 0;
                               if (path) {
                                 var exit$2 = 0;
                                 switch (path.hd) {
                                   case "moved" :
-                                      tmp = path.tl ? ResX__React.jsx(FourOhFour.make, {
+                                      tmp = path.tl ? ResX__React$ResX.jsx(FourOhFour.make, {
                                               setGenericTitle: true
-                                            }) : ResX__RequestController.redirect(requestController, "/start", 302);
+                                            }) : RequestController$ResX.redirect(requestController, "/start", 302);
                                       break;
                                   case "" :
                                   case "start" :
@@ -58,13 +58,13 @@ var server = Bun.serve({
                                       tmp = UserRoutes.match(path.tl, headers, requestController);
                                       break;
                                   default:
-                                    tmp = ResX__React.jsx(FourOhFour.make, {
+                                    tmp = ResX__React$ResX.jsx(FourOhFour.make, {
                                           setGenericTitle: true
                                         });
                                 }
                                 if (exit$2 === 3) {
                                   if (path.tl) {
-                                    tmp = ResX__React.jsx(FourOhFour.make, {
+                                    tmp = ResX__React$ResX.jsx(FourOhFour.make, {
                                           setGenericTitle: true
                                         });
                                   } else {
@@ -77,14 +77,14 @@ var server = Bun.serve({
                               }
                               if (exit$1 === 2) {
                                 headers.set("Cache-Control", "public, immutable, max-age=900");
-                                tmp = ResX__ReactDOM.jsx("div", {
+                                tmp = ResX__ReactDOM$ResX.jsx("div", {
                                       children: "Start page!"
                                     });
                               }
-                              return ResX__React.jsx(Html.make, {
-                                          children: ResX__ReactDOM.jsxs("div", {
+                              return ResX__React$ResX.jsx(Html.make, {
+                                          children: ResX__ReactDOM$ResX.jsxs("div", {
                                                 children: [
-                                                  ResX__React.jsx($$Navigation.make, {}),
+                                                  ResX__React$ResX.jsx($$Navigation.make, {}),
                                                   tmp
                                                 ]
                                               })
@@ -107,8 +107,8 @@ var portString = server.port.toString();
 
 console.log("Listening! on localhost:" + portString);
 
-if (BunUtils.isDev) {
-  BunUtils.runDevServer(4444);
+if (BunUtils$ResX.isDev) {
+  BunUtils$ResX.runDevServer(4444);
 }
 
 var port = 4444;

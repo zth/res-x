@@ -2,18 +2,18 @@
 'use strict';
 
 var HtmxHandler = require("./HtmxHandler.js");
-var ResX__ReactDOM = require("rescript-x/src/ResX__ReactDOM.js");
-var ResX__RequestController = require("rescript-x/src/ResX__RequestController.js");
+var ResX__ReactDOM$ResX = require("rescript-x/src/ResX__ReactDOM.js");
+var RequestController$ResX = require("rescript-x/src/RequestController.js");
 
 function FourOhFour(props) {
   var __setGenericTitle = props.setGenericTitle;
   var setGenericTitle = __setGenericTitle !== undefined ? __setGenericTitle : false;
   var context = HtmxHandler.useContext();
-  ResX__RequestController.setStatus(context.requestController, 404);
+  RequestController$ResX.setStatus(context.requestController, 404);
   if (setGenericTitle) {
-    ResX__RequestController.setFullTitle(context.requestController, "Not Found");
+    RequestController$ResX.setFullTitle(context.requestController, "Not Found");
   }
-  return ResX__ReactDOM.jsx("div", {
+  return ResX__ReactDOM$ResX.jsx("div", {
               children: "404"
             });
 }

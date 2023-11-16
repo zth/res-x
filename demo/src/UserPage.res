@@ -4,11 +4,13 @@ type inputValue = | @as("on") On | @as("off") Off
 @unboxed
 type inputValueDecode = | ...inputValue | Other(string)
 
-let onForm = HtmxHandler.handler->ResX.Handlers.post("/user-single", ~handler=async ({request}) => {
-  let formData = await request->Bun.Request.formData
+let onForm = HtmxHandler.handler->ResX.Handlers.hxPost("/user-single", ~handler=async ({
+  request,
+}) => {
+  let formData = await request->Request.formData
   try {
-    let name = formData->FormData.expectString("name")
-    let active = formData->FormDataHelpers.expectCheckbox("active")
+    let name = formData->ResX.FormDataHelpers.expectString("name")
+    let active = formData->ResX.FormDataHelpers.expectCheckbox("active")
 
     <div>
       {H.string(
@@ -28,12 +30,12 @@ let onForm = HtmxHandler.handler->ResX.Handlers.post("/user-single", ~handler=as
 @react.component
 let make = (~innerContent, ~userId) => {
   let ctx = HtmxHandler.useContext()
-  ctx.headers->Bun.Headers.set("Content-Type", "text/html")
+  ctx.headers->Headers.set("Content-Type", "text/html")
   <div className="p-8">
     <form
       hxPost={onForm}
-      hxSwap={Htmx.Swap.make(InnerHTML)}
-      hxTarget={Htmx.Target.make(CssSelector("#user-single"))}>
+      hxSwap={ResX.Htmx.Swap.make(InnerHTML)}
+      hxTarget={ResX.Htmx.Target.make(CssSelector("#user-single"))}>
       <img src={ResXAssets.assets.images__test_img_jpeg} />
       <div id="user-single">
         <div className="text-2xl bg-slate-200 text-gray-500">
@@ -79,12 +81,12 @@ let make = (~innerContent, ~userId) => {
           {H.string("Submit form")}
         </button>
       </div>
-      <ErrorBoundary
+      <ResX.ErrorBoundary
         renderError={err => {
           <div> {H.string("Oops, failed! " ++ err->Exn.message->Option.getWithDefault("-"))} </div>
         }}>
         <FailingComponent />
-      </ErrorBoundary>
+      </ResX.ErrorBoundary>
     </form>
     {innerContent}
   </div>

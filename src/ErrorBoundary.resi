@@ -1,4 +1,4 @@
-open ResXJsx
+module React = ResX__React
 
 /** Function called when an error occurs. Expected to return the fallback JSX for the error. */
 type errorFn = Exn.t => Jsx.element

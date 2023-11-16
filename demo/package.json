@@ -23,7 +23,8 @@
     "fast-glob": "^3.3.1",
     "rescript-x": "../",
     "rescript": "11.0.0-rc.5",
-    "vite": "^4.4.11"
+    "vite": "^4.4.11",
+    "rescript-bun": "0.1.0"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.16",

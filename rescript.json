@@ -4,6 +4,7 @@
     "module": "react",
     "version": 4
   },
+  "namespace": "res-x",
   "uncurried": true,
   "name": "rescript-x",
   "sources": {
@@ -14,6 +15,10 @@
     "in-source": true
   },
   "suffix": ".js",
-  "bs-dependencies": ["@rescript/core"],
-  "bsc-flags": ["-open RescriptCore"]
+  "bs-dependencies": ["@rescript/core", "rescript-bun"],
+  "bsc-flags": [
+    "-open RescriptCore",
+    "-open RescriptBun",
+    "-open RescriptBun.Globals"
+  ]
 }

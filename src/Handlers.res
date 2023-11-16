@@ -1,25 +1,25 @@
 type htmxHandlerConfig<'ctx> = {
-  request: Bun.Request.t,
+  request: Request.t,
   context: 'ctx,
-  headers: Bun.Headers.t,
-  requestController: ResX__RequestController.t,
+  headers: Headers.t,
+  requestController: RequestController.t,
 }
 
 type htmxHandler<'ctx> = htmxHandlerConfig<'ctx> => promise<Jsx.element>
 
 type renderConfig<'ctx> = {
-  request: Bun.Request.t,
-  headers: Bun.Headers.t,
+  request: Request.t,
+  headers: Headers.t,
   context: 'ctx,
   path: list<string>,
-  url: Bun.URL.t,
-  requestController: ResX__RequestController.t,
+  url: URL.t,
+  requestController: RequestController.t,
 }
 
 type t<'ctx> = {
-  handlers: array<(Bun.method, string, htmxHandler<'ctx>)>,
-  requestToContext: Bun.Request.t => promise<'ctx>,
-  asyncLocalStorage: Bun.AsyncLocalStorage.t<renderConfig<'ctx>>,
+  handlers: array<(method, string, htmxHandler<'ctx>)>,
+  requestToContext: Request.t => promise<'ctx>,
+  asyncLocalStorage: AsyncHooks.AsyncLocalStorage.t<renderConfig<'ctx>>,
 }
 
 type hxGet = string
@@ -31,29 +31,26 @@ type hxDelete = string
 let make = (~requestToContext) => {
   handlers: [],
   requestToContext,
-  asyncLocalStorage: Bun.AsyncLocalStorage.make(),
+  asyncLocalStorage: AsyncHooks.AsyncLocalStorage.make(),
 }
 
-let useContext = t => t.asyncLocalStorage->Bun.AsyncLocalStorage.getStore
+let useContext = t => t.asyncLocalStorage->AsyncHooks.AsyncLocalStorage.getStoreUnsafe
 
 let defaultRenderTitle = segments => segments->Array.joinWith(" | ")
 
 let renderWithDocType = async (
   el,
-  ~requestController: ResX__RequestController.t,
+  ~requestController: RequestController.t,
   ~renderTitle=defaultRenderTitle,
 ) => {
   let (content, appendToHead) = await Promise.all2((
     H.renderToString(el),
-    requestController->ResX__RequestController.getAppendedHeadContent,
+    requestController->RequestController.getAppendedHeadContent,
   ))
 
   // TODO: Escape? Hyperons has something
 
-  let appendToHead = switch (
-    appendToHead,
-    requestController->ResX__RequestController.getTitleSegments,
-  ) {
+  let appendToHead = switch (appendToHead, requestController->RequestController.getTitleSegments) {
   | (appendToHead, []) => appendToHead
   | (Some(appendToHead), titleSegments) =>
     let titleElement = `<title>${renderTitle(titleSegments)}</title>`
@@ -66,21 +63,20 @@ let renderWithDocType = async (
   | Some(appendToHead) => content->String.replace("</head>", appendToHead ++ "</head>")
   }
 
-  requestController->ResX__RequestController.getDocHeader ++ content
+  requestController->RequestController.getDocHeader ++ content
 }
 let defaultHeaders = [("Content-Type", "text/html")]
 
 type handleRequestConfig<'ctx> = {
-  request: Bun.Request.t,
+  request: Request.t,
   server: Bun.Server.t,
   render: renderConfig<'ctx> => promise<Jsx.element>,
-  setupHeaders?: unit => Bun.Headers.t,
+  setupHeaders?: unit => Headers.t,
   renderTitle?: array<string> => string,
   experimental_stream?: bool,
 }
 
 let handleRequest = async (t, {request, render, ?experimental_stream} as config) => {
-  open Bun
   let stream = experimental_stream->Option.getWithDefault(false)
 
   let url = request->Request.url->URL.make
@@ -94,11 +90,11 @@ let handleRequest = async (t, {request, render, ?experimental_stream} as config)
   )
 
   let ctx = await t.requestToContext(request)
-  let requestController = ResX__RequestController.make()
+  let requestController = RequestController.make()
 
   let headers = switch config.setupHeaders {
   | Some(setupHeaders) => setupHeaders()
-  | None => Bun.Headers.makeWithInit(FromArray(defaultHeaders))
+  | None => Headers.make(~init=FromArray(defaultHeaders))
   }
   let renderConfig = {
     context: ctx,
@@ -112,7 +108,7 @@ let handleRequest = async (t, {request, render, ?experimental_stream} as config)
     requestController,
   }
 
-  await t.asyncLocalStorage->AsyncLocalStorage.run(renderConfig, async _token => {
+  await t.asyncLocalStorage->AsyncHooks.AsyncLocalStorage.run(renderConfig, async _token => {
     let content = switch targetHandler {
     | None => await render(renderConfig)
     | Some(handler) =>
@@ -135,10 +131,10 @@ let handleRequest = async (t, {request, render, ?experimental_stream} as config)
 
       H.renderToStream(content, ~onChunk=chunk => {
         let encoded = textEncoder->TextEncoder.encode(chunk)
-        writer->WritableStream.Writer.write(encoded)
+        writer->WritableStream.WritableStreamDefaultWriter.write(encoded)->Promise.done
       })
       ->Promise.thenResolve(_ => {
-        writer->WritableStream.Writer.close
+        writer->WritableStream.WritableStreamDefaultWriter.close
       })
       ->Promise.done
 
@@ -156,8 +152,8 @@ let handleRequest = async (t, {request, render, ?experimental_stream} as config)
         ~renderTitle=?config.renderTitle,
       )
       switch (
-        requestController->ResX__RequestController.getCurrentRedirect,
-        requestController->ResX__RequestController.getCurrentStatus,
+        requestController->RequestController.getCurrentRedirect,
+        requestController->RequestController.getCurrentStatus,
       ) {
       | (Some(url, status), _) => Response.makeRedirect(url, ~status?)
       | (None, status) => Response.makeWithHeaders(content, ~options={headers, status})

@@ -3,7 +3,7 @@
 
 var U = require("./U.js");
 var HtmxHandler = require("./HtmxHandler.js");
-var ResX__ReactDOM = require("rescript-x/src/ResX__ReactDOM.js");
+var ResX__ReactDOM$ResX = require("rescript-x/src/ResX__ReactDOM.js");
 
 function $$Navigation(props) {
   var context = HtmxHandler.useContext();
@@ -15,8 +15,8 @@ function $$Navigation(props) {
   } else {
     tmp = "";
   }
-  return ResX__ReactDOM.jsx("div", {
-              children: ResX__ReactDOM.jsx("a", {
+  return ResX__ReactDOM$ResX.jsx("div", {
+              children: ResX__ReactDOM$ResX.jsx("a", {
                     children: "To User 1",
                     className: U.tw([
                           tmp,

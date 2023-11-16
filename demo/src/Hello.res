@@ -1,20 +1,21 @@
 type myVariant = One | Two
 
-let myVariantFromString = a => {
+let myVariantFromString = (a: FormData.formDataValueResult) => {
   switch a {
-  | FormData.String("one") => Ok(One)
+  | String("one") => Ok(One)
   | String("two") => Ok(Two)
   | other => Error(`Unknown value: "${String.make(other)}"`)
   }
 }
-let onButtonBlick = HtmxHandler.handler->ResX.Handlers.post("/button-click", ~handler=async ({
+let onButtonBlick = HtmxHandler.handler->ResX.Handlers.hxPost("/button-click", ~handler=async ({
   request,
 }) => {
   try {
-    let formData = await request->Bun.Request.formData
-    let firstName = formData->FormData.expectString("firstName")
-    let lastName = formData->FormData.expectString("lastName")
-    let _myvariant = formData->FormData.expectCustom("myVariant", ~decoder=myVariantFromString)
+    let formData = await request->Request.formData
+    let firstName = formData->ResX.FormDataHelpers.expectString("firstName")
+    let lastName = formData->ResX.FormDataHelpers.expectString("lastName")
+    let _myvariant =
+      formData->ResX.FormDataHelpers.expectCustom("myVariant", ~decoder=myVariantFromString)
 
     <span> {H.string("Hi " ++ firstName ++ " " ++ lastName ++ "!")} </span>
   } catch {
@@ -25,7 +26,7 @@ let onButtonBlick = HtmxHandler.handler->ResX.Handlers.post("/button-click", ~ha
 @react.component
 let make = (~name) => {
   <form action="post">
-    <button hxSwap={Htmx.Swap.make(InnerHTML, ~modifier=Transition)} hxPost={onButtonBlick}>
+    <button hxSwap={ResX.Htmx.Swap.make(InnerHTML, ~modifier=Transition)} hxPost={onButtonBlick}>
       {H.string("Hello " ++ name)}
     </button>
     <input type_="text" name="firstName" value="" />

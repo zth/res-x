@@ -1,4 +1,4 @@
-open ResXJsx
+module React = ResX__React
 
 @module("./vendor/hyperons.js")
 external createContext: ('context, @as("errorBoundary") _) => H.Context.t<'context> =

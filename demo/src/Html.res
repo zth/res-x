@@ -6,7 +6,7 @@ let make = (~children) => {
     </head>
     <body className="bg-orange-200 p-10" hxBoost=true>
       {children}
-      <Dev />
+      <ResX.Dev />
       <script src="https://unpkg.com/htmx.org@1.9.5" />
       <script src={ResXAssets.assets.resXClient_js} async=true />
     </body>

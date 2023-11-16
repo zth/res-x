@@ -1,6 +1,4 @@
 let match = (userRoutes, ~headers, ~requestController) => {
-  open Bun
-
   requestController->ResX.RequestController.appendTitleSegment("Users")
 
   switch userRoutes {
