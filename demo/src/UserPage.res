@@ -9,8 +9,8 @@ let onForm = HtmxHandler.handler->ResX.Handlers.hxPost("/user-single", ~handler=
 }) => {
   let formData = await request->Request.formData
   try {
-    let name = formData->FormDataHelpers.expectString("name")
-    let active = formData->FormDataHelpers.expectCheckbox("active")
+    let name = formData->ResX.FormDataHelpers.expectString("name")
+    let active = formData->ResX.FormDataHelpers.expectCheckbox("active")
 
     <div>
       {H.string(
@@ -34,8 +34,8 @@ let make = (~innerContent, ~userId) => {
   <div className="p-8">
     <form
       hxPost={onForm}
-      hxSwap={Htmx.Swap.make(InnerHTML)}
-      hxTarget={Htmx.Target.make(CssSelector("#user-single"))}>
+      hxSwap={ResX.Htmx.Swap.make(InnerHTML)}
+      hxTarget={ResX.Htmx.Target.make(CssSelector("#user-single"))}>
       <img src={ResXAssets.assets.images__test_img_jpeg} />
       <div id="user-single">
         <div className="text-2xl bg-slate-200 text-gray-500">
@@ -81,12 +81,12 @@ let make = (~innerContent, ~userId) => {
           {H.string("Submit form")}
         </button>
       </div>
-      <ErrorBoundary
+      <ResX.ErrorBoundary
         renderError={err => {
           <div> {H.string("Oops, failed! " ++ err->Exn.message->Option.getWithDefault("-"))} </div>
         }}>
         <FailingComponent />
-      </ErrorBoundary>
+      </ResX.ErrorBoundary>
     </form>
     {innerContent}
   </div>

@@ -201,27 +201,27 @@ module Disinherit = {
 type htmxProps = {
   /** https://htmx.org/attributes/hx-get/ */
   @as("hx-get")
-  hxGet?: ResX__Handlers.hxGet,
+  hxGet?: Handlers.hxGet,
   @as("data-hx-get")
   rawHxGet?: string,
   /** https://htmx.org/attributes/hx-post/ */
   @as("hx-post")
-  hxPost?: ResX__Handlers.hxPost,
+  hxPost?: Handlers.hxPost,
   @as("data-hx-post")
   rawHxPost?: string,
   /** https://htmx.org/attributes/hx-put/ */
   @as("hx-put")
-  hxPut?: ResX__Handlers.hxPut,
+  hxPut?: Handlers.hxPut,
   @as("data-hx-put")
   rawHxPut?: string,
   /** https://htmx.org/attributes/hx-delete/ */
   @as("hx-delete")
-  hxDelete?: ResX__Handlers.hxDelete,
+  hxDelete?: Handlers.hxDelete,
   @as("data-hx-delete")
   rawHxDelete?: string,
   /** https://htmx.org/attributes/hx-patch/ */
   @as("hx-patch")
-  hxPatch?: ResX__Handlers.hxPatch,
+  hxPatch?: Handlers.hxPatch,
   @as("data-hx-patch")
   rawHxPatch?: string,
   /** https://htmx.org/attributes/hx-swap/ */

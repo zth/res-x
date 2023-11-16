@@ -2,7 +2,7 @@ type htmxHandlerConfig<'ctx> = {
   request: Request.t,
   context: 'ctx,
   headers: Headers.t,
-  requestController: ResX__RequestController.t,
+  requestController: RequestController.t,
 }
 
 type htmxHandler<'ctx> = htmxHandlerConfig<'ctx> => promise<Jsx.element>
@@ -13,7 +13,7 @@ type renderConfig<'ctx> = {
   context: 'ctx,
   path: list<string>,
   url: URL.t,
-  requestController: ResX__RequestController.t,
+  requestController: RequestController.t,
 }
 
 type t<'ctx> = {
@@ -40,20 +40,17 @@ let defaultRenderTitle = segments => segments->Array.joinWith(" | ")
 
 let renderWithDocType = async (
   el,
-  ~requestController: ResX__RequestController.t,
+  ~requestController: RequestController.t,
   ~renderTitle=defaultRenderTitle,
 ) => {
   let (content, appendToHead) = await Promise.all2((
     H.renderToString(el),
-    requestController->ResX__RequestController.getAppendedHeadContent,
+    requestController->RequestController.getAppendedHeadContent,
   ))
 
   // TODO: Escape? Hyperons has something
 
-  let appendToHead = switch (
-    appendToHead,
-    requestController->ResX__RequestController.getTitleSegments,
-  ) {
+  let appendToHead = switch (appendToHead, requestController->RequestController.getTitleSegments) {
   | (appendToHead, []) => appendToHead
   | (Some(appendToHead), titleSegments) =>
     let titleElement = `<title>${renderTitle(titleSegments)}</title>`
@@ -66,7 +63,7 @@ let renderWithDocType = async (
   | Some(appendToHead) => content->String.replace("</head>", appendToHead ++ "</head>")
   }
 
-  requestController->ResX__RequestController.getDocHeader ++ content
+  requestController->RequestController.getDocHeader ++ content
 }
 let defaultHeaders = [("Content-Type", "text/html")]
 
@@ -93,7 +90,7 @@ let handleRequest = async (t, {request, render, ?experimental_stream} as config)
   )
 
   let ctx = await t.requestToContext(request)
-  let requestController = ResX__RequestController.make()
+  let requestController = RequestController.make()
 
   let headers = switch config.setupHeaders {
   | Some(setupHeaders) => setupHeaders()
@@ -155,8 +152,8 @@ let handleRequest = async (t, {request, render, ?experimental_stream} as config)
         ~renderTitle=?config.renderTitle,
       )
       switch (
-        requestController->ResX__RequestController.getCurrentRedirect,
-        requestController->ResX__RequestController.getCurrentStatus,
+        requestController->RequestController.getCurrentRedirect,
+        requestController->RequestController.getCurrentStatus,
       ) {
       | (Some(url, status), _) => Response.makeRedirect(url, ~status?)
       | (None, status) => Response.makeWithHeaders(content, ~options={headers, status})

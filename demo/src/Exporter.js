@@ -2,7 +2,7 @@
 'use strict';
 
 var Demo = require("./Demo.js");
-var StaticExporter = require("rescript-x/src/StaticExporter.js");
+var StaticExporter$ResX = require("rescript-x/src/StaticExporter.js");
 
 var urls = [
   "/",
@@ -10,7 +10,7 @@ var urls = [
   "/user/1"
 ];
 
-StaticExporter.run(Demo.server, urls);
+StaticExporter$ResX.run(Demo.server, urls);
 
 exports.urls = urls;
 /*  Not a pure module */

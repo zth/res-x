@@ -2,9 +2,9 @@ let port = 4444
 
 let server = Bun.serve({
   port,
-  development: BunUtils.isDev,
+  development: ResX.BunUtils.isDev,
   fetch: async (request, server) => {
-    switch await BunUtils.serveStaticFile(request) {
+    switch await ResX.BunUtils.serveStaticFile(request) {
     | Some(staticResponse) => staticResponse
     | None =>
       await HtmxHandler.handler->ResX.Handlers.handleRequest({
@@ -44,6 +44,6 @@ let portString = server->Bun.Server.port->Int.toString
 
 Console.log(`Listening! on localhost:${portString}`)
 
-if BunUtils.isDev {
-  BunUtils.runDevServer(~port)
+if ResX.BunUtils.isDev {
+  ResX.BunUtils.runDevServer(~port)
 }

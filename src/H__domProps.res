@@ -586,5 +586,5 @@ type domProps = {
   /* HTMX stuff */
   ...Htmx.htmxProps,
   /* ResX stuff */
-  ...ResX__DOM.domProps,
+  ...DOM.domProps,
 }

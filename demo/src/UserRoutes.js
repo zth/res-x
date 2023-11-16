@@ -3,28 +3,28 @@
 
 var UserPage = require("./UserPage.js");
 var FourOhFour = require("./FourOhFour.js");
-var ResX__React = require("rescript-x/src/ResX__React.js");
 var UserFriends = require("./UserFriends.js");
-var ResX__RequestController = require("rescript-x/src/ResX__RequestController.js");
+var ResX__React$ResX = require("rescript-x/src/ResX__React.js");
+var RequestController$ResX = require("rescript-x/src/RequestController.js");
 
 function match(userRoutes, headers, requestController) {
-  ResX__RequestController.appendTitleSegment(requestController, "Users");
+  RequestController$ResX.appendTitleSegment(requestController, "Users");
   if (userRoutes) {
     var userRoutes$1 = userRoutes.tl;
     var userId = userRoutes.hd;
-    ResX__RequestController.appendTitleSegment(requestController, userId);
+    RequestController$ResX.appendTitleSegment(requestController, userId);
     headers.set("Cache-Control", "private");
     var tmp;
-    tmp = userRoutes$1 && userRoutes$1.hd === "friends" && !userRoutes$1.tl ? ResX__React.jsx(UserFriends.make, {
+    tmp = userRoutes$1 && userRoutes$1.hd === "friends" && !userRoutes$1.tl ? ResX__React$ResX.jsx(UserFriends.make, {
             userId: userId
           }) : null;
-    return ResX__React.jsx(UserPage.make, {
+    return ResX__React$ResX.jsx(UserPage.make, {
                 innerContent: tmp,
                 userId: userId
               });
   }
-  ResX__RequestController.appendTitleSegment(requestController, "Not found");
-  return ResX__React.jsx(FourOhFour.make, {});
+  RequestController$ResX.appendTitleSegment(requestController, "Not found");
+  return ResX__React$ResX.jsx(FourOhFour.make, {});
 }
 
 exports.match = match;

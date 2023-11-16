@@ -24,7 +24,7 @@
     "rescript-x": "../",
     "rescript": "11.0.0-rc.5",
     "vite": "^4.4.11",
-    "rescript-bun": "file://Users/zth/Downloads/rescript-bun-0.1.0.tgz"
+    "rescript-bun": "0.1.0"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.16",

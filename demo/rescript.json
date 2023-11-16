@@ -20,6 +20,6 @@
     "-open RescriptCore",
     "-open RescriptBun",
     "-open RescriptBun.Globals",
-    "-open ResXJsx"
+    "-open ResX.Globals"
   ]
 }

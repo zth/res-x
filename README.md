@@ -15,14 +15,28 @@ ResX has an "open hood". That means that it's trying to stay close to the metal,
 ## Demo
 
 _The demo is currently a WIP._
-The `demo/` folder contains a comprehensive example of using ResX.
+The `demo/` will contain a comprehensive example of using ResX.
 
 ## Getting started
 
 First, make sure you have [`Bun`](https://bun.sh) installed and setup. Then, install `rescript-x` and the dependencies needed:
 
 ```bash
-npm i rescript-x vite @rescript/core
+npm i rescript-x vite @rescript/core rescript-bun
+```
+
+Configure our `rescript.json`:
+
+```json
+{
+  "bs-dependencies": ["@rescript/core", "rescript-x", "rescript-bun"],
+  "bsc-flags": [
+    "-open RescriptCore",
+    "-open RescriptBun",
+    "-open RescriptBun.Globals",
+    "-open ResX.Globals"
+  ]
+}
 ```
 
 Go ahead and install the dependencies for Tailwind as well if you want to use it:
@@ -113,16 +127,16 @@ let port = 4444
 
 let server = Bun.serve({
   port,
-  development: BunUtils.isDev,
+  development: ResX.BunUtils.isDev,
   fetch: async (request, server) => {
     open Bun
 
     // Serve static files first
-    switch await BunUtils.serveStaticFile(request) {
+    switch await ResX.BunUtils.serveStaticFile(request) {
     | Some(staticResponse) => staticResponse
     | None =>
       // Handle the request using the ResX handler if this wasn't a static file request.
-      await HtmxHandler.handler->ResX.Handlers.handleRequest({
+      await ResX.HtmxHandler.handler->ResX.Handlers.handleRequest({
         request,
         server,
         setupHeaders: () => {
@@ -160,8 +174,8 @@ let portString = server->Bun.Server.port->Int.toString
 Console.log(`Listening! on localhost:${portString}`)
 
 // Run the dev server, responsible for hot module reloading etc, when in dev mode.
-if BunUtils.isDev {
-  BunUtils.runDevServer(~port)
+if ResX.BunUtils.isDev {
+  ResX.BunUtils.runDevServer(~port)
 }
 ```
 
@@ -199,20 +213,20 @@ switch path {
 
 ## Static assets
 
-ResX comes with full static asset (fonts, images, etc) handling via Vite, that you can use if you want. In order to actually serve the static assets, make sure you use `BunUtils.serveStaticFile` before trying to handle your request in another way:
+ResX comes with full static asset (fonts, images, etc) handling via Vite, that you can use if you want. In order to actually serve the static assets, make sure you use `ResX.BunUtils.serveStaticFile` before trying to handle your request in another way:
 
 ```rescript
 fetch: async (request, server) => {
     open Bun
 
-    switch await BunUtils.serveStaticFile(request) {
+    switch await ResX.BunUtils.serveStaticFile(request) {
     | Some(staticResponse) => staticResponse
     | None =>
-      await HtmxHandler.handler->ResX.Handlers.handleRequest({
+      await ResX.HtmxHandler.handler->ResX.Handlers.handleRequest({
         ...
 ```
 
-`BunUtils.serveStaticFile` check if the request is for a static file, and if it is return a response serving that static file via `Bun`. If it's not a static file request, you continue as usual with serving the response.
+`ResX.BunUtils.serveStaticFile` check if the request is for a static file, and if it is return a response serving that static file via `Bun`. If it's not a static file request, you continue as usual with serving the response.
 
 As for the assets themselves, there are two ways of handling them in ResX:
 
@@ -299,9 +313,9 @@ Now, we can attach and use actions via this handler:
 ```rescript
 // User.res
 let onForm = HtmxHandler.handler->ResX.Handlers.hxPost("/user-single", ~handler=async ({request}) => {
-  let formData = await request->Bun.Request.formData
+  let formData = await request->Request.formData
   try {
-    let name = formData->FormData.expectString("name")
+    let name = formData->ResX.FormDataHelpers.expectString("name")
     <div>{H.string(`Hi ${name}!`)}</div>
   } catch {
   | Exn.Error(err) =>
@@ -314,8 +328,8 @@ let onForm = HtmxHandler.handler->ResX.Handlers.hxPost("/user-single", ~handler=
 let make = () => {
   <form
     hxPost={onForm}
-    hxSwap={Htmx.Swap.make(InnerHTML)}
-    hxTarget={Htmx.Target.make(CssSelector("#user-single"))}>
+    hxSwap={ResX.Htmx.Swap.make(InnerHTML)}
+    hxTarget={ResX.Htmx.Target.make(CssSelector("#user-single"))}>
     <input type_="text" name="name" />
     <div id="user-single">
       {H.string("Hello...")}
@@ -337,10 +351,10 @@ Let's look at the example above and adjust it to work that way instead:
 // User.res
 let onForm = ResX.Handlers.makeHxPostIdentifier("/user-single")
 
-HtmxHandler.handler->ResX.Handlers.implementHxPostIdentifier(onForm, ~handler=async ({request}) => {
-  let formData = await request->Bun.Request.formData
+ResX.HtmxHandler.handler->ResX.Handlers.implementHxPostIdentifier(onForm, ~handler=async ({request}) => {
+  let formData = await request->Request.formData
   try {
-    let name = formData->FormData.expectString("name")
+    let name = formData->ResX.FormDataHelpers.expectString("name")
     <div>{H.string(`Hi ${name}!`)}</div>
   } catch {
   | Exn.Error(err) =>
@@ -353,8 +367,8 @@ HtmxHandler.handler->ResX.Handlers.implementHxPostIdentifier(onForm, ~handler=as
 let make = () => {
   <form
     hxPost={onForm}
-    hxSwap={Htmx.Swap.make(InnerHTML)}
-    hxTarget={Htmx.Target.make(CssSelector("#user-single"))}>
+    hxSwap={ResX.Htmx.Swap.make(InnerHTML)}
+    hxTarget={ResX.Htmx.Target.make(CssSelector("#user-single"))}>
     <input type_="text" name="name" />
     <div id="user-single">
       {H.string("Hello...")}
@@ -377,8 +391,8 @@ All `hx`-attributes have type safe maker-style APIs. Let's look at the example a
 let make = () => {
   <form
     hxPost={onForm}
-    hxSwap={Htmx.Swap.make(InnerHTML)}
-    hxTarget={Htmx.Target.make(CssSelector("#user-single"))}>
+    hxSwap={ResX.Htmx.Swap.make(InnerHTML)}
+    hxTarget={ResX.Htmx.Target.make(CssSelector("#user-single"))}>
     <input type_="text" name="name" />
     <div id="user-single">
       {H.string("Hello...")}
@@ -515,17 +529,17 @@ let make = () => {
 
 ### Error boundaries
 
-Just like in React, you can protect parts of your UI from errors during render using an error boundary, using the `<ErrorBoundary />` component. You need to pass it a `renderError` function, and this function will be called whenever there's an error:
+Just like in React, you can protect parts of your UI from errors during render using an error boundary, using the `<ResX.ErrorBoundary />` component. You need to pass it a `renderError` function, and this function will be called whenever there's an error:
 
 ```rescript
-<ErrorBoundary renderError={err => {
+<ResX.ErrorBoundary renderError={err => {
   Console.error(err)
   <div>{H.string("Oops, this blew up!")}</div>
 }}>
   <div>
     <ComponentThatWillBlowUp />
   </div>
-</ErrorBoundary>
+</ResX.ErrorBoundary>
 ```
 
 You can use as many error boundaries as you want. You're recommended to wrap your entire app with an error boundary as well.
@@ -595,7 +609,7 @@ Cache headers can be a bit confusing. ResX comes with a helper to produce the ca
 
 ```rescript
 // Sets Cache-Control to "public, max-age=86400"
-context.headers->Bun.Headers.set(
+context.headers->Headers.set(
   "Cache-Control",
   ResX.Utils.CacheControl.make(~cacheability=Public, ~expiration=[MaxAge(Days(1.))]),
 )
@@ -623,8 +637,8 @@ let make = () => {
 Setting any other header anywhere when rendering is also easy:
 
 ```rescript
-let context = HtmxHandler.ResX.Handlers.useContext(HtmxHandler.handler)
-context.headers->Bun.Headers.set("Content-Type", "text/html")
+let context = ResX.Handlers.useContext(HtmxHandler.handler)
+context.headers->Headers.set("Content-Type", "text/html")
 ```
 
 ### Advanced: Doc header
@@ -641,8 +655,8 @@ let make = () => {
     Some(`<?xml version="1.0" encoding="UTF-8"?>`),
   )
 
-  context.headers->Bun.Headers.set("Content-Type", "application/xml; charset=UTF-8")
-  context.headers->Bun.Headers.set(
+  context.headers->Headers.set("Content-Type", "application/xml; charset=UTF-8")
+  context.headers->Headers.set(
     "Cache-Control",
     ResX.Utils.CacheControl.make(~cacheability=Public, ~expiration=[MaxAge(Days(1.))]),
   )

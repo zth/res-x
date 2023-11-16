@@ -9,7 +9,7 @@ let wait = () =>
 
 let server = Bun.serve({
   port,
-  development: BunUtils.isDev,
+  development: ResX.BunUtils.isDev,
   fetch: async (_request, _server) => {
     let {readable, writable} = TransformStream.make({
       transform: (chunk, controller) => {

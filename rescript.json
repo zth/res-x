@@ -4,6 +4,7 @@
     "module": "react",
     "version": 4
   },
+  "namespace": "res-x",
   "uncurried": true,
   "name": "rescript-x",
   "sources": {

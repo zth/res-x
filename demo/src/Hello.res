@@ -12,10 +12,10 @@ let onButtonBlick = HtmxHandler.handler->ResX.Handlers.hxPost("/button-click", ~
 }) => {
   try {
     let formData = await request->Request.formData
-    let firstName = formData->FormDataHelpers.expectString("firstName")
-    let lastName = formData->FormDataHelpers.expectString("lastName")
+    let firstName = formData->ResX.FormDataHelpers.expectString("firstName")
+    let lastName = formData->ResX.FormDataHelpers.expectString("lastName")
     let _myvariant =
-      formData->FormDataHelpers.expectCustom("myVariant", ~decoder=myVariantFromString)
+      formData->ResX.FormDataHelpers.expectCustom("myVariant", ~decoder=myVariantFromString)
 
     <span> {H.string("Hi " ++ firstName ++ " " ++ lastName ++ "!")} </span>
   } catch {
@@ -26,7 +26,7 @@ let onButtonBlick = HtmxHandler.handler->ResX.Handlers.hxPost("/button-click", ~
 @react.component
 let make = (~name) => {
   <form action="post">
-    <button hxSwap={Htmx.Swap.make(InnerHTML, ~modifier=Transition)} hxPost={onButtonBlick}>
+    <button hxSwap={ResX.Htmx.Swap.make(InnerHTML, ~modifier=Transition)} hxPost={onButtonBlick}>
       {H.string("Hello " ++ name)}
     </button>
     <input type_="text" name="firstName" value="" />

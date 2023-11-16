@@ -1,4 +1,5 @@
-open ResXJsx
+module React = ResX__React
+module ReactDOM = ResX__ReactDOM
 
 let getScript = (~port) =>
   `(() => {

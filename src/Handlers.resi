@@ -2,7 +2,7 @@ type htmxHandlerConfig<'ctx> = {
   request: Request.t,
   context: 'ctx,
   headers: Headers.t,
-  requestController: ResX__RequestController.t,
+  requestController: RequestController.t,
 }
 
 type htmxHandler<'ctx> = htmxHandlerConfig<'ctx> => promise<Jsx.element>
@@ -43,7 +43,7 @@ type renderConfig<'ctx> = {
   context: 'ctx,
   path: list<string>,
   url: URL.t,
-  requestController: ResX__RequestController.t,
+  requestController: RequestController.t,
 }
 
 let useContext: t<'ctx> => renderConfig<'ctx>
