@@ -1,5 +1,8 @@
 # master
 
+# 0.1.0-alpha.5
+
+- Fix dependency on `rescript-bun`.
 - Add `BunUtils.URLSearchParams.copy` helper.
 - Rename handler creators: `get` -> `hxGet`, `makeGet` -> `makeHxGetIdentifier`, `implementGet` -> `implementHxGetIdentifier`. Same for post/put/delete/patch.
 
