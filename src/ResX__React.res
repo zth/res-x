@@ -1,7 +1,5 @@
 type element = Jsx.element
 
-@module("./vendor/hyperons.js")
-external jsxs: (string, H__domProps.domProps) => Jsx.element = "h"
 type component<'props> = Jsx.component<'props>
 type componentLike<'props, 'return> = Jsx.componentLike<'props, 'return>
 
@@ -11,6 +9,9 @@ type fragmentProps = {children?: element}
 
 @module("./vendor/hyperons.js")
 external jsx: (component<'props>, 'props) => Jsx.element = "h"
+
+@module("./vendor/hyperons.js")
+external jsxs: (component<'props>, 'props) => element = "h"
 
 @val external null: Jsx.element = "null"
 

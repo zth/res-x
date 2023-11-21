@@ -3,17 +3,17 @@
 
 var HyperonsJs = require("./vendor/hyperons.js");
 
-function jsxs(prim0, prim1) {
-  return HyperonsJs.h(prim0, prim1);
-}
-
 var jsxFragment = HyperonsJs.Fragment;
 
 function jsx(prim0, prim1) {
   return HyperonsJs.h(prim0, prim1);
 }
 
-exports.jsxs = jsxs;
+function jsxs(prim0, prim1) {
+  return HyperonsJs.h(prim0, prim1);
+}
+
 exports.jsxFragment = jsxFragment;
 exports.jsx = jsx;
+exports.jsxs = jsxs;
 /* jsxFragment Not a pure module */

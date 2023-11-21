@@ -81,13 +81,13 @@ var server = Bun.serve({
                                       children: "Start page!"
                                     });
                               }
-                              return ResX__React$ResX.jsx(Html.make, {
-                                          children: ResX__ReactDOM$ResX.jsxs("div", {
-                                                children: [
-                                                  ResX__React$ResX.jsx($$Navigation.make, {}),
-                                                  tmp
-                                                ]
-                                              })
+                              return ResX__React$ResX.jsxs(Html.make, {
+                                          children: [
+                                            ResX__React$ResX.jsx($$Navigation.make, {}),
+                                            ResX__ReactDOM$ResX.jsx("div", {
+                                                  children: tmp
+                                                })
+                                          ]
                                         });
                             }
                             

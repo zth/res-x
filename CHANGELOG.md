@@ -1,5 +1,7 @@
 # master
 
+- Fix issue with children in JSX.
+
 # 0.1.0-alpha.5
 
 - Fix dependency on `rescript-bun`.

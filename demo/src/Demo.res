@@ -19,8 +19,8 @@ let server = Bun.serve({
           | appRoutes =>
             requestController->ResX.RequestController.appendTitleSegment("Test App")
             <Html>
+              <Navigation />
               <div>
-                <Navigation />
                 {switch appRoutes {
                 | list{"start" | ""} | list{} =>
                   headers->Headers.set("Cache-Control", "public, immutable, max-age=900")
