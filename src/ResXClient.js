@@ -26,6 +26,8 @@
                             return target.classList.remove(action.className);
                         case "AddClass" :
                             return target.classList.add(action.className);
+                        case "RemoveElement" :
+                            return target.remove();
                         
                       }
                     });

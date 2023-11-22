@@ -25,26 +25,28 @@ type element = {
   "classList": classList,
   "validity": option<validity>,
   "setCustomValidity": string => unit,
+  "remove": unit => unit,
 }
 type event = {"target": element}
 
-external parseActions: string => array<ResX.Client.Actions.action> = "JSON.parse"
-external parseValidityMessage: string => ResX.Client.ValidityMessage.config = "JSON.parse"
+external parseActions: string => array<Client.Actions.action> = "JSON.parse"
+external parseValidityMessage: string => Client.ValidityMessage.config = "JSON.parse"
 
 (
   () => {
-    let getTarget = (target: ResX.Client.Actions.target, this: element): Null.t<element> => {
+    let getTarget = (target: Client.Actions.target, this: element): Null.t<element> => {
       switch target {
       | This => Value(this)
       | CssSelector({selector}) => querySelector(selector)
       }
     }
 
-    let handleAction = (action: ResX.Client.Actions.action, this) => {
+    let handleAction = (action: Client.Actions.action, this) => {
       let target = switch action {
       | ToggleClass({target})
       | RemoveClass({target})
-      | AddClass({target}) =>
+      | AddClass({target})
+      | RemoveElement({target}) =>
         getTarget(target, this)
       }
 
@@ -55,6 +57,7 @@ external parseValidityMessage: string => ResX.Client.ValidityMessage.config = "J
         | ToggleClass({className}) => target["classList"].toggle(className)
         | RemoveClass({className}) => target["classList"].remove(className)
         | AddClass({className}) => target["classList"].add(className)
+        | RemoveElement(_) => target["remove"]()
         }
       }
     }
