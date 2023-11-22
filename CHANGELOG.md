@@ -1,5 +1,7 @@
 # master
 
+# 0.1.0-alpha.7
+
 - Support removing elements with client actions.
 
 # 0.1.0-alpha.6
