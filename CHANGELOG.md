@@ -1,5 +1,7 @@
 # master
 
+- Create target directory if it doesn't already exist.
+
 # 0.1.0-alpha.7
 
 - Support removing elements with client actions.

@@ -227,6 +227,10 @@ function writeIfChanged(p, content) {
   } catch {}
 
   if (currentContent !== content) {
+    const dir = path.dirname(p);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
     fs.writeFileSync(p, content);
   }
 }
