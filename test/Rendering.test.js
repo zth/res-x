@@ -2,6 +2,7 @@
 'use strict';
 
 var Buntest = require("bun:test");
+var Handlers$ResX = require("../src/Handlers.js");
 var TestUtils$ResX = require("./TestUtils.js");
 var ResX__React$ResX = require("../src/ResX__React.js");
 var RenderInHead$ResX = require("../src/RenderInHead.js");
@@ -9,20 +10,41 @@ var ResX__ReactDOM$ResX = require("../src/ResX__ReactDOM.js");
 var RequestController$ResX = require("../src/RequestController.js");
 
 Buntest.describe("rendering", (function () {
-        Buntest.test("render in head", (async function () {
-                var text = await TestUtils$ResX.getContentInBody(function (renderConfig) {
-                      return ResX__React$ResX.jsx(TestUtils$ResX.Html.make, {
-                                  children: ResX__React$ResX.jsx(RenderInHead$ResX.make, {
-                                        children: ResX__ReactDOM$ResX.jsx("meta", {
-                                              content: "test",
-                                              name: "test"
-                                            }),
-                                        requestController: renderConfig.requestController
-                                      })
-                                });
-                    });
-                Buntest.expect(text).toBe("<!DOCTYPE html><html><head><meta content=\"test\" name=\"test\"/></head><body></body></html>");
-              }), undefined);
+        Buntest.describe("render in head", (function () {
+                var make = async function (param) {
+                  var context = Handlers$ResX.useContext(TestUtils$ResX.Handler.handler);
+                  return ResX__React$ResX.jsx(RenderInHead$ResX.make, {
+                              children: ResX__ReactDOM$ResX.jsx("meta", {
+                                    content: "test",
+                                    name: "test"
+                                  }),
+                              requestController: context.requestController
+                            });
+                };
+                var Rendering$dottest = make;
+                Buntest.test("render in head with async component", (async function () {
+                        var text = await TestUtils$ResX.getContentInBody(function (_renderConfig) {
+                              return ResX__React$ResX.jsx(TestUtils$ResX.Html.make, {
+                                          children: ResX__React$ResX.jsx(Rendering$dottest, {})
+                                        });
+                            });
+                        Buntest.expect(text).toBe("<!DOCTYPE html><html><head><meta content=\"test\" name=\"test\"/></head><body></body></html>");
+                      }), undefined);
+                Buntest.test("render in head", (async function () {
+                        var text = await TestUtils$ResX.getContentInBody(function (renderConfig) {
+                              return ResX__React$ResX.jsx(TestUtils$ResX.Html.make, {
+                                          children: ResX__React$ResX.jsx(RenderInHead$ResX.make, {
+                                                children: ResX__ReactDOM$ResX.jsx("meta", {
+                                                      content: "test",
+                                                      name: "test"
+                                                    }),
+                                                requestController: renderConfig.requestController
+                                              })
+                                        });
+                            });
+                        Buntest.expect(text).toBe("<!DOCTYPE html><html><head><meta content=\"test\" name=\"test\"/></head><body></body></html>");
+                      }), undefined);
+              }));
         Buntest.describe("DOCTYPE", (function () {
                 Buntest.test("change DOCTYPE", (async function () {
                         var text = await TestUtils$ResX.getContentInBody(function (renderConfig) {
@@ -39,6 +61,17 @@ Buntest.describe("rendering", (function () {
                                         });
                             });
                         Buntest.expect(text).toBe("<html><head></head><body><div></div></body></html>");
+                      }), undefined);
+              }));
+        Buntest.describe("Security", (function () {
+                Buntest.test("title segments are escaped", (async function () {
+                        var text = await TestUtils$ResX.getContentInBody(function (renderConfig) {
+                              RequestController$ResX.appendTitleSegment(renderConfig.requestController, "</title></head>");
+                              return ResX__React$ResX.jsx(TestUtils$ResX.Html.make, {
+                                          children: ResX__ReactDOM$ResX.jsx("div", {})
+                                        });
+                            });
+                        Buntest.expect(text).toBe("<!DOCTYPE html><html><head><title>&lt;/title&gt;&lt;/head&gt;</title></head><body><div></div></body></html>");
                       }), undefined);
               }));
       }));

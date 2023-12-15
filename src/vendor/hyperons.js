@@ -294,4 +294,11 @@ async function render(element, onChunk) {
 function useContext(instance) {
   return instance.getChildContext(dispatcher.context);
 }
-export { Fragment, createContext, createElement as h, render, useContext };
+export {
+  Fragment,
+  createContext,
+  createElement as h,
+  render,
+  useContext,
+  escapeString,
+};

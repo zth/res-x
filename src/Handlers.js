@@ -7,6 +7,7 @@ var Caml_option = require("rescript/lib/js/caml_option.js");
 var Core__Array = require("@rescript/core/src/Core__Array.js");
 var Core__Option = require("@rescript/core/src/Core__Option.js");
 var Nodeasync_hooks = require("node:async_hooks");
+var HyperonsJs = require("./vendor/hyperons.js");
 var RequestController$ResX = require("./RequestController.js");
 
 function make(requestToContext) {
@@ -27,20 +28,16 @@ function defaultRenderTitle(segments) {
 
 async function renderWithDocType(el, requestController, renderTitleOpt) {
   var renderTitle = renderTitleOpt !== undefined ? renderTitleOpt : defaultRenderTitle;
-  var match = await Promise.all([
-        H$ResX.renderToString(el),
-        RequestController$ResX.getAppendedHeadContent(requestController)
-      ]);
-  var appendToHead = match[1];
-  var content = match[0];
-  var match$1 = RequestController$ResX.getTitleSegments(requestController);
+  var content = await H$ResX.renderToString(el);
+  var appendToHead = await RequestController$ResX.getAppendedHeadContent(requestController);
+  var match = RequestController$ResX.getTitleSegments(requestController);
   var appendToHead$1;
-  if (match$1.length !== 0) {
+  if (match.length !== 0) {
     if (appendToHead !== undefined) {
-      var titleElement = "<title>" + renderTitle(match$1) + "</title>";
+      var titleElement = "<title>" + HyperonsJs.escapeString(renderTitle(match)) + "</title>";
       appendToHead$1 = appendToHead + titleElement;
     } else {
-      appendToHead$1 = "<title>" + renderTitle(match$1) + "</title>";
+      appendToHead$1 = "<title>" + HyperonsJs.escapeString(renderTitle(match)) + "</title>";
     }
   } else {
     appendToHead$1 = appendToHead;

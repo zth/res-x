@@ -1,5 +1,8 @@
 # master
 
+- Escape title segments.
+- Fix bug with races in appending content to `<head>`.
+
 # 0.1.0-alpha.8
 
 - Create target directory if it doesn't already exist.

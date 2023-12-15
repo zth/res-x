@@ -38,24 +38,23 @@ let useContext = t => t.asyncLocalStorage->AsyncHooks.AsyncLocalStorage.getStore
 
 let defaultRenderTitle = segments => segments->Array.joinWith(" | ")
 
+@module("./vendor/hyperons.js")
+external escapeString: string => string = "escapeString"
+
 let renderWithDocType = async (
   el,
   ~requestController: RequestController.t,
   ~renderTitle=defaultRenderTitle,
 ) => {
-  let (content, appendToHead) = await Promise.all2((
-    H.renderToString(el),
-    requestController->RequestController.getAppendedHeadContent,
-  ))
-
-  // TODO: Escape? Hyperons has something
+  let content = await H.renderToString(el)
+  let appendToHead = await requestController->RequestController.getAppendedHeadContent
 
   let appendToHead = switch (appendToHead, requestController->RequestController.getTitleSegments) {
   | (appendToHead, []) => appendToHead
   | (Some(appendToHead), titleSegments) =>
-    let titleElement = `<title>${renderTitle(titleSegments)}</title>`
+    let titleElement = `<title>${renderTitle(titleSegments)->escapeString}</title>`
     Some(appendToHead ++ titleElement)
-  | (None, titleSegments) => Some(`<title>${renderTitle(titleSegments)}</title>`)
+  | (None, titleSegments) => Some(`<title>${renderTitle(titleSegments)->escapeString}</title>`)
   }
 
   let content = switch appendToHead {
