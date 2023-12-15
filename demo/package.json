@@ -18,11 +18,11 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@rescript/core": "^0.5.0",
+    "@rescript/core": "^0.6.0",
     "concurrently": "^8.2.1",
     "fast-glob": "^3.3.1",
     "rescript-x": "../",
-    "rescript": "11.0.0-rc.5",
+    "rescript": "11.0.0-rc.7",
     "vite": "^4.4.11",
     "rescript-bun": "0.1.0"
   },
