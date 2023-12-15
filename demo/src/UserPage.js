@@ -130,7 +130,7 @@ function UserPage(props) {
                               children: ResX__React$ResX.jsx(FailingComponent.make, {}),
                               renderError: (function (err) {
                                   return ResX__ReactDOM$ResX.jsx("div", {
-                                              children: "Oops, failed! " + Core__Option.getWithDefault(err.message, "-")
+                                              children: "Oops, failed! " + Core__Option.getOr(err.message, "-")
                                             });
                                 })
                             })

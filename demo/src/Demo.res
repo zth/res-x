@@ -3,13 +3,12 @@ let port = 4444
 let server = Bun.serve({
   port,
   development: ResX.BunUtils.isDev,
-  fetch: async (request, server) => {
+  fetch: async (request, _server) => {
     switch await ResX.BunUtils.serveStaticFile(request) {
     | Some(staticResponse) => staticResponse
     | None =>
       await HtmxHandler.handler->ResX.Handlers.handleRequest({
         request,
-        server,
         setupHeaders: () => {
           Headers.make(~init=FromArray([("Content-Type", "text/html")]))
         },

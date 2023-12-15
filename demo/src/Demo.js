@@ -17,14 +17,13 @@ var RequestController$ResX = require("rescript-x/src/RequestController.js");
 var server = Bun.serve({
       development: BunUtils$ResX.isDev,
       port: 4444,
-      fetch: (async function (request, server) {
+      fetch: (async function (request, _server) {
           var staticResponse = await BunUtils$ResX.serveStaticFile(request);
           if (staticResponse !== undefined) {
             return Caml_option.valFromOption(staticResponse);
           } else {
             return await Handlers$ResX.handleRequest(HtmxHandler.handler, {
                         request: request,
-                        server: server,
                         render: (async function (param) {
                             var requestController = param.requestController;
                             var path = param.path;
