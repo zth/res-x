@@ -66,15 +66,25 @@ let renderWithDocType = async (
 }
 let defaultHeaders = [("Content-Type", "text/html")]
 
+type onBeforeSendResponse<'ctx> = {
+  request: Request.t,
+  response: Response.t,
+  context: 'ctx,
+}
+
 type handleRequestConfig<'ctx> = {
   request: Request.t,
   render: renderConfig<'ctx> => promise<Jsx.element>,
   setupHeaders?: unit => Headers.t,
   renderTitle?: array<string> => string,
   experimental_stream?: bool,
+  onBeforeSendResponse?: onBeforeSendResponse<'ctx> => promise<Response.t>,
 }
 
-let handleRequest = async (t, {request, render, ?experimental_stream} as config) => {
+let handleRequest = async (
+  t,
+  {request, render, ?experimental_stream, ?onBeforeSendResponse} as config,
+) => {
   let stream = experimental_stream->Option.getOr(false)
 
   let url = request->Request.url->URL.make
@@ -136,25 +146,34 @@ let handleRequest = async (t, {request, render, ?experimental_stream} as config)
       })
       ->Promise.done
 
-      Response.makeFromReadableStream(
+      let response = Response.makeFromReadableStream(
         readable,
         ~options={
           status: 200,
           headers: FromArray([("Content-Type", "text/html")]),
         },
       )
+
+      switch onBeforeSendResponse {
+      | Some(onBeforeSendResponse) => await onBeforeSendResponse({response, context: ctx, request})
+      | None => response
+      }
     } else {
       let content = await renderWithDocType(
         content,
         ~requestController,
         ~renderTitle=?config.renderTitle,
       )
-      switch (
+      let response = switch (
         requestController->RequestController.getCurrentRedirect,
         requestController->RequestController.getCurrentStatus,
       ) {
       | (Some(url, status), _) => Response.makeRedirect(url, ~status?)
       | (None, status) => Response.makeWithHeaders(content, ~options={headers, status})
+      }
+      switch onBeforeSendResponse {
+      | Some(onBeforeSendResponse) => await onBeforeSendResponse({response, context: ctx, request})
+      | None => response
       }
     }
   })

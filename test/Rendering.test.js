@@ -2,6 +2,7 @@
 'use strict';
 
 var Buntest = require("bun:test");
+var Caml_option = require("rescript/lib/js/caml_option.js");
 var Handlers$ResX = require("../src/Handlers.js");
 var TestUtils$ResX = require("./TestUtils.js");
 var ResX__React$ResX = require("../src/ResX__React.js");
@@ -72,6 +73,40 @@ Buntest.describe("rendering", (function () {
                                         });
                             });
                         Buntest.expect(text).toBe("<!DOCTYPE html><html><head><title>&lt;/title&gt;&lt;/head&gt;</title></head><body><div></div></body></html>");
+                      }), undefined);
+              }));
+        Buntest.describe("hooks", (function () {
+                Buntest.test("onBeforeSendResponse change status", (async function () {
+                        var response = await TestUtils$ResX.getResponse((function (_renderConfig) {
+                                return ResX__React$ResX.jsx(TestUtils$ResX.Html.make, {
+                                            children: ResX__ReactDOM$ResX.jsx("div", {
+                                                  children: "Hi!"
+                                                })
+                                          });
+                              }), (async function (config) {
+                                return new Response(await config.response.text(), {
+                                            status: 400,
+                                            headers: config.response.headers.toJSON()
+                                          });
+                              }));
+                        var status = response.status;
+                        var text = await response.text();
+                        Buntest.expect(status).toBe(400);
+                        Buntest.expect(text).toBe("<!DOCTYPE html><html><head></head><body><div>Hi!</div></body></html>");
+                      }), undefined);
+                Buntest.test("onBeforeSendResponse set header", (async function () {
+                        var response = await TestUtils$ResX.getResponse((function (_renderConfig) {
+                                return ResX__React$ResX.jsx(TestUtils$ResX.Html.make, {
+                                            children: ResX__ReactDOM$ResX.jsx("div", {
+                                                  children: "Hi!"
+                                                })
+                                          });
+                              }), (async function (config) {
+                                config.response.headers.set("x-user-id", "1");
+                                return config.response;
+                              }));
+                        var userIdHeader = response.headers.get("x-user-id");
+                        Buntest.expect((userIdHeader == null) ? undefined : Caml_option.some(userIdHeader)).toBe("1");
                       }), undefined);
               }));
       }));

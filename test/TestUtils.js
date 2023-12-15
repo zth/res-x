@@ -61,7 +61,7 @@ var Html = {
   make: TestUtils$Html
 };
 
-async function getResponse(getContent) {
+async function getResponse(getContent, onBeforeSendResponse) {
   var match = getPort();
   var port = match[0];
   var server = Bun.serve({
@@ -78,7 +78,8 @@ async function getResponse(getContent) {
                                           "Content-Type",
                                           "text/html"
                                         ]]);
-                          })
+                          }),
+                        onBeforeSendResponse: onBeforeSendResponse
                       });
           })
       });
@@ -116,7 +117,7 @@ async function getResponse(getContent) {
 }
 
 async function getContentInBody(getContent) {
-  var content = await getResponse(getContent);
+  var content = await getResponse(getContent, undefined);
   return await content.text();
 }
 

@@ -48,12 +48,19 @@ type renderConfig<'ctx> = {
 
 let useContext: t<'ctx> => renderConfig<'ctx>
 
+type onBeforeSendResponse<'ctx> = {
+  request: Request.t,
+  response: Response.t,
+  context: 'ctx,
+}
+
 type handleRequestConfig<'ctx> = {
   request: Request.t,
   render: renderConfig<'ctx> => promise<Jsx.element>,
   setupHeaders?: unit => Headers.t,
   renderTitle?: array<string> => string,
   experimental_stream?: bool,
+  onBeforeSendResponse?: onBeforeSendResponse<'ctx> => promise<Response.t>,
 }
 
 let handleRequest: (t<'ctx>, handleRequestConfig<'ctx>) => promise<Response.t>

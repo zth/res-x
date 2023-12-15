@@ -1,5 +1,7 @@
 # master
 
+- Add `onBeforeSendResponse` hook.
+
 # 0.1.0-alpha.9
 
 - Escape title segments.

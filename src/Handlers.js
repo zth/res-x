@@ -52,6 +52,7 @@ var defaultHeaders = [[
   ]];
 
 async function handleRequest(t, config) {
+  var onBeforeSendResponse = config.onBeforeSendResponse;
   var render = config.render;
   var request = config.request;
   var stream = Core__Option.getOr(config.experimental_stream, false);
@@ -99,24 +100,38 @@ async function handleRequest(t, config) {
                           })).then(function () {
                         return writer.close();
                       });
-                  return new Response(match.readable, {
-                              status: 200,
-                              headers: [[
-                                  "Content-Type",
-                                  "text/html"
-                                ]]
-                            });
+                  var response = new Response(match.readable, {
+                        status: 200,
+                        headers: [[
+                            "Content-Type",
+                            "text/html"
+                          ]]
+                      });
+                  if (onBeforeSendResponse !== undefined) {
+                    return await onBeforeSendResponse({
+                                request: request,
+                                response: response,
+                                context: ctx
+                              });
+                  } else {
+                    return response;
+                  }
                 }
                 var content$1 = await renderWithDocType(content, requestController, config.renderTitle);
                 var match$1 = RequestController$ResX.getCurrentRedirect(requestController);
                 var match$2 = RequestController$ResX.getCurrentStatus(requestController);
-                if (match$1 !== undefined) {
-                  return Response.redirect(match$1[0], Caml_option.option_get(match$1[1]));
-                } else {
-                  return new Response(content$1, {
-                              status: match$2,
-                              headers: Caml_option.some(headers)
+                var response$1 = match$1 !== undefined ? Response.redirect(match$1[0], Caml_option.option_get(match$1[1])) : new Response(content$1, {
+                        status: match$2,
+                        headers: Caml_option.some(headers)
+                      });
+                if (onBeforeSendResponse !== undefined) {
+                  return await onBeforeSendResponse({
+                              request: request,
+                              response: response$1,
+                              context: ctx
                             });
+                } else {
+                  return response$1;
                 }
               }));
 }

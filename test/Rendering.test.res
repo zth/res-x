@@ -104,4 +104,56 @@ describe("rendering", () => {
       },
     )
   })
+
+  describe("hooks", () => {
+    testAsync(
+      "onBeforeSendResponse change status",
+      async () => {
+        let response = await getResponse(
+          _renderConfig => {
+            <Html>
+              <div> {H.string("Hi!")} </div>
+            </Html>
+          },
+          ~onBeforeSendResponse=async config => {
+            Response.make(
+              await config.response->Response.text,
+              ~options={
+                status: 400,
+                headers: FromDict(config.response->Response.headers->Headers.toJSON),
+              },
+            )
+          },
+        )
+
+        let status = response->Response.status
+        let text = await response->Response.text
+
+        expect(status)->Expect.toBe(400)
+        expect(
+          text,
+        )->Expect.toBe(`<!DOCTYPE html><html><head></head><body><div>Hi!</div></body></html>`)
+      },
+    )
+
+    testAsync(
+      "onBeforeSendResponse set header",
+      async () => {
+        let response = await getResponse(
+          _renderConfig => {
+            <Html>
+              <div> {H.string("Hi!")} </div>
+            </Html>
+          },
+          ~onBeforeSendResponse=async config => {
+            config.response->Response.headers->Headers.set("x-user-id", "1")
+            config.response
+          },
+        )
+
+        let userIdHeader = response->Response.headers->Headers.get("x-user-id")
+        expect(userIdHeader)->Expect.toBe(Some("1"))
+      },
+    )
+  })
 })

@@ -547,6 +547,30 @@ You can use as many error boundaries as you want. You're recommended to wrap you
 
 ResX ships with a number of conveniences for handling common things when building responses for requests.
 
+### `onBeforeSendResponse` hook for manipulating the final response before sending it
+
+ResX tries to ship with as few "hooks" and similar concepts as possible. You're encouraged to mold your application as you see if, in order to keep as much control as possible.
+
+But, we still do ship a few conveniences. The `onBeforeSendResponse` hook is one of them. It lets you manipulate the response you're producing one last time before sending it to the client. Let's look at an example of overriding any cache header set when the user is logged in:
+
+```rescript
+await ResX.HtmxHandler.handler->ResX.Handlers.handleRequest({
+  request,
+  onBeforeSendResponse: ({context, response, request}) => {
+    // Change (or replace) the final response here.
+    if context.isLoggedIn {
+      response->Response.headers->Headers.set("Cache-Control", "no-store, no-cache"))
+    }
+
+    response
+  },
+  render: async ({path, requestController, headers}) => {
+    // This handles the actual request.
+    ...
+```
+
+This way, you can conveniently make sure that no logged in pages are cached, and so on.
+
 ### `<title>` integration
 
 It's nice to be able to set the `<title>` incrementally as you render your app. But, `<title>` belongs in `<head>` and when you render `<head>` you probably don't have everything you need to produce the title you want.

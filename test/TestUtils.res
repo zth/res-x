@@ -46,7 +46,7 @@ module Html = {
   }
 }
 
-let getResponse = async getContent => {
+let getResponse = async (getContent, ~onBeforeSendResponse=?) => {
   let (port, unsubPort) = getPort()
 
   let server = Bun.serve({
@@ -61,6 +61,7 @@ let getResponse = async getContent => {
         render: async renderConfig => {
           getContent(renderConfig)
         },
+        ?onBeforeSendResponse,
       })
     },
   })
