@@ -1,5 +1,7 @@
 # master
 
+# 0.1.0-alpha.9
+
 - Escape title segments.
 - Fix bug with races in appending content to `<head>`.
 
