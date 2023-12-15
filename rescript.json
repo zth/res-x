@@ -7,9 +7,15 @@
   "namespace": "res-x",
   "uncurried": true,
   "name": "rescript-x",
-  "sources": {
-    "dir": "src"
-  },
+  "sources": [
+    {
+      "dir": "src"
+    },
+    {
+      "dir": "test",
+      "type": "dev"
+    }
+  ],
   "package-specs": {
     "module": "commonjs",
     "in-source": true

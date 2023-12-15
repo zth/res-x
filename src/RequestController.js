@@ -39,7 +39,7 @@ function getTitleSegments(t) {
 }
 
 function getDocHeader(t) {
-  return Core__Option.getWithDefault(t.docHeader, "");
+  return Core__Option.getOr(t.docHeader, "");
 }
 
 function setDocHeader(t, docHeader) {

@@ -103,7 +103,7 @@ module Headers: {
   let make: Dict.t<string> => t
 } = {
   type t = string
-  let make = (dict: Dict.t<string>) => dict->JSON.stringifyAny->Option.getWithDefault("{}")
+  let make = (dict: Dict.t<string>) => dict->JSON.stringifyAny->Option.getOr("{}")
 }
 
 type hxSyncStrategyQueueModifier =

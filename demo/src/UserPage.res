@@ -83,7 +83,7 @@ let make = (~innerContent, ~userId) => {
       </div>
       <ResX.ErrorBoundary
         renderError={err => {
-          <div> {H.string("Oops, failed! " ++ err->Exn.message->Option.getWithDefault("-"))} </div>
+          <div> {H.string("Oops, failed! " ++ err->Exn.message->Option.getOr("-"))} </div>
         }}>
         <FailingComponent />
       </ResX.ErrorBoundary>

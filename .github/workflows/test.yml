@@ -41,3 +41,6 @@ jobs:
       - name: Build Playground
         working-directory: ./demo
         run: bun run build
+
+      - name: Run tests
+        run: bun run test

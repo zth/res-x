@@ -57,7 +57,7 @@ var defaultHeaders = [[
 async function handleRequest(t, config) {
   var render = config.render;
   var request = config.request;
-  var stream = Core__Option.getWithDefault(config.experimental_stream, false);
+  var stream = Core__Option.getOr(config.experimental_stream, false);
   var url = new URL(request.url);
   var pathname = url.pathname;
   var targetHandler = Core__Array.findMap(t.handlers, (function (param) {

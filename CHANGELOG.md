@@ -1,6 +1,7 @@
 # master
 
 - Create target directory if it doesn't already exist.
+- Remove unused `server` in `renderConfig`.
 
 # 0.1.0-alpha.7
 

@@ -20,7 +20,7 @@ let redirect = (t, url, ~status=?) => {
 let getCurrentStatus = t => t.status
 let getCurrentRedirect = t => t.redirect
 let getTitleSegments = t => t.titleSegments->Array.copy
-let getDocHeader = t => t.docHeader->Option.getWithDefault("")
+let getDocHeader = t => t.docHeader->Option.getOr("")
 let setDocHeader = (t, docHeader) => t.docHeader = docHeader
 let appendToHead = (t, content) => t.headContent->Array.push(content)
 let appendTitleSegment = (t, segment) => t.titleSegments->Array.push(segment)

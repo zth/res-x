@@ -69,7 +69,6 @@ let defaultHeaders = [("Content-Type", "text/html")]
 
 type handleRequestConfig<'ctx> = {
   request: Request.t,
-  server: Bun.Server.t,
   render: renderConfig<'ctx> => promise<Jsx.element>,
   setupHeaders?: unit => Headers.t,
   renderTitle?: array<string> => string,
@@ -77,7 +76,7 @@ type handleRequestConfig<'ctx> = {
 }
 
 let handleRequest = async (t, {request, render, ?experimental_stream} as config) => {
-  let stream = experimental_stream->Option.getWithDefault(false)
+  let stream = experimental_stream->Option.getOr(false)
 
   let url = request->Request.url->URL.make
   let pathname = url->URL.pathname

@@ -96,7 +96,7 @@ var Indicator = {
 };
 
 function make$5(dict) {
-  return Core__Option.getWithDefault(JSON.stringify(dict), "{}");
+  return Core__Option.getOr(JSON.stringify(dict), "{}");
 }
 
 var $$Headers = {

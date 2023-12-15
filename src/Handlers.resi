@@ -50,7 +50,6 @@ let useContext: t<'ctx> => renderConfig<'ctx>
 
 type handleRequestConfig<'ctx> = {
   request: Request.t,
-  server: Bun.Server.t,
   render: renderConfig<'ctx> => promise<Jsx.element>,
   setupHeaders?: unit => Headers.t,
   renderTitle?: array<string> => string,
