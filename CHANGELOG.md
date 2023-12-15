@@ -1,5 +1,7 @@
 # master
 
+# 0.1.0-alpha.8
+
 - Create target directory if it doesn't already exist.
 - Remove unused `server` in `renderConfig`.
 
