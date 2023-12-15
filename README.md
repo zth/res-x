@@ -138,7 +138,6 @@ let server = Bun.serve({
       // Handle the request using the ResX handler if this wasn't a static file request.
       await ResX.HtmxHandler.handler->ResX.Handlers.handleRequest({
         request,
-        server,
         setupHeaders: () => {
           // You can do any basic headers setup here that you want. These can be overwritten easily by your main application regardless of what you set here.
           Headers.makeWithInit(FromArray([("Content-Type", "text/html")]))
@@ -585,6 +584,17 @@ It's not just `<title>` that might be inconvenient to have to produce as you're 
 ```rescript
 // SingleUser.res
 context.requestController->ResX.RequestController.appendToHead(<link href={ResXAssets.assets.single_user_page_styles_css} rel="text/stylesheet" />)
+```
+
+There's also a component you can use to render things into head. This component can be rendered anywhere in the component tree and the content will still be rendered in `<head>`:
+
+```rescript
+// SingleUser.res
+<div>
+  <ResX.RenderInHead>
+    <link href={ResXAssets.assets.single_user_page_styles_css} rel="text/stylesheet" />
+  </ResX.RenderInHead>
+</div>
 ```
 
 ### Redirects
