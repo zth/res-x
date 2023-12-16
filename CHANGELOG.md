@@ -1,5 +1,7 @@
 # master
 
+# 0.1.0-alpha.10
+
 - Add `onBeforeSendResponse` hook.
 
 # 0.1.0-alpha.9
