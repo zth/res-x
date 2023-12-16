@@ -21,5 +21,3 @@ let make = () => {
     </url>
   </urlset>
 }
-
-Console.log(ResX.Utils.CacheControl.make(~cacheability=Public, ~expiration=[MaxAge(Days(1.))]))
