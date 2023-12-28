@@ -38,15 +38,7 @@ function SiteMap(props) {
             });
 }
 
-console.log(Utils$ResX.CacheControl.make(undefined, "public", [{
-            kind: "max-age",
-            _0: {
-              TAG: "Days",
-              _0: 1
-            }
-          }], undefined, undefined, undefined));
-
 var make = SiteMap;
 
 exports.make = make;
-/*  Not a pure module */
+/* Utils-ResX Not a pure module */

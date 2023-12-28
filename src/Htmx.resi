@@ -98,26 +98,26 @@ module Vals: {
 }
 
 type hxInheritedAttributes =
-  | Swap
-  | Boost
-  | PushUrl
-  | ReplaceUrl
-  | Select
-  | SelectOob
-  | Params
-  | Prompt
-  | Validate
-  | Confirm
-  | Disable
-  | Encoding
-  | Indicator
-  | History
-  | HistoryElt
-  | Include
-  | Headers
-  | Sync
-  | Vals
-  | Preserve
+  | @as("hx-swap") Swap
+  | @as("hx-boost") Boost
+  | @as("hx-push-url") PushUrl
+  | @as("hx-replace-url") ReplaceUrl
+  | @as("hx-select") Select
+  | @as("hx-select-oob") SelectOob
+  | @as("hx-params") Params
+  | @as("hx-prompt") Prompt
+  | @as("hx-validate") Validate
+  | @as("hx-confirm") Confirm
+  | @as("hx-disable") Disable
+  | @as("hx-encoding") Encoding
+  | @as("hx-indicator") Indicator
+  | @as("hx-history") History
+  | @as("hx-history-elt") HistoryElt
+  | @as("hx-include") Include
+  | @as("hx-headers") Headers
+  | @as("hx-sync") Sync
+  | @as("hx-vals") Vals
+  | @as("hx-preserve") Preserve
 
 type hxDisinherit = All | Attributes(array<hxInheritedAttributes>)
 
