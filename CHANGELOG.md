@@ -1,5 +1,7 @@
 # master
 
+# 0.1.0-beta.1
+
 - Upgrade `rescript-bun` to `0.3.0`.
 
 # 0.1.0-alpha.10
