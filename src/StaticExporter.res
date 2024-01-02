@@ -40,14 +40,13 @@ let run = async (server: Server.t, ~urls: array<string>) => {
 
         switch dirStructure {
         | [] => ()
-        | dirStructure =>
-          await Fs.mkdir(dirStructure->Array.joinWith("/"), ~options={recursive: true})
+        | dirStructure => await Fs.mkdir(dirStructure->Array.joinWith("/"), {recursive: true})
         }
 
         dirStructure->Array.push(fileName)
         let filePath = dirStructure->Array.joinWith("/")
 
-        await Fs.writeFile(filePath, await res->Response.text)
+        Fs.writeFileSync(filePath, (await res->Response.arrayBuffer)->Buffer.fromArrayBuffer)
         log(`[export] ${url} - Wrote ${filePath}.`)
 
       | otherStatus => Console.error(url ++ " gave status " ++ otherStatus->Int.toString)
