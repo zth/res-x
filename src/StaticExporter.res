@@ -46,7 +46,11 @@ let run = async (server: Server.t, ~urls: array<string>) => {
         dirStructure->Array.push(fileName)
         let filePath = dirStructure->Array.joinWith("/")
 
-        Fs.writeFileSync(filePath, (await res->Response.arrayBuffer)->Buffer.fromArrayBuffer)
+        let _ = await Bun.Write.writeResponseToFile(
+          ~file=dirStructure->Array.joinWith("/")->Bun.file,
+          ~response=res,
+        )
+
         log(`[export] ${url} - Wrote ${filePath}.`)
 
       | otherStatus => Console.error(url ++ " gave status " ++ otherStatus->Int.toString)

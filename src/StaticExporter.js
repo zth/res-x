@@ -43,7 +43,7 @@ async function run(server, urls) {
             }
             dirStructure.push(match[1]);
             var filePath = dirStructure.join("/");
-            Nodefs.writeFileSync(filePath, Buffer.from(await res.arrayBuffer()));
+            await Bun.write(Bun.file(dirStructure.join("/"), undefined), res);
             console.log("[info]", "[export] " + url + " - Wrote " + filePath + ".");
           }));
   console.log("[info]", "Done.");
