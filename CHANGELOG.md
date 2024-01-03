@@ -1,5 +1,7 @@
 # master
 
+# 0.1.0-beta.3
+
 - Add `renderSyncToString` API.
 
 # 0.1.0-beta.2
