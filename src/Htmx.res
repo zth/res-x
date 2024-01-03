@@ -318,4 +318,9 @@ type htmxProps = {
   hxTarget?: Target.t,
   @as("data-hx-target")
   rawHxTarget?: string,
+  /** https://htmx.org/attributes/hx-trigger/ */
+  @as("hx-trigger")
+  hxTrigger?: string,
+  @as("data-hx-trigger")
+  rawHxTrigger?: string,
 }

@@ -1,5 +1,7 @@
 # master
 
+- Bind basic version of `hxTarget`.
+
 # 0.1.0-beta.1
 
 - Upgrade `rescript-bun` to `0.3.0`.
