@@ -291,6 +291,15 @@ async function render(element, onChunk) {
     return res;
   }
 }
+function renderSync(element) {
+  const controller = makeController();
+  renderToString(element, {}, controller);
+  if (controller.hasAsync) {
+    throw new Error("Tried to render async tree sync.");
+  } else {
+    return controller.content.join("");
+  }
+}
 function useContext(instance) {
   return instance.getChildContext(dispatcher.context);
 }
@@ -299,6 +308,7 @@ export {
   createContext,
   createElement as h,
   render,
+  renderSync,
   useContext,
   escapeString,
 };

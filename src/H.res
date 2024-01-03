@@ -8,6 +8,11 @@ external array: array<Jsx.element> => Jsx.element = "%identity"
 @module("./vendor/hyperons.js")
 external renderToString: Jsx.element => promise<string> = "render"
 
+/** Renders a subtree to content. Throws if the subtree is asynchronous. */
+@module("./vendor/hyperons.js")
+@raises(Js.Exn.t)
+external renderSyncToString: Jsx.element => string = "renderSync"
+
 @module("./vendor/hyperons.js")
 external renderToStream: (Jsx.element, ~onChunk: string => unit=?) => promise<unit> = "render"
 

@@ -8,6 +8,10 @@ function renderToString(prim) {
   return HyperonsJs.render(prim);
 }
 
+function renderSyncToString(prim) {
+  return HyperonsJs.renderSync(prim);
+}
+
 function renderToStream(prim0, prim1) {
   return HyperonsJs.render(prim0, prim1 !== undefined ? Caml_option.valFromOption(prim1) : undefined);
 }
@@ -34,6 +38,7 @@ var Fragment = {
 };
 
 exports.renderToString = renderToString;
+exports.renderSyncToString = renderSyncToString;
 exports.renderToStream = renderToStream;
 exports.Context = Context;
 exports.Fragment = Fragment;
