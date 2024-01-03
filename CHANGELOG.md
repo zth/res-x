@@ -1,5 +1,7 @@
 # master
 
+# 0.1.0-beta.2
+
 - Bind basic version of `hxTarget`.
 
 # 0.1.0-beta.1
