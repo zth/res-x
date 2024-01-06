@@ -1,5 +1,7 @@
 # master
 
+- Alias `domProps` in the right place so we get completion.
+
 # 0.1.0-beta.3
 
 - Add `renderSyncToString` API.
