@@ -88,7 +88,7 @@ Buntest.describe("rendering", (function () {
                                             status: 400,
                                             headers: config.response.headers.toJSON()
                                           });
-                              }));
+                              }), undefined);
                         var status = response.status;
                         var text = await response.text();
                         Buntest.expect(status).toBe(400);
@@ -104,7 +104,7 @@ Buntest.describe("rendering", (function () {
                               }), (async function (config) {
                                 config.response.headers.set("x-user-id", "1");
                                 return config.response;
-                              }));
+                              }), undefined);
                         var userIdHeader = response.headers.get("x-user-id");
                         Buntest.expect((userIdHeader == null) ? undefined : Caml_option.some(userIdHeader)).toBe("1");
                       }), undefined);

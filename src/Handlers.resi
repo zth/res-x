@@ -15,7 +15,17 @@ type hxPut
 type hxPatch
 type hxDelete
 
-let make: (~requestToContext: Request.t => promise<'ctx>) => t<'ctx>
+type options = {
+  /** 
+   Prefix for the API routes of any HTMX handlers. 
+   This is opaque to your code, and serves as a guard against accidentally overwriting other routes with your handlers.
+
+   @default "/_api"
+   */
+  htmxApiPrefix?: string,
+}
+
+let make: (~requestToContext: Request.t => promise<'ctx>, ~options: options=?) => t<'ctx>
 
 let hxGet: (t<'ctx>, string, ~handler: htmxHandler<'ctx>) => hxGet
 let makeHxGetIdentifier: string => hxGet

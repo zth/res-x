@@ -8,9 +8,9 @@ var Handlers$ResX = require("../src/Handlers.js");
 var Caml_js_exceptions = require("rescript/lib/js/caml_js_exceptions.js");
 var ResX__ReactDOM$ResX = require("../src/ResX__ReactDOM.js");
 
-var handler = Handlers$ResX.make(async function (_req) {
-      
-    });
+var handler = Handlers$ResX.make((async function (_req) {
+        
+      }), undefined);
 
 var Handler = {
   handler: handler
@@ -61,7 +61,8 @@ var Html = {
   make: TestUtils$Html
 };
 
-async function getResponse(getContent, onBeforeSendResponse) {
+async function getResponse(getContent, onBeforeSendResponse, urlOpt) {
+  var url = urlOpt !== undefined ? urlOpt : "/";
   var match = getPort();
   var port = match[0];
   var server = Bun.serve({
@@ -87,7 +88,7 @@ async function getResponse(getContent, onBeforeSendResponse) {
   var exit = 0;
   var res$1;
   try {
-    res$1 = await fetch("http://localhost:" + port.toString() + "/", undefined);
+    res$1 = await fetch("http://localhost:" + port.toString() + url, undefined);
     exit = 1;
   }
   catch (raw_exn){
@@ -117,7 +118,7 @@ async function getResponse(getContent, onBeforeSendResponse) {
 }
 
 async function getContentInBody(getContent) {
-  var content = await getResponse(getContent, undefined);
+  var content = await getResponse(getContent, undefined, undefined);
   return await content.text();
 }
 

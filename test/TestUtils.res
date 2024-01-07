@@ -46,7 +46,7 @@ module Html = {
   }
 }
 
-let getResponse = async (getContent, ~onBeforeSendResponse=?) => {
+let getResponse = async (getContent, ~onBeforeSendResponse=?, ~url="/") => {
   let (port, unsubPort) = getPort()
 
   let server = Bun.serve({
@@ -66,7 +66,7 @@ let getResponse = async (getContent, ~onBeforeSendResponse=?) => {
     },
   })
 
-  let res = switch await fetch(`http://localhost:${port->Int.toString}/`) {
+  let res = switch await fetch(`http://localhost:${port->Int.toString}${url}`) {
   | res => Ok(res)
   | exception Exn.Error(_) => Error("Failed to fetch.")
   }

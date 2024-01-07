@@ -20,6 +20,7 @@ type t<'ctx> = {
   handlers: array<(method, string, htmxHandler<'ctx>)>,
   requestToContext: Request.t => promise<'ctx>,
   asyncLocalStorage: AsyncHooks.AsyncLocalStorage.t<renderConfig<'ctx>>,
+  htmxApiPrefix: string,
 }
 
 type hxGet = string
@@ -28,10 +29,15 @@ type hxPut = string
 type hxPatch = string
 type hxDelete = string
 
-let make = (~requestToContext) => {
+type options = {htmxApiPrefix?: string}
+
+let make = (~requestToContext, ~options=?) => {
   handlers: [],
   requestToContext,
   asyncLocalStorage: AsyncHooks.AsyncLocalStorage.make(),
+  htmxApiPrefix: options
+  ->Option.flatMap(options => options.htmxApiPrefix)
+  ->Option.getOr("/_api"),
 }
 
 let useContext = t => t.asyncLocalStorage->AsyncHooks.AsyncLocalStorage.getStoreUnsafe
@@ -180,58 +186,58 @@ let handleRequest = async (
 }
 
 let hxGet = (t, path, ~handler) => {
-  t.handlers->Array.push((GET, path, handler))
+  t.handlers->Array.push((GET, t.htmxApiPrefix ++ path, handler))
   path
 }
 let makeHxGetIdentifier = path => {
   path
 }
 let implementHxGetIdentifier = (t, path, ~handler) => {
-  let _: hxGet = hxGet(t, path, ~handler)
+  let _: hxGet = hxGet(t, t.htmxApiPrefix ++ path, ~handler)
 }
 
 let hxPost = (t, path, ~handler) => {
-  t.handlers->Array.push((POST, path, handler))
+  t.handlers->Array.push((POST, t.htmxApiPrefix ++ path, handler))
   path
 }
 let makeHxPostIdentifier = path => {
   path
 }
 let implementHxPostIdentifier = (t, path, ~handler) => {
-  let _: hxPost = hxPost(t, path, ~handler)
+  let _: hxPost = hxPost(t, t.htmxApiPrefix ++ path, ~handler)
 }
 
 let hxPut = (t, path, ~handler) => {
-  t.handlers->Array.push((PUT, path, handler))
+  t.handlers->Array.push((PUT, t.htmxApiPrefix ++ path, handler))
   path
 }
 let makeHxPutIdentifier = path => {
   path
 }
 let implementHxPutIdentifier = (t, path, ~handler) => {
-  let _: hxPut = hxPut(t, path, ~handler)
+  let _: hxPut = hxPut(t, t.htmxApiPrefix ++ path, ~handler)
 }
 
 let hxDelete = (t, path, ~handler) => {
-  t.handlers->Array.push((DELETE, path, handler))
+  t.handlers->Array.push((DELETE, t.htmxApiPrefix ++ path, handler))
   path
 }
 let makeHxDeleteIdentifier = path => {
   path
 }
 let implementHxDeleteIdentifier = (t, path, ~handler) => {
-  let _: hxDelete = hxDelete(t, path, ~handler)
+  let _: hxDelete = hxDelete(t, t.htmxApiPrefix ++ path, ~handler)
 }
 
 let hxPatch = (t, path, ~handler) => {
-  t.handlers->Array.push((PATCH, path, handler))
+  t.handlers->Array.push((PATCH, t.htmxApiPrefix ++ path, handler))
   path
 }
 let makeHxPatchIdentifier = path => {
   path
 }
 let implementHxPatchIdentifier = (t, path, ~handler) => {
-  let _: hxPatch = hxPatch(t, path, ~handler)
+  let _: hxPatch = hxPatch(t, t.htmxApiPrefix ++ path, ~handler)
 }
 
 module Internal = {

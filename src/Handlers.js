@@ -10,11 +10,14 @@ var Nodeasync_hooks = require("node:async_hooks");
 var HyperonsJs = require("./vendor/hyperons.js");
 var RequestController$ResX = require("./RequestController.js");
 
-function make(requestToContext) {
+function make(requestToContext, options) {
   return {
           handlers: [],
           requestToContext: requestToContext,
-          asyncLocalStorage: new Nodeasync_hooks.AsyncLocalStorage()
+          asyncLocalStorage: new Nodeasync_hooks.AsyncLocalStorage(),
+          htmxApiPrefix: Core__Option.getOr(Core__Option.flatMap(options, (function (options) {
+                      return options.htmxApiPrefix;
+                    })), "/_api")
         };
 }
 
@@ -139,7 +142,7 @@ async function handleRequest(t, config) {
 function hxGet(t, path, handler) {
   t.handlers.push([
         "GET",
-        path,
+        t.htmxApiPrefix + path,
         handler
       ]);
   return path;
@@ -150,13 +153,13 @@ function makeHxGetIdentifier(path) {
 }
 
 function implementHxGetIdentifier(t, path, handler) {
-  hxGet(t, path, handler);
+  hxGet(t, t.htmxApiPrefix + path, handler);
 }
 
 function hxPost(t, path, handler) {
   t.handlers.push([
         "POST",
-        path,
+        t.htmxApiPrefix + path,
         handler
       ]);
   return path;
@@ -167,13 +170,13 @@ function makeHxPostIdentifier(path) {
 }
 
 function implementHxPostIdentifier(t, path, handler) {
-  hxPost(t, path, handler);
+  hxPost(t, t.htmxApiPrefix + path, handler);
 }
 
 function hxPut(t, path, handler) {
   t.handlers.push([
         "PUT",
-        path,
+        t.htmxApiPrefix + path,
         handler
       ]);
   return path;
@@ -184,13 +187,13 @@ function makeHxPutIdentifier(path) {
 }
 
 function implementHxPutIdentifier(t, path, handler) {
-  hxPut(t, path, handler);
+  hxPut(t, t.htmxApiPrefix + path, handler);
 }
 
 function hxDelete(t, path, handler) {
   t.handlers.push([
         "DELETE",
-        path,
+        t.htmxApiPrefix + path,
         handler
       ]);
   return path;
@@ -201,13 +204,13 @@ function makeHxDeleteIdentifier(path) {
 }
 
 function implementHxDeleteIdentifier(t, path, handler) {
-  hxDelete(t, path, handler);
+  hxDelete(t, t.htmxApiPrefix + path, handler);
 }
 
 function hxPatch(t, path, handler) {
   t.handlers.push([
         "PATCH",
-        path,
+        t.htmxApiPrefix + path,
         handler
       ]);
   return path;
@@ -218,7 +221,7 @@ function makeHxPatchIdentifier(path) {
 }
 
 function implementHxPatchIdentifier(t, path, handler) {
-  hxPatch(t, path, handler);
+  hxPatch(t, t.htmxApiPrefix + path, handler);
 }
 
 function getHandlers(t) {
