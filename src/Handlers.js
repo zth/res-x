@@ -10,14 +10,26 @@ var Nodeasync_hooks = require("node:async_hooks");
 var HyperonsJs = require("./vendor/hyperons.js");
 var RequestController$ResX = require("./RequestController.js");
 
+function string(s) {
+  return s;
+}
+
+var FormAction = {
+  string: string
+};
+
 function make(requestToContext, options) {
   return {
-          handlers: [],
+          htmxHandlers: [],
+          formActionHandlers: [],
           requestToContext: requestToContext,
           asyncLocalStorage: new Nodeasync_hooks.AsyncLocalStorage(),
           htmxApiPrefix: Core__Option.getOr(Core__Option.flatMap(options, (function (options) {
                       return options.htmxApiPrefix;
-                    })), "/_api")
+                    })), "/_api"),
+          formActionHandlerApiPrefix: Core__Option.getOr(Core__Option.flatMap(options, (function (options) {
+                      return options.formActionHandlerApiPrefix;
+                    })), "/_form")
         };
 }
 
@@ -61,7 +73,21 @@ async function handleRequest(t, config) {
   var stream = Core__Option.getOr(config.experimental_stream, false);
   var url = new URL(request.url);
   var pathname = url.pathname;
-  var targetHandler = Core__Array.findMap(t.handlers, (function (param) {
+  var targetFormActionHandler = Core__Array.findMap(t.formActionHandlers, (function (param) {
+          var match = request.method;
+          switch (match) {
+            case "GET" :
+            case "POST" :
+                break;
+            default:
+              return ;
+          }
+          if (param[0] === pathname) {
+            return param[1];
+          }
+          
+        }));
+  var targetHtmxHandler = Core__Array.findMap(t.htmxHandlers, (function (param) {
           if (param[0] === request.method && param[1] === pathname) {
             return param[2];
           }
@@ -83,12 +109,35 @@ async function handleRequest(t, config) {
     requestController: requestController
   };
   return await t.asyncLocalStorage.run(renderConfig, (async function (_token) {
-                var content = targetHandler !== undefined ? await targetHandler({
+                var isFormAction = Core__Option.isSome(targetFormActionHandler);
+                var content = targetFormActionHandler !== undefined ? null : (
+                    targetHtmxHandler !== undefined ? await targetHtmxHandler({
+                            request: request,
+                            context: ctx,
+                            headers: headers,
+                            requestController: requestController
+                          }) : await render(renderConfig)
+                  );
+                var responseType = targetFormActionHandler !== undefined ? "FormActionHandler" : (
+                    targetHtmxHandler !== undefined ? "HtmxHandler" : "Default"
+                  );
+                if (isFormAction) {
+                  var formActionHandler = Core__Option.getExn(targetFormActionHandler);
+                  var response = await formActionHandler({
                         request: request,
-                        context: ctx,
-                        headers: headers,
-                        requestController: requestController
-                      }) : await render(renderConfig);
+                        context: ctx
+                      });
+                  if (onBeforeSendResponse !== undefined) {
+                    return await onBeforeSendResponse({
+                                request: request,
+                                response: response,
+                                context: ctx,
+                                responseType: responseType
+                              });
+                  } else {
+                    return response;
+                  }
+                }
                 if (stream) {
                   var match = new TransformStream({
                         transform: (function (chunk, controller) {
@@ -103,7 +152,7 @@ async function handleRequest(t, config) {
                           })).then(function () {
                         return writer.close();
                       });
-                  var response = new Response(match.readable, {
+                  var response$1 = new Response(match.readable, {
                         status: 200,
                         headers: [[
                             "Content-Type",
@@ -113,34 +162,44 @@ async function handleRequest(t, config) {
                   if (onBeforeSendResponse !== undefined) {
                     return await onBeforeSendResponse({
                                 request: request,
-                                response: response,
-                                context: ctx
+                                response: response$1,
+                                context: ctx,
+                                responseType: responseType
                               });
                   } else {
-                    return response;
+                    return response$1;
                   }
                 }
                 var content$1 = await renderWithDocType(content, requestController, config.renderTitle);
                 var match$1 = RequestController$ResX.getCurrentRedirect(requestController);
                 var match$2 = RequestController$ResX.getCurrentStatus(requestController);
-                var response$1 = match$1 !== undefined ? Response.redirect(match$1[0], Caml_option.option_get(match$1[1])) : new Response(content$1, {
+                var response$2 = match$1 !== undefined ? Response.redirect(match$1[0], Caml_option.option_get(match$1[1])) : new Response(content$1, {
                         status: match$2,
                         headers: Caml_option.some(headers)
                       });
                 if (onBeforeSendResponse !== undefined) {
                   return await onBeforeSendResponse({
                               request: request,
-                              response: response$1,
-                              context: ctx
+                              response: response$2,
+                              context: ctx,
+                              responseType: responseType
                             });
                 } else {
-                  return response$1;
+                  return response$2;
                 }
               }));
 }
 
+function formAction(t, path, handler) {
+  t.formActionHandlers.push([
+        t.formActionHandlerApiPrefix + path,
+        handler
+      ]);
+  return path;
+}
+
 function hxGet(t, path, handler) {
-  t.handlers.push([
+  t.htmxHandlers.push([
         "GET",
         t.htmxApiPrefix + path,
         handler
@@ -157,7 +216,7 @@ function implementHxGetIdentifier(t, path, handler) {
 }
 
 function hxPost(t, path, handler) {
-  t.handlers.push([
+  t.htmxHandlers.push([
         "POST",
         t.htmxApiPrefix + path,
         handler
@@ -174,7 +233,7 @@ function implementHxPostIdentifier(t, path, handler) {
 }
 
 function hxPut(t, path, handler) {
-  t.handlers.push([
+  t.htmxHandlers.push([
         "PUT",
         t.htmxApiPrefix + path,
         handler
@@ -191,7 +250,7 @@ function implementHxPutIdentifier(t, path, handler) {
 }
 
 function hxDelete(t, path, handler) {
-  t.handlers.push([
+  t.htmxHandlers.push([
         "DELETE",
         t.htmxApiPrefix + path,
         handler
@@ -208,7 +267,7 @@ function implementHxDeleteIdentifier(t, path, handler) {
 }
 
 function hxPatch(t, path, handler) {
-  t.handlers.push([
+  t.htmxHandlers.push([
         "PATCH",
         t.htmxApiPrefix + path,
         handler
@@ -225,14 +284,16 @@ function implementHxPatchIdentifier(t, path, handler) {
 }
 
 function getHandlers(t) {
-  return t.handlers;
+  return t.htmxHandlers;
 }
 
 var Internal = {
   getHandlers: getHandlers
 };
 
+exports.FormAction = FormAction;
 exports.make = make;
+exports.formAction = formAction;
 exports.hxGet = hxGet;
 exports.makeHxGetIdentifier = makeHxGetIdentifier;
 exports.implementHxGetIdentifier = implementHxGetIdentifier;

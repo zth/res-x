@@ -1,3 +1,8 @@
+module FormAction = {
+  type t = string
+  let string = s => s
+}
+
 type htmxHandlerConfig<'ctx> = {
   request: Request.t,
   context: 'ctx,
@@ -5,7 +10,13 @@ type htmxHandlerConfig<'ctx> = {
   requestController: RequestController.t,
 }
 
+type formActionConfig<'ctx> = {
+  request: Request.t,
+  context: 'ctx,
+}
+
 type htmxHandler<'ctx> = htmxHandlerConfig<'ctx> => promise<Jsx.element>
+type formActionHandler<'ctx> = formActionConfig<'ctx> => promise<Response.t>
 
 type renderConfig<'ctx> = {
   request: Request.t,
@@ -17,10 +28,12 @@ type renderConfig<'ctx> = {
 }
 
 type t<'ctx> = {
-  handlers: array<(method, string, htmxHandler<'ctx>)>,
+  htmxHandlers: array<(method, string, htmxHandler<'ctx>)>,
+  formActionHandlers: array<(string, formActionHandler<'ctx>)>,
   requestToContext: Request.t => promise<'ctx>,
   asyncLocalStorage: AsyncHooks.AsyncLocalStorage.t<renderConfig<'ctx>>,
   htmxApiPrefix: string,
+  formActionHandlerApiPrefix: string,
 }
 
 type hxGet = string
@@ -29,15 +42,19 @@ type hxPut = string
 type hxPatch = string
 type hxDelete = string
 
-type options = {htmxApiPrefix?: string}
+type options = {htmxApiPrefix?: string, formActionHandlerApiPrefix?: string}
 
 let make = (~requestToContext, ~options=?) => {
-  handlers: [],
+  htmxHandlers: [],
+  formActionHandlers: [],
   requestToContext,
   asyncLocalStorage: AsyncHooks.AsyncLocalStorage.make(),
   htmxApiPrefix: options
   ->Option.flatMap(options => options.htmxApiPrefix)
   ->Option.getOr("/_api"),
+  formActionHandlerApiPrefix: options
+  ->Option.flatMap(options => options.formActionHandlerApiPrefix)
+  ->Option.getOr("/_form"),
 }
 
 let useContext = t => t.asyncLocalStorage->AsyncHooks.AsyncLocalStorage.getStoreUnsafe
@@ -72,10 +89,13 @@ let renderWithDocType = async (
 }
 let defaultHeaders = [("Content-Type", "text/html")]
 
+type responseType = Default | FormActionHandler | HtmxHandler
+
 type onBeforeSendResponse<'ctx> = {
   request: Request.t,
   response: Response.t,
   context: 'ctx,
+  responseType: responseType,
 }
 
 type handleRequestConfig<'ctx> = {
@@ -95,7 +115,16 @@ let handleRequest = async (
 
   let url = request->Request.url->URL.make
   let pathname = url->URL.pathname
-  let targetHandler = t.handlers->Array.findMap(((handlerType, path, handler)) =>
+
+  // TODO: Can optimize when this runs
+  let targetFormActionHandler = t.formActionHandlers->Array.findMap(((path, handler)) =>
+    switch request->Request.method {
+    | POST | GET if path === pathname => Some(handler)
+    | _ => None
+    }
+  )
+
+  let targetHtmxHandler = t.htmxHandlers->Array.findMap(((handlerType, path, handler)) =>
     if handlerType === request->Request.method && path === pathname {
       Some(handler)
     } else {
@@ -123,9 +152,12 @@ let handleRequest = async (
   }
 
   await t.asyncLocalStorage->AsyncHooks.AsyncLocalStorage.run(renderConfig, async _token => {
-    let content = switch targetHandler {
-    | None => await render(renderConfig)
-    | Some(handler) =>
+    let isFormAction = targetFormActionHandler->Option.isSome
+
+    let content = switch (targetFormActionHandler, targetHtmxHandler) {
+    | (Some(_), _) => H.null
+    | (None, None) => await render(renderConfig)
+    | (None, Some(handler)) =>
       await handler({
         request,
         context: ctx,
@@ -134,7 +166,26 @@ let handleRequest = async (
       })
     }
 
-    if stream {
+    let responseType = switch (targetFormActionHandler, targetHtmxHandler) {
+    | (Some(_), _) => FormActionHandler
+    | (None, Some(_)) => HtmxHandler
+    | (None, None) => Default
+    }
+
+    if isFormAction {
+      let formActionHandler = targetFormActionHandler->Option.getExn
+      let response = await formActionHandler({context: ctx, request})
+      switch onBeforeSendResponse {
+      | Some(onBeforeSendResponse) =>
+        await onBeforeSendResponse({
+          response,
+          context: ctx,
+          request,
+          responseType,
+        })
+      | None => response
+      }
+    } else if stream {
       let {readable, writable} = TransformStream.make({
         transform: (chunk, controller) => {
           controller->TransformStream.Controller.enqueue(chunk)
@@ -161,7 +212,13 @@ let handleRequest = async (
       )
 
       switch onBeforeSendResponse {
-      | Some(onBeforeSendResponse) => await onBeforeSendResponse({response, context: ctx, request})
+      | Some(onBeforeSendResponse) =>
+        await onBeforeSendResponse({
+          response,
+          context: ctx,
+          request,
+          responseType,
+        })
       | None => response
       }
     } else {
@@ -178,15 +235,21 @@ let handleRequest = async (
       | (None, status) => Response.makeWithHeaders(content, ~options={headers, status})
       }
       switch onBeforeSendResponse {
-      | Some(onBeforeSendResponse) => await onBeforeSendResponse({response, context: ctx, request})
+      | Some(onBeforeSendResponse) =>
+        await onBeforeSendResponse({response, context: ctx, request, responseType})
       | None => response
       }
     }
   })
 }
 
+let formAction = (t, path, ~handler) => {
+  t.formActionHandlers->Array.push((t.formActionHandlerApiPrefix ++ path, handler))
+  path
+}
+
 let hxGet = (t, path, ~handler) => {
-  t.handlers->Array.push((GET, t.htmxApiPrefix ++ path, handler))
+  t.htmxHandlers->Array.push((GET, t.htmxApiPrefix ++ path, handler))
   path
 }
 let makeHxGetIdentifier = path => {
@@ -197,7 +260,7 @@ let implementHxGetIdentifier = (t, path, ~handler) => {
 }
 
 let hxPost = (t, path, ~handler) => {
-  t.handlers->Array.push((POST, t.htmxApiPrefix ++ path, handler))
+  t.htmxHandlers->Array.push((POST, t.htmxApiPrefix ++ path, handler))
   path
 }
 let makeHxPostIdentifier = path => {
@@ -208,7 +271,7 @@ let implementHxPostIdentifier = (t, path, ~handler) => {
 }
 
 let hxPut = (t, path, ~handler) => {
-  t.handlers->Array.push((PUT, t.htmxApiPrefix ++ path, handler))
+  t.htmxHandlers->Array.push((PUT, t.htmxApiPrefix ++ path, handler))
   path
 }
 let makeHxPutIdentifier = path => {
@@ -219,7 +282,7 @@ let implementHxPutIdentifier = (t, path, ~handler) => {
 }
 
 let hxDelete = (t, path, ~handler) => {
-  t.handlers->Array.push((DELETE, t.htmxApiPrefix ++ path, handler))
+  t.htmxHandlers->Array.push((DELETE, t.htmxApiPrefix ++ path, handler))
   path
 }
 let makeHxDeleteIdentifier = path => {
@@ -230,7 +293,7 @@ let implementHxDeleteIdentifier = (t, path, ~handler) => {
 }
 
 let hxPatch = (t, path, ~handler) => {
-  t.handlers->Array.push((PATCH, t.htmxApiPrefix ++ path, handler))
+  t.htmxHandlers->Array.push((PATCH, t.htmxApiPrefix ++ path, handler))
   path
 }
 let makeHxPatchIdentifier = path => {
@@ -241,5 +304,5 @@ let implementHxPatchIdentifier = (t, path, ~handler) => {
 }
 
 module Internal = {
-  let getHandlers = t => t.handlers
+  let getHandlers = t => t.htmxHandlers
 }

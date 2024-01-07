@@ -1,3 +1,5 @@
+type method = POST | GET
+
 type domProps = {
   children?: JsxU.element,
   /* accessibility */
@@ -127,7 +129,7 @@ type domProps = {
   /* tag-specific html attributes */
   accept?: string,
   acceptCharset?: string,
-  action?: string /* uri */,
+  action?: Handlers.FormAction.t /* uri */,
   allowFullScreen?: bool,
   alt?: string,
   @as("as")
@@ -180,7 +182,7 @@ type domProps = {
   maxLength?: int,
   media?: string /* a valid media query */,
   mediaGroup?: string,
-  method?: string /* "post" or "get" */,
+  method?: method,
   min?: string,
   minLength?: int,
   multiple?: bool,

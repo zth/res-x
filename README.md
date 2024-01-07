@@ -102,10 +102,10 @@ There! If you want, you can also set up a bunch of scripts in `package.json` tha
 
 > Note: These scripts use `concurrently`. Install via `npm i concurrently`.
 
-Now, let's create your `HtmxHandler` instance. You'll use this throughout your app as a sort of context:
+Now, let's create your `Handler` instance. You'll use this throughout your app as a sort of context:
 
 ```rescript
-// HtmxHandler.res
+// Handler.res
 
 // This context will be passed throughout your application. Use it for any per-request needs, like dataloaders, the id of the currently logged in user, etc.
 type context = {userId: option<string>}
@@ -136,7 +136,8 @@ let server = Bun.serve({
     | Some(staticResponse) => staticResponse
     | None =>
       // Handle the request using the ResX handler if this wasn't a static file request.
-      await ResX.HtmxHandler.handler->ResX.Handlers.handleRequest({
+      // Note: By default, all HTMX handler routes are prefixed with "_api", and all form action routes are prefixed with "_form".
+      await Handler.handler->ResX.Handlers.handleRequest({
         request,
         setupHeaders: () => {
           // You can do any basic headers setup here that you want. These can be overwritten easily by your main application regardless of what you set here.
@@ -221,7 +222,7 @@ fetch: async (request, server) => {
     switch await ResX.BunUtils.serveStaticFile(request) {
     | Some(staticResponse) => staticResponse
     | None =>
-      await ResX.HtmxHandler.handler->ResX.Handlers.handleRequest({
+      await Handler.handler->ResX.Handlers.handleRequest({
         ...
 ```
 
@@ -295,7 +296,7 @@ In the vast majority of cases you'll likely use number 1. In order to use 1., yo
 First, set up your `htmxHandler`. This maker takes a `requestToContext` function, that's responsible for translating a request into a (per-request) context. This is where you put the current user ID, dataloaders, or whatever else you want to have available through the lifetime of your request.
 
 ```rescript
-// HtmxHandler.res
+// Handler.res
 type context = {userId: option<string>}
 
 let handler = ResX.Handlers.make(~requestToContext=async request => {
@@ -311,7 +312,7 @@ Now, we can attach and use actions via this handler:
 
 ```rescript
 // User.res
-let onForm = HtmxHandler.handler->ResX.Handlers.hxPost("/user-single", ~handler=async ({request}) => {
+let onForm = Handler.handler->ResX.Handlers.hxPost("/user-single", ~handler=async ({request}) => {
   let formData = await request->Request.formData
   try {
     let name = formData->ResX.FormDataHelpers.expectString("name")
@@ -350,7 +351,7 @@ Let's look at the example above and adjust it to work that way instead:
 // User.res
 let onForm = ResX.Handlers.makeHxPostIdentifier("/user-single")
 
-ResX.HtmxHandler.handler->ResX.Handlers.implementHxPostIdentifier(onForm, ~handler=async ({request}) => {
+Handler.handler->ResX.Handlers.implementHxPostIdentifier(onForm, ~handler=async ({request}) => {
   let formData = await request->Request.formData
   try {
     let name = formData->ResX.FormDataHelpers.expectString("name")
@@ -401,7 +402,33 @@ let make = () => {
 }
 ```
 
-Notice how `hxSwap` and `hxTarget` are passed things from `Htmx.Something.make`? This is the way you interface with
+Notice how `hxSwap` and `hxTarget` are passed things from `Htmx.Something.make`? This is the way you interface with the typed `hx` attributes.
+
+### Regular form actions
+
+Sometimes you don't need a full blown HTMX handler for handling a form action. Maybe all you want to do is redirect, or something else where you want full control over what response you return.
+
+This is easy to do in `ResX` using a `formAction`. It's similar to a HTMX handler. Let's look at how to implement a form action that redirects as a form is submitted:
+
+```rescript
+// User.res
+let onForm = ResX.Handlers.makeHxPostIdentifier("/user-single")
+
+let onSubmit = Handler.handler->ResX.Handlers.formAction(onForm, ~handler=async ({request, context}) => {
+  Response.makeRedirect("/some-other-page")
+})
+
+@react.component
+let make = () => {
+  <form action={onForm}>
+    <button>{H.string("Submit and get redirected!")}</button>
+  </form>
+}
+```
+
+Form actions have access to your `context` object, as well as the full `request` object. They're expected to return a `Response.t`, which you're in charge of building yourself.
+
+You control whether you want the form method to be `POST` or `GET` via the `method` attribute on `<form>`, just like you normally do.
 
 ### ResX Client
 
@@ -554,7 +581,7 @@ ResX tries to ship with as few "hooks" and similar concepts as possible. You're 
 But, we still do ship a few conveniences. The `onBeforeSendResponse` hook is one of them. It lets you manipulate the response you're producing one last time before sending it to the client. Let's look at an example of overriding any cache header set when the user is logged in:
 
 ```rescript
-await ResX.HtmxHandler.handler->ResX.Handlers.handleRequest({
+await Handler.handler->ResX.Handlers.handleRequest({
   request,
   onBeforeSendResponse: ({context, response, request}) => {
     // Change (or replace) the final response here.

@@ -1,3 +1,8 @@
+module FormAction: {
+  type t
+  let string: string => t
+}
+
 type htmxHandlerConfig<'ctx> = {
   request: Request.t,
   context: 'ctx,
@@ -5,7 +10,13 @@ type htmxHandlerConfig<'ctx> = {
   requestController: RequestController.t,
 }
 
+type formActionConfig<'ctx> = {
+  request: Request.t,
+  context: 'ctx,
+}
+
 type htmxHandler<'ctx> = htmxHandlerConfig<'ctx> => promise<Jsx.element>
+type formActionHandler<'ctx> = formActionConfig<'ctx> => promise<Response.t>
 
 type t<'ctx>
 
@@ -23,9 +34,31 @@ type options = {
    @default "/_api"
    */
   htmxApiPrefix?: string,
+  /** 
+   Prefix for the API routes of any form action handlers. 
+   This is opaque to your code, and serves as a guard against accidentally overwriting other routes with your handlers.
+
+   @default "/_form"
+   */
+  formActionHandlerApiPrefix?: string,
 }
 
 let make: (~requestToContext: Request.t => promise<'ctx>, ~options: options=?) => t<'ctx>
+
+/** 
+ Creates a form action that you can then attach to a form.
+
+ ## Example
+ ```rescript
+ let onSubmit = Handler.handler->ResX.Handlers.formAction("/user-submitted", ~handler=async _ => {
+  Response.makeRedirect("/some-other-page")
+ })
+
+ <form action=onSubmit>
+ </form>
+ ```
+ */
+let formAction: (t<'ctx>, string, ~handler: formActionHandler<'ctx>) => FormAction.t
 
 let hxGet: (t<'ctx>, string, ~handler: htmxHandler<'ctx>) => hxGet
 let makeHxGetIdentifier: string => hxGet
@@ -58,10 +91,13 @@ type renderConfig<'ctx> = {
 
 let useContext: t<'ctx> => renderConfig<'ctx>
 
+type responseType = Default | FormActionHandler | HtmxHandler
+
 type onBeforeSendResponse<'ctx> = {
   request: Request.t,
   response: Response.t,
   context: 'ctx,
+  responseType: responseType,
 }
 
 type handleRequestConfig<'ctx> = {

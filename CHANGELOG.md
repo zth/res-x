@@ -1,5 +1,7 @@
 # master
 
+- BREAKING: Change types of `domProps.method` and `domProps.action`.
+- Add `formAction` handler support.
 - Prefix HTMX handler routes automatically.
 - Alias `domProps` in the right place so we get completion.
 
