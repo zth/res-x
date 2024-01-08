@@ -1,5 +1,6 @@
 # master
 
+- Add `Security` module, and move HTML escaping to use Bun's builtin `escapeHTML`.
 - BREAKING: Change types of `domProps.method` and `domProps.action`.
 - Add `formAction` handler support.
 - Prefix HTMX handler routes automatically.
