@@ -1,5 +1,7 @@
 # master
 
+# 0.1.0-beta.4
+
 - Add `Security` module, and move HTML escaping to use Bun's builtin `escapeHTML`.
 - BREAKING: Change types of `domProps.method` and `domProps.action`.
 - Add `formAction` handler support.
