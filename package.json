@@ -1,6 +1,6 @@
 {
   "name": "rescript-x",
-  "version": "0.1.0-beta.4",
+  "version": "0.1.0-beta.5",
   "scripts": {
     "res:build": "rescript",
     "res:clean": "rescript clean",

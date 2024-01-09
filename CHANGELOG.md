@@ -1,5 +1,7 @@
 # master
 
+# 0.1.0-beta.5
+
 - BREAKING: Restructure hx handler code.
 
 # 0.1.0-beta.4
