@@ -191,96 +191,102 @@ async function handleRequest(t, config) {
 }
 
 function formAction(t, path, handler) {
+  var path$1 = t.formActionHandlerApiPrefix + path;
   t.formActionHandlers.push([
-        t.formActionHandlerApiPrefix + path,
+        path$1,
         handler
       ]);
-  return path;
+  return path$1;
 }
 
 function hxGet(t, path, handler) {
+  var path$1 = t.htmxApiPrefix + path;
   t.htmxHandlers.push([
         "GET",
-        t.htmxApiPrefix + path,
+        path$1,
         handler
       ]);
-  return path;
+  return path$1;
 }
 
-function makeHxGetIdentifier(path) {
-  return path;
+function makeHxGetIdentifier(t, path) {
+  return t.htmxApiPrefix + path;
 }
 
 function implementHxGetIdentifier(t, path, handler) {
-  hxGet(t, t.htmxApiPrefix + path, handler);
+  hxGet(t, path, handler);
 }
 
 function hxPost(t, path, handler) {
+  var path$1 = t.htmxApiPrefix + path;
   t.htmxHandlers.push([
         "POST",
-        t.htmxApiPrefix + path,
+        path$1,
         handler
       ]);
-  return path;
+  return path$1;
 }
 
-function makeHxPostIdentifier(path) {
-  return path;
+function makeHxPostIdentifier(t, path) {
+  return t.htmxApiPrefix + path;
 }
 
 function implementHxPostIdentifier(t, path, handler) {
-  hxPost(t, t.htmxApiPrefix + path, handler);
+  hxPost(t, path, handler);
 }
 
 function hxPut(t, path, handler) {
+  var path$1 = t.htmxApiPrefix + path;
   t.htmxHandlers.push([
         "PUT",
-        t.htmxApiPrefix + path,
+        path$1,
         handler
       ]);
-  return path;
+  return path$1;
 }
 
-function makeHxPutIdentifier(path) {
-  return path;
+function makeHxPutIdentifier(t, path) {
+  return t.htmxApiPrefix + path;
 }
 
 function implementHxPutIdentifier(t, path, handler) {
-  hxPut(t, t.htmxApiPrefix + path, handler);
+  hxPut(t, path, handler);
 }
 
 function hxDelete(t, path, handler) {
+  var path$1 = t.htmxApiPrefix + path;
   t.htmxHandlers.push([
         "DELETE",
-        t.htmxApiPrefix + path,
+        path$1,
         handler
       ]);
-  return path;
+  return path$1;
 }
 
-function makeHxDeleteIdentifier(path) {
-  return path;
+function makeHxDeleteIdentifier(t, path) {
+  return t.htmxApiPrefix + path;
 }
 
 function implementHxDeleteIdentifier(t, path, handler) {
-  hxDelete(t, t.htmxApiPrefix + path, handler);
+  hxDelete(t, path, handler);
 }
 
 function hxPatch(t, path, handler) {
+  var path$1 = t.htmxApiPrefix + path;
   t.htmxHandlers.push([
         "PATCH",
-        t.htmxApiPrefix + path,
+        path$1,
         handler
       ]);
-  return path;
+  return path$1;
 }
 
-function makeHxPatchIdentifier(path) {
-  return path;
+function makeHxPatchIdentifier(t, path) {
+  return t.htmxApiPrefix + path;
 }
 
 function implementHxPatchIdentifier(t, path, handler) {
-  hxPatch(t, t.htmxApiPrefix + path, handler);
+  hxPatch(t, path, handler);
 }
 
 function getHandlers(t) {

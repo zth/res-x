@@ -1,5 +1,7 @@
 # master
 
+- BREAKING: Restructure hx handler code.
+
 # 0.1.0-beta.4
 
 - Add `Security` module, and move HTML escaping to use Bun's builtin `escapeHTML`.

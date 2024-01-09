@@ -61,23 +61,23 @@ let make: (~requestToContext: Request.t => promise<'ctx>, ~options: options=?) =
 let formAction: (t<'ctx>, string, ~handler: formActionHandler<'ctx>) => FormAction.t
 
 let hxGet: (t<'ctx>, string, ~handler: htmxHandler<'ctx>) => hxGet
-let makeHxGetIdentifier: string => hxGet
+let makeHxGetIdentifier: (t<_>, string) => hxGet
 let implementHxGetIdentifier: (t<'ctx>, hxGet, ~handler: htmxHandler<'ctx>) => unit
 
 let hxPost: (t<'ctx>, string, ~handler: htmxHandler<'ctx>) => hxPost
-let makeHxPostIdentifier: string => hxPost
+let makeHxPostIdentifier: (t<_>, string) => hxPost
 let implementHxPostIdentifier: (t<'ctx>, hxPost, ~handler: htmxHandler<'ctx>) => unit
 
 let hxPut: (t<'ctx>, string, ~handler: htmxHandler<'ctx>) => hxPut
-let makeHxPutIdentifier: string => hxPut
+let makeHxPutIdentifier: (t<_>, string) => hxPut
 let implementHxPutIdentifier: (t<'ctx>, hxPut, ~handler: htmxHandler<'ctx>) => unit
 
 let hxDelete: (t<'ctx>, string, ~handler: htmxHandler<'ctx>) => hxDelete
-let makeHxDeleteIdentifier: string => hxDelete
+let makeHxDeleteIdentifier: (t<_>, string) => hxDelete
 let implementHxDeleteIdentifier: (t<'ctx>, hxDelete, ~handler: htmxHandler<'ctx>) => unit
 
 let hxPatch: (t<'ctx>, string, ~handler: htmxHandler<'ctx>) => hxPatch
-let makeHxPatchIdentifier: string => hxPatch
+let makeHxPatchIdentifier: (t<_>, string) => hxPatch
 let implementHxPatchIdentifier: (t<'ctx>, hxPatch, ~handler: htmxHandler<'ctx>) => unit
 
 type renderConfig<'ctx> = {

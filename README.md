@@ -349,7 +349,7 @@ Let's look at the example above and adjust it to work that way instead:
 
 ```rescript
 // User.res
-let onForm = ResX.Handlers.makeHxPostIdentifier("/user-single")
+let onForm = Handler.handler->ResX.Handlers.makeHxPostIdentifier("/user-single")
 
 Handler.handler->ResX.Handlers.implementHxPostIdentifier(onForm, ~handler=async ({request}) => {
   let formData = await request->Request.formData
