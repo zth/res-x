@@ -3,11 +3,11 @@
 
 var Handlers$ResX = require("rescript-x/src/Handlers.js");
 
-var handler = Handlers$ResX.make(async function (_request) {
-      return {
-              userId: undefined
-            };
-    });
+var handler = Handlers$ResX.make((async function (_request) {
+        return {
+                userId: undefined
+              };
+      }), undefined);
 
 function useContext() {
   return Handlers$ResX.useContext(handler);

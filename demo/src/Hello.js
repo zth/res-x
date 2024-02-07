@@ -74,8 +74,7 @@ function Hello(props) {
                       type: "text",
                       value: ""
                     })
-              ],
-              action: "post"
+              ]
             });
 }
 

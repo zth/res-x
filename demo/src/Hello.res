@@ -25,7 +25,7 @@ let onButtonBlick = HtmxHandler.handler->ResX.Handlers.hxPost("/button-click", ~
 
 @react.component
 let make = (~name) => {
-  <form action="post">
+  <form>
     <button hxSwap={ResX.Htmx.Swap.make(InnerHTML, ~modifier=Transition)} hxPost={onButtonBlick}>
       {H.string("Hello " ++ name)}
     </button>
