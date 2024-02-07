@@ -26,6 +26,9 @@
                             return target.classList.remove(action.className);
                         case "AddClass" :
                             return target.classList.add(action.className);
+                        case "SwapClass" :
+                            target.classList.remove(action.fromClassName);
+                            return target.classList.add(action.toClassName);
                         case "RemoveElement" :
                             return target.remove();
                         

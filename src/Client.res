@@ -9,6 +9,7 @@ module Actions: {
     | ToggleClass({target: target, className: string})
     | RemoveClass({target: target, className: string})
     | AddClass({target: target, className: string})
+    | SwapClass({target: target, fromClassName: string, toClassName: string})
     | RemoveElement({target: target})
 
   let make: array<action> => t
@@ -23,6 +24,7 @@ module Actions: {
     | ToggleClass({target: target, className: string})
     | RemoveClass({target: target, className: string})
     | AddClass({target: target, className: string})
+    | SwapClass({target: target, fromClassName: string, toClassName: string})
     | RemoveElement({target: target})
 
   external stringifyActions: array<action> => string = "JSON.stringify"

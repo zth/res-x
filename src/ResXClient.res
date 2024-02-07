@@ -46,6 +46,7 @@ external parseValidityMessage: string => Client.ValidityMessage.config = "JSON.p
       | ToggleClass({target})
       | RemoveClass({target})
       | AddClass({target})
+      | SwapClass({target})
       | RemoveElement({target}) =>
         getTarget(target, this)
       }
@@ -57,6 +58,9 @@ external parseValidityMessage: string => Client.ValidityMessage.config = "JSON.p
         | ToggleClass({className}) => target["classList"].toggle(className)
         | RemoveClass({className}) => target["classList"].remove(className)
         | AddClass({className}) => target["classList"].add(className)
+        | SwapClass({fromClassName, toClassName}) =>
+          target["classList"].remove(fromClassName)
+          target["classList"].add(toClassName)
         | RemoveElement(_) => target["remove"]()
         }
       }
