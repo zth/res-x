@@ -1,5 +1,7 @@
 # master
 
+# 0.1.0-beta.6
+
 - Add `SwapClass` to ResX client actions.
 
 # 0.1.0-beta.5
