@@ -5,8 +5,8 @@ var Js_exn = require("rescript/lib/js/js_exn.js");
 var Core__Math = require("@rescript/core/src/Core__Math.js");
 var RescriptCore = require("@rescript/core/src/RescriptCore.js");
 var Handlers$ResX = require("../src/Handlers.js");
+var ResX__Jsx$ResX = require("../src/ResX__Jsx.js");
 var Caml_js_exceptions = require("rescript/lib/js/caml_js_exceptions.js");
-var ResX__ReactDOM$ResX = require("../src/ResX__ReactDOM.js");
 
 var handler = Handlers$ResX.make((async function (_req) {
         
@@ -47,10 +47,10 @@ function getPort() {
 }
 
 function TestUtils$Html(props) {
-  return ResX__ReactDOM$ResX.jsxs("html", {
+  return ResX__Jsx$ResX.DOM.jsxs("html", {
               children: [
-                ResX__ReactDOM$ResX.jsx("head", {}),
-                ResX__ReactDOM$ResX.jsx("body", {
+                ResX__Jsx$ResX.DOM.jsx("head", {}),
+                ResX__Jsx$ResX.DOM.jsx("body", {
                       children: props.children
                     })
               ]
@@ -122,14 +122,8 @@ async function getContentInBody(getContent) {
   return await content.text();
 }
 
-var React;
-
-var ReactDOM;
-
 var portsBase = 40000;
 
-exports.React = React;
-exports.ReactDOM = ReactDOM;
 exports.Handler = Handler;
 exports.currentPortsUsed = currentPortsUsed;
 exports.portsBase = portsBase;

@@ -1,4 +1,4 @@
-module React = ResX__React
+@@jsxConfig({module_: "ResX__Jsx"})
 
 @module("./vendor/hyperons.js")
 external createContext: ('context, @as("errorBoundary") _) => H.Context.t<'context> =

@@ -1,3 +1,2 @@
-module React = ResX__React
-module ReactDOM = ResX__ReactDOM
+module Jsx = ResX__Jsx
 module H = H

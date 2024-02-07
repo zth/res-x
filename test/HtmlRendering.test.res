@@ -1,5 +1,4 @@
-module React = ResX__React
-module ReactDOM = ResX__ReactDOM
+@@jsxConfig({module_: "ResX__Jsx"})
 
 open Test
 

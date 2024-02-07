@@ -3,22 +3,16 @@
 
 var H$ResX = require("../src/H.js");
 var Buntest = require("bun:test");
-var ResX__ReactDOM$ResX = require("../src/ResX__ReactDOM.js");
+var ResX__Jsx$ResX = require("../src/ResX__Jsx.js");
 
 Buntest.describe("rendering HTML via JSX", (function () {
         Buntest.test("HTML is escaped", (function () {
                 var dangerousHtml = "<script>alert(\"hello!\")</script>";
-                var jsx = ResX__ReactDOM$ResX.jsx("div", {
+                var jsx = ResX__Jsx$ResX.DOM.jsx("div", {
                       children: dangerousHtml
                     });
                 Buntest.expect(H$ResX.renderSyncToString(jsx)).toBe("<div>" + Bun.escapeHTML(dangerousHtml) + "</div>");
               }), undefined);
       }));
 
-var React;
-
-var ReactDOM;
-
-exports.React = React;
-exports.ReactDOM = ReactDOM;
 /*  Not a pure module */

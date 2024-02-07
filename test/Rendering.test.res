@@ -1,3 +1,5 @@
+@@jsxConfig({module_: "ResX__Jsx"})
+
 open Test
 open TestUtils
 

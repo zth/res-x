@@ -19,3 +19,15 @@ external float: float => Jsx.element = "%identity"
 external int: int => Jsx.element = "%identity"
 external string: string => Jsx.element = "%identity"
 external array: array<Jsx.element> => Jsx.element = "%identity"
+
+module DOM = {
+  @module("./vendor/hyperons.js")
+  external jsx: (string, H__domProps.domProps) => Jsx.element = "h"
+
+  @module("./vendor/hyperons.js")
+  external jsxs: (string, H__domProps.domProps) => Jsx.element = "h"
+
+  external someElement: Jsx.element => option<Jsx.element> = "%identity"
+
+  type domProps = H__domProps.domProps
+}
