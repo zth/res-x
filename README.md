@@ -412,15 +412,13 @@ This is easy to do in `ResX` using a `formAction`. It's similar to a HTMX handle
 
 ```rescript
 // User.res
-let onForm = ResX.Handlers.makeHxPostIdentifier("/user-single")
-
-let onSubmit = Handler.handler->ResX.Handlers.formAction(onForm, ~handler=async ({request, context}) => {
+let onSubmit = Handler.handler->ResX.Handlers.formAction("/some-url", ~handler=async ({request, context}) => {
   Response.makeRedirect("/some-other-page")
 })
 
 @react.component
 let make = () => {
-  <form action={onForm}>
+  <form action={onSubmit}>
     <button>{H.string("Submit and get redirected!")}</button>
   </form>
 }
