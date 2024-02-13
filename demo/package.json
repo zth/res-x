@@ -22,7 +22,7 @@
     "concurrently": "^8.2.1",
     "fast-glob": "^3.3.1",
     "rescript-x": "../",
-    "rescript": "11.0.1",
+    "rescript": "11.1.0-rc.2",
     "vite": "^4.4.11",
     "rescript-bun": "0.3.1"
   },

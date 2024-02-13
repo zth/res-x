@@ -5,11 +5,11 @@ let wait = () =>
     }, 1000)
   })
 
-@react.component
+@jsx.component
 let make = async (~children) => {
   await wait()
   <div>
-    {H.string("This was deferred.")}
+    {Hjsx.string("This was deferred.")}
     <div> {children} </div>
   </div>
 }

@@ -2,9 +2,9 @@
 'use strict';
 
 var UserPage = require("./UserPage.js");
+var Hjsx$ResX = require("rescript-x/src/Hjsx.js");
 var FourOhFour = require("./FourOhFour.js");
 var UserFriends = require("./UserFriends.js");
-var ResX__React$ResX = require("rescript-x/src/ResX__React.js");
 var RequestController$ResX = require("rescript-x/src/RequestController.js");
 
 function match(userRoutes, headers, requestController) {
@@ -15,16 +15,16 @@ function match(userRoutes, headers, requestController) {
     RequestController$ResX.appendTitleSegment(requestController, userId);
     headers.set("Cache-Control", "private");
     var tmp;
-    tmp = userRoutes$1 && userRoutes$1.hd === "friends" && !userRoutes$1.tl ? ResX__React$ResX.jsx(UserFriends.make, {
+    tmp = userRoutes$1 && userRoutes$1.hd === "friends" && !userRoutes$1.tl ? Hjsx$ResX.jsx(UserFriends.make, {
             userId: userId
           }) : null;
-    return ResX__React$ResX.jsx(UserPage.make, {
+    return Hjsx$ResX.jsx(UserPage.make, {
                 innerContent: tmp,
                 userId: userId
               });
   }
   RequestController$ResX.appendTitleSegment(requestController, "Not found");
-  return ResX__React$ResX.jsx(FourOhFour.make, {});
+  return Hjsx$ResX.jsx(FourOhFour.make, {});
 }
 
 exports.match = match;

@@ -2,28 +2,27 @@
 'use strict';
 
 var Dev$ResX = require("rescript-x/src/Dev.js");
+var Hjsx$ResX = require("rescript-x/src/Hjsx.js");
 var ResXAssets = require("./__generated__/ResXAssets.js");
-var ResX__React$ResX = require("rescript-x/src/ResX__React.js");
-var ResX__ReactDOM$ResX = require("rescript-x/src/ResX__ReactDOM.js");
 
 function Html(props) {
-  return ResX__ReactDOM$ResX.jsxs("html", {
+  return Hjsx$ResX.Elements.jsxs("html", {
               children: [
-                ResX__ReactDOM$ResX.jsx("head", {
-                      children: ResX__ReactDOM$ResX.jsx("link", {
+                Hjsx$ResX.Elements.jsx("head", {
+                      children: Hjsx$ResX.Elements.jsx("link", {
                             href: ResXAssets.assets.styles_css,
                             rel: "stylesheet",
                             type: "text/css"
                           })
                     }),
-                ResX__ReactDOM$ResX.jsxs("body", {
+                Hjsx$ResX.Elements.jsxs("body", {
                       children: [
                         props.children,
-                        ResX__React$ResX.jsx(Dev$ResX.make, {}),
-                        ResX__ReactDOM$ResX.jsx("script", {
+                        Hjsx$ResX.jsx(Dev$ResX.make, {}),
+                        Hjsx$ResX.Elements.jsx("script", {
                               src: "https://unpkg.com/htmx.org@1.9.5"
                             }),
-                        ResX__ReactDOM$ResX.jsx("script", {
+                        Hjsx$ResX.Elements.jsx("script", {
                               async: true,
                               src: ResXAssets.assets.resXClient_js
                             })

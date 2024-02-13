@@ -1,8 +1,6 @@
 {
   "jsx": {
-    "mode": "automatic",
-    "module": "react",
-    "version": 4
+    "module": "Hjsx"
   },
   "uncurried": true,
   "name": "res-x-demo",

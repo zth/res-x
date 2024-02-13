@@ -2,8 +2,8 @@
 'use strict';
 
 var U = require("./U.js");
+var Hjsx$ResX = require("rescript-x/src/Hjsx.js");
 var HtmxHandler = require("./HtmxHandler.js");
-var ResX__ReactDOM$ResX = require("rescript-x/src/ResX__ReactDOM.js");
 
 function $$Navigation(props) {
   var context = HtmxHandler.useContext();
@@ -15,8 +15,8 @@ function $$Navigation(props) {
   } else {
     tmp = "";
   }
-  return ResX__ReactDOM$ResX.jsx("div", {
-              children: ResX__ReactDOM$ResX.jsx("a", {
+  return Hjsx$ResX.Elements.jsx("div", {
+              children: Hjsx$ResX.Elements.jsx("a", {
                     children: "To User 1",
                     className: U.tw([
                           tmp,
@@ -31,4 +31,4 @@ function $$Navigation(props) {
 var make = $$Navigation;
 
 exports.make = make;
-/* HtmxHandler Not a pure module */
+/* Hjsx-ResX Not a pure module */

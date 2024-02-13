@@ -1,4 +1,4 @@
-@react.component
+@jsx.component
 let make = (~children) => {
   <html>
     <head>

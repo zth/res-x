@@ -2,14 +2,13 @@
 'use strict';
 
 var Js_exn = require("rescript/lib/js/js_exn.js");
+var Hjsx$ResX = require("rescript-x/src/Hjsx.js");
 var Htmx$ResX = require("rescript-x/src/Htmx.js");
 var Caml_option = require("rescript/lib/js/caml_option.js");
 var HtmxHandler = require("./HtmxHandler.js");
 var ErrorMessage = require("./ErrorMessage.js");
 var Handlers$ResX = require("rescript-x/src/Handlers.js");
-var ResX__React$ResX = require("rescript-x/src/ResX__React.js");
 var Caml_js_exceptions = require("rescript/lib/js/caml_js_exceptions.js");
-var ResX__ReactDOM$ResX = require("rescript-x/src/ResX__ReactDOM.js");
 var FormDataHelpers$ResX = require("rescript-x/src/FormDataHelpers.js");
 
 function myVariantFromString(a) {
@@ -41,14 +40,14 @@ var onButtonBlick = Handlers$ResX.hxPost(HtmxHandler.handler, "/button-click", (
           var firstName = FormDataHelpers$ResX.expectString(formData, "firstName", undefined);
           var lastName = FormDataHelpers$ResX.expectString(formData, "lastName", undefined);
           FormDataHelpers$ResX.expectCustom(formData, "myVariant", myVariantFromString);
-          return ResX__ReactDOM$ResX.jsx("span", {
+          return Hjsx$ResX.Elements.jsx("span", {
                       children: "Hi " + firstName + " " + lastName + "!"
                     });
         }
         catch (raw_exn){
           var exn = Caml_js_exceptions.internalToOCamlException(raw_exn);
           if (exn.RE_EXN_ID === Js_exn.$$Error) {
-            return ResX__React$ResX.jsx(ErrorMessage.make, {
+            return Hjsx$ResX.jsx(ErrorMessage.make, {
                         message: "Something went wrong..."
                       });
           }
@@ -57,19 +56,19 @@ var onButtonBlick = Handlers$ResX.hxPost(HtmxHandler.handler, "/button-click", (
       }));
 
 function Hello(props) {
-  return ResX__ReactDOM$ResX.jsxs("form", {
+  return Hjsx$ResX.Elements.jsxs("form", {
               children: [
-                ResX__ReactDOM$ResX.jsx("button", {
+                Hjsx$ResX.Elements.jsx("button", {
                       children: "Hello " + props.name,
                       "hx-post": Caml_option.some(onButtonBlick),
                       "hx-swap": Caml_option.some(Htmx$ResX.Swap.make("innerHTML", "Transition"))
                     }),
-                ResX__ReactDOM$ResX.jsx("input", {
+                Hjsx$ResX.Elements.jsx("input", {
                       name: "firstName",
                       type: "text",
                       value: ""
                     }),
-                ResX__ReactDOM$ResX.jsx("input", {
+                Hjsx$ResX.Elements.jsx("input", {
                       name: "lastName",
                       type: "text",
                       value: ""

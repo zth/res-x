@@ -1,4 +1,4 @@
-@react.component
+@jsx.component
 let make = () => {
   let context = HtmxHandler.useContext()
 
@@ -13,7 +13,7 @@ let make = () => {
         "underline text-blue-700 visited:text-purple-700",
       ])}
       href="/user/1">
-      {H.string("To User 1")}
+      {Hjsx.string("To User 1")}
     </a>
   </div>
 }

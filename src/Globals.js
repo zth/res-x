@@ -4,5 +4,8 @@
 
 var H;
 
+var Hjsx;
+
 exports.H = H;
+exports.Hjsx = Hjsx;
 /* No side effect */

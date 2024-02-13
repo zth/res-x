@@ -1,4 +1,4 @@
-@react.component
+@jsx.component
 let make = (~message) => {
-  <div> {H.string(message)} </div>
+  <div> {Hjsx.string(message)} </div>
 }

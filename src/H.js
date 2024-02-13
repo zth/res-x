@@ -29,17 +29,8 @@ var Context = {
   useContext: useContext
 };
 
-function make(prim) {
-  return HyperonsJs.Fragment(prim);
-}
-
-var Fragment = {
-  make: make
-};
-
 exports.renderToString = renderToString;
 exports.renderSyncToString = renderSyncToString;
 exports.renderToStream = renderToStream;
 exports.Context = Context;
-exports.Fragment = Fragment;
 /* ./vendor/hyperons.js Not a pure module */
