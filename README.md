@@ -29,6 +29,9 @@ Configure our `rescript.json`:
 
 ```json
 {
+  "jsx": {
+    "module": "Hjsx"
+  },
   "bs-dependencies": ["@rescript/core", "rescript-x", "rescript-bun"],
   "bsc-flags": [
     "-open RescriptCore",
@@ -153,12 +156,12 @@ let server = Bun.serve({
               <div>
                 {switch appRoutes {
                 | list{} =>
-                  <div> {H.string("Start page!")} </div>
+                  <div> {Hjsx.string("Start page!")} </div>
                 | list{"moved"} =>
                   requestController->ResX.RequestController.redirect("/start", ~status=302)
                 | _ =>
                   requestController->ResX.RequestController.setStatus(404)
-                  <div>{H.string("404")}</div>
+                  <div>{Hjsx.string("404")}</div>
                 }}
               </div>
             </Html>
@@ -195,21 +198,16 @@ You route by just pattern matching on `path`:
 switch path {
 | list{} =>
   // Path: /
-  <div> {H.string("Start page!")} </div>
+  <div> {Hjsx.string("Start page!")} </div>
 | list{"moved"} =>
   // Path: /moved
   requestController->ResX.RequestController.redirect("/start", ~status=302)
 | _ =>
   // Any other path
   requestController->ResX.RequestController.setStatus(404)
-  <div>{H.string("404")}</div>
+  <div>{Hjsx.string("404")}</div>
 }
 ```
-
-### State of ResX (read: caveats)
-
-- You'll see some "react" in the code. This is because we're currently piggy backing on the React JSX integration. This will change as a generic JSX transform is shipped to ReScript in the future.
-- Autocomplete for HTMX and ResX HTML element prop names currently does not work. This will also change as a generic transform is shipped.
 
 ## Static assets
 
@@ -316,15 +314,15 @@ let onForm = Handler.handler->ResX.Handlers.hxPost("/user-single", ~handler=asyn
   let formData = await request->Request.formData
   try {
     let name = formData->ResX.FormDataHelpers.expectString("name")
-    <div>{H.string(`Hi ${name}!`)}</div>
+    <div>{Hjsx.string(`Hi ${name}!`)}</div>
   } catch {
   | Exn.Error(err) =>
     Console.error(err)
-    <div> {H.string("Failed...")} </div>
+    <div> {Hjsx.string("Failed...")} </div>
   }
 })
 
-@react.component
+@jsx.component
 let make = () => {
   <form
     hxPost={onForm}
@@ -332,9 +330,9 @@ let make = () => {
     hxTarget={ResX.Htmx.Target.make(CssSelector("#user-single"))}>
     <input type_="text" name="name" />
     <div id="user-single">
-      {H.string("Hello...")}
+      {Hjsx.string("Hello...")}
     </div>
-    <button>{H.string("Submit")}</button>
+    <button>{Hjsx.string("Submit")}</button>
   </form>
 }
 ```
@@ -355,15 +353,15 @@ Handler.handler->ResX.Handlers.implementHxPostIdentifier(onForm, ~handler=async 
   let formData = await request->Request.formData
   try {
     let name = formData->ResX.FormDataHelpers.expectString("name")
-    <div>{H.string(`Hi ${name}!`)}</div>
+    <div>{Hjsx.string(`Hi ${name}!`)}</div>
   } catch {
   | Exn.Error(err) =>
     Console.error(err)
-    <div> {H.string("Failed...")} </div>
+    <div> {Hjsx.string("Failed...")} </div>
   }
 })
 
-@react.component
+@jsx.component
 let make = () => {
   <form
     hxPost={onForm}
@@ -371,9 +369,9 @@ let make = () => {
     hxTarget={ResX.Htmx.Target.make(CssSelector("#user-single"))}>
     <input type_="text" name="name" />
     <div id="user-single">
-      {H.string("Hello...")}
+      {Hjsx.string("Hello...")}
     </div>
-    <button>{H.string("Submit")}</button>
+    <button>{Hjsx.string("Submit")}</button>
   </form>
 }
 ```
@@ -387,7 +385,7 @@ Notice how producing the `hxPost` identitifer is now separate from implementing 
 All `hx`-attributes have type safe maker-style APIs. Let's look at the example above again:
 
 ```rescript
-@react.component
+@jsx.component
 let make = () => {
   <form
     hxPost={onForm}
@@ -395,9 +393,9 @@ let make = () => {
     hxTarget={ResX.Htmx.Target.make(CssSelector("#user-single"))}>
     <input type_="text" name="name" />
     <div id="user-single">
-      {H.string("Hello...")}
+      {Hjsx.string("Hello...")}
     </div>
-    <button>{H.string("Submit")}</button>
+    <button>{Hjsx.string("Submit")}</button>
   </form>
 }
 ```
@@ -416,10 +414,10 @@ let onSubmit = Handler.handler->ResX.Handlers.formAction("/some-url", ~handler=a
   Response.makeRedirect("/some-other-page")
 })
 
-@react.component
+@jsx.component
 let make = () => {
   <form action={onSubmit}>
-    <button>{H.string("Submit and get redirected!")}</button>
+    <button>{Hjsx.string("Submit and get redirected!")}</button>
   </form>
 }
 ```
@@ -448,7 +446,7 @@ Sometimes all you need to do is add, remove or toggle a CSS class in response to
   resXOnClick={ResX.Client.Actions.make([
     ToggleClass({className: "text-xl", target: This}),
   ])}>
-  {H.string("Submit form")}
+  {Hjsx.string("Submit form")}
 </button>
 ```
 
@@ -477,19 +475,24 @@ This will turn the validity message for when the value is missing (since it's ma
 
 ## Building UI with ResX
 
-If you're familiar with React and the component model, building UI with ResX is very straight forward. It's essentially like using React as a templating engine, with a sprinkle of React Server Components flavor.
+If you're familiar with React, JSX and the component model, building UI with ResX is very straight forward. It's essentially like using React as a templating engine, with a sprinkle of React Server Components flavor.
 
-The bulk of your code is going to be (reusable) components. You define one just like you do in React, with the difference that `React.string`, `React.int` etc are called `H.string` and `H.int` instead:
+In ResX, you'll interface with 2 modules mainly when working with JSX:
+
+1. `Hjsx` - this holds functions like `string`, `int` etc for converting primitives to JSX, and a bunch of things that are needed for the JSX transform.
+2. `H` - this holds the `Context` module, as well as functions for turning JSX elements into strings.
+
+The bulk of your code is going to be (reusable) components. You define one just like you do in React, with the difference that `React.string`, `React.int` etc are called `Hjsx.string` and `Hjsx.int`, and `@react.component` is called `@jsx.component` instead:
 
 ```rescript
 // Greet.res
-@react.component
+@jsx.component
 let make = (~name) => {
-  <div>{H.string("Hello " ++ name)}</div>
+  <div>{Hjsx.string("Hello " ++ name)}</div>
 }
 
 // SomeFile.res
-@react.component
+@jsx.component
 let make = (~userName) => {
   <div>
     <Greet name=userName />
@@ -497,19 +500,17 @@ let make = (~userName) => {
 }
 ```
 
-> Note: `@react.component` will likely be called `@jsx.component` or similar in the future, when the generic JSX transform lands in ReScript.
-
 ### Async components
 
 Components can be defined using `async`/`await`. This enables you to do data fetching directly in them:
 
 ```rescript
 // User.res
-@react.component
+@jsx.component
 let make = async (~id) => {
   let user = await getUser(id)
 
-  <div>{H.string("Hello " ++ user.name)}</div>
+  <div>{Hjsx.string("Hello " ++ user.name)}</div>
 }
 ```
 
@@ -529,7 +530,7 @@ module Provider = {
   let make = H.Context.provider(context)
 }
 
-@react.component
+@jsx.component
 let make = (~children, ~currentUserId: option<string>) => {
   <Provider value={currentUserId}> {children} </Provider>
 }
@@ -542,11 +543,11 @@ let currentUserId = request->UserUtils.getCurrentUserId
 
 // LoggedInUser.res
 // This is rendered somewhere far down in the tree
-@react.component
+@jsx.component
 let make = () => {
   switch CurrentUserId.use() {
-  | None => <div>{H.string("Not logged in")}</div>
-  | Some(currentUserId) => <div>{H.string("Logged in as: " ++ currentUserId)}</div>
+  | None => <div>{Hjsx.string("Not logged in")}</div>
+  | Some(currentUserId) => <div>{Hjsx.string("Logged in as: " ++ currentUserId)}</div>
   }
 }
 ```
@@ -558,7 +559,7 @@ Just like in React, you can protect parts of your UI from errors during render u
 ```rescript
 <ResX.ErrorBoundary renderError={err => {
   Console.error(err)
-  <div>{H.string("Oops, this blew up!")}</div>
+  <div>{Hjsx.string("Oops, this blew up!")}</div>
 }}>
   <div>
     <ComponentThatWillBlowUp />
@@ -682,12 +683,12 @@ You can set the response status anywhere when rendering:
 
 ```rescript
 // FourOhFour.res
-@react.component
+@jsx.component
 let make = () => {
   let context = ResX.Handlers.useContext(HtmxHandler.handler)
   context.requestController->ResX.RequestController.setStatus(404)
 
-  <div> {H.string("404")} </div>
+  <div> {Hjsx.string("404")} </div>
 }
 ```
 
@@ -706,7 +707,7 @@ By default, any returned content from your handlers is prefixed with `<!DOCTYPE 
 
 ```rescript
 // SiteMap.res
-@react.component
+@jsx.component
 let make = () => {
   let context = ResX.Handlers.useContext(HtmxHandler.handler)
 
@@ -722,10 +723,10 @@ let make = () => {
 
   <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-      <loc> {H.string("https://www.example.com/")} </loc>
-      <lastmod> {H.string("2023-10-15")} </lastmod>
-      <changefreq> {H.string("weekly")} </changefreq>
-      <priority> {H.string("1.0")} </priority>
+      <loc> {Hjsx.string("https://www.example.com/")} </loc>
+      <lastmod> {Hjsx.string("2023-10-15")} </lastmod>
+      <changefreq> {Hjsx.string("weekly")} </changefreq>
+      <priority> {Hjsx.string("1.0")} </priority>
     </url>
   </urlset>
 }
