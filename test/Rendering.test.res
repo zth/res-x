@@ -1,10 +1,12 @@
+@@jsxConfig({module_: "Hjsx"})
+
 open Test
 open TestUtils
 
 describe("rendering", () => {
   describe("render in head", () => {
     module AsyncComponent = {
-      @react.component
+      @jsx.component
       let make = async () => {
         let context = Handler.handler->Handlers.useContext
 
@@ -60,7 +62,7 @@ describe("rendering", () => {
             renderConfig.requestController->RequestController.setDocHeader(
               Some(`<?xml version="1.0" encoding="UTF-8"?>`),
             )
-            H.null
+            Hjsx.null
           },
         )
 
@@ -112,7 +114,7 @@ describe("rendering", () => {
         let response = await getResponse(
           _renderConfig => {
             <Html>
-              <div> {H.string("Hi!")} </div>
+              <div> {Hjsx.string("Hi!")} </div>
             </Html>
           },
           ~onBeforeSendResponse=async config => {
@@ -142,7 +144,7 @@ describe("rendering", () => {
         let response = await getResponse(
           _renderConfig => {
             <Html>
-              <div> {H.string("Hi!")} </div>
+              <div> {Hjsx.string("Hi!")} </div>
             </Html>
           },
           ~onBeforeSendResponse=async config => {

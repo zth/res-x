@@ -6,12 +6,12 @@ describe("HTMX handlers", () => {
     let _getHandler = Handler.handler->Handlers.hxGet(
       "/test",
       ~handler=async _ => {
-        H.string("Test!")
+        Hjsx.string("Test!")
       },
     )
     let response = await getResponse(
       _ => {
-        H.null
+        Hjsx.null
       },
       ~url="/_api/test",
     )

@@ -1,7 +1,7 @@
-module React = ResX__React
+@@jsxConfig({module_: "Hjsx"})
 
 /** Function called when an error occurs. Expected to return the fallback JSX for the error. */
-type errorFn = Exn.t => Jsx.element
+type errorFn = Exn.t => Hjsx.element
 
-@react.component
-let make: (~children: Jsx.element, ~renderError: errorFn) => Jsx.element
+@jsx.component
+let make: (~children: Hjsx.element, ~renderError: errorFn) => Hjsx.element
