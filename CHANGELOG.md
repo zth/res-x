@@ -1,5 +1,15 @@
 # master
 
+# 0.1.0
+
+- Move to using a generic JSX transform.
+
+These versions are now required:
+
+- `rescript@>=11.1.0-rc.2`
+- `@rescript/core@>=1.0.0`
+- `rescript-bun@>=0.4.1`
+
 # 0.1.0-beta.6
 
 - Add `SwapClass` to ResX client actions.
