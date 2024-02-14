@@ -23,13 +23,13 @@
     "rescript": ">=11.1.0-rc.2",
     "@rescript/core": ">=1.0.0",
     "vite": ">=4.4.11",
-    "rescript-bun": ">=0.4.0"
+    "rescript-bun": ">=0.4.1"
   },
   "devDependencies": {
     "@rescript/core": "1.0.0",
     "fast-glob": "^3.3.1",
     "rescript": "11.1.0-rc.2",
-    "rescript-bun": "0.4.0"
+    "rescript-bun": "0.4.1"
   },
   "dependencies": {
     "fast-glob": "^3.3.1"
