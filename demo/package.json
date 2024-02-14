@@ -18,13 +18,13 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@rescript/core": "^0.7.0",
+    "@rescript/core": "1.0.0",
     "concurrently": "^8.2.1",
     "fast-glob": "^3.3.1",
     "rescript-x": "../",
     "rescript": "11.1.0-rc.2",
     "vite": "^4.4.11",
-    "rescript-bun": "0.3.1"
+    "rescript-bun": "0.4.0"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.16",
