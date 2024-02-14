@@ -25,6 +25,12 @@ First, make sure you have [`Bun`](https://bun.sh) installed and setup. Then, ins
 npm i rescript-x vite @rescript/core rescript-bun
 ```
 
+Note that ResX requires these versions:
+
+- `rescript@>=11.1.0-rc.2`
+- `@rescript/core@>=1.0.0`
+- `rescript-bun@>=0.4.1`
+
 Configure our `rescript.json`:
 
 ```json
