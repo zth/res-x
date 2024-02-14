@@ -1,5 +1,4 @@
-module React = ResX__React
-module ReactDOM = ResX__ReactDOM
+@@jsxConfig({module_: "Hjsx"})
 
 let getScript = (~port) =>
   `(() => {
@@ -95,15 +94,15 @@ bootSocket()
 })()
 `
 
-@react.component
+@jsx.component
 let make = (~port=4444) => {
   if BunUtils.isDev {
     [
       <script dangerouslySetInnerHTML={{"__html": getScript(~port)}} />,
       <script src="https://unpkg.com/morphdom/dist/morphdom-umd.js" />,
       <script type_="module" src="http://localhost:9000/@vite/client" />,
-    ]->H.array
+    ]->Hjsx.array
   } else {
-    H.null
+    Hjsx.null
   }
 }

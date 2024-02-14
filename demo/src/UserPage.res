@@ -13,7 +13,7 @@ let onForm = HtmxHandler.handler->ResX.Handlers.hxPost("/user-single", ~handler=
     let active = formData->ResX.FormDataHelpers.expectCheckbox("active")
 
     <div>
-      {H.string(
+      {Hjsx.string(
         `Some user ${name} is ${switch active {
           | false => "not active"
           | true => "active"
@@ -23,11 +23,11 @@ let onForm = HtmxHandler.handler->ResX.Handlers.hxPost("/user-single", ~handler=
   } catch {
   | Exn.Error(err) =>
     Console.error(err)
-    <div> {H.string("Failed")} </div>
+    <div> {Hjsx.string("Failed")} </div>
   }
 })
 
-@react.component
+@jsx.component
 let make = (~innerContent, ~userId) => {
   let ctx = HtmxHandler.useContext()
   ctx.headers->Headers.set("Content-Type", "text/html")
@@ -39,7 +39,7 @@ let make = (~innerContent, ~userId) => {
       <img src={ResXAssets.assets.images__test_img_jpeg} />
       <div id="user-single">
         <div className="text-2xl bg-slate-200 text-gray-500">
-          {H.string(`User 123 3333 ${userId}`)}
+          {Hjsx.string(`User 123 3333 ${userId}`)}
         </div>
       </div>
       <div className="p-2">
@@ -62,11 +62,11 @@ let make = (~innerContent, ~userId) => {
       <div className="p-2">
         <label>
           <input type_="radio" value="on" name="status" />
-          {H.string("On")}
+          {Hjsx.string("On")}
         </label>
         <label>
           <input type_="radio" value="off" name="status" />
-          {H.string("Off")}
+          {Hjsx.string("Off")}
         </label>
       </div>
       <div className="p-2">
@@ -78,12 +78,12 @@ let make = (~innerContent, ~userId) => {
           resXOnClick={ResX.Client.Actions.make([
             ToggleClass({className: "text-xl", target: This}),
           ])}>
-          {H.string("Submit form")}
+          {Hjsx.string("Submit form")}
         </button>
       </div>
       <ResX.ErrorBoundary
         renderError={err => {
-          <div> {H.string("Oops, failed! " ++ err->Exn.message->Option.getOr("-"))} </div>
+          <div> {Hjsx.string("Oops, failed! " ++ err->Exn.message->Option.getOr("-"))} </div>
         }}>
         <FailingComponent />
       </ResX.ErrorBoundary>

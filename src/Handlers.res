@@ -1,3 +1,5 @@
+@val external null: Jsx.element = "null"
+
 module FormAction = {
   type t = string
   let string = s => s
@@ -155,7 +157,7 @@ let handleRequest = async (
     let isFormAction = targetFormActionHandler->Option.isSome
 
     let content = switch (targetFormActionHandler, targetHtmxHandler) {
-    | (Some(_), _) => H.null
+    | (Some(_), _) => null
     | (None, None) => await render(renderConfig)
     | (None, Some(handler)) =>
       await handler({

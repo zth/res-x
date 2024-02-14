@@ -9,7 +9,7 @@ let match = (userRoutes, ~headers, ~requestController) => {
       userId
       innerContent={switch userRoutes {
       | list{"friends"} => <UserFriends userId />
-      | _ => H.null
+      | _ => Hjsx.null
       }}
     />
   | _ =>

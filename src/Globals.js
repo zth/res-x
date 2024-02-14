@@ -2,13 +2,10 @@
 'use strict';
 
 
-var React;
-
-var ReactDOM;
-
 var H;
 
-exports.React = React;
-exports.ReactDOM = ReactDOM;
+var Hjsx;
+
 exports.H = H;
+exports.Hjsx = Hjsx;
 /* No side effect */

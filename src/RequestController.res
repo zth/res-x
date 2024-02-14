@@ -13,9 +13,13 @@ let make = () => {
   docHeader: Some("<!DOCTYPE html>"),
 }
 let setStatus = (t, status) => t.status = status
+
+@val external null: Jsx.element = "null"
+external array: array<Jsx.element> => Jsx.element = "%identity"
+
 let redirect = (t, url, ~status=?) => {
   t.redirect = Some((url, status))
-  H.null
+  null
 }
 let getCurrentStatus = t => t.status
 let getCurrentRedirect = t => t.redirect
@@ -29,5 +33,5 @@ let setFullTitle = (t, title) =>
 let getAppendedHeadContent = async (t): option<string> =>
   switch t.headContent {
   | [] => None
-  | headContent => Some(await headContent->H.array->H.renderToString)
+  | headContent => Some(await headContent->array->H.renderToString)
   }

@@ -11,7 +11,7 @@ describe("Form action handlers", () => {
     )
     let response = await getResponse(
       _ => {
-        H.string("nope")
+        Hjsx.string("nope")
       },
       ~url="/_form/test",
     )

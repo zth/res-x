@@ -3,6 +3,7 @@
 
 var Html = require("./Html.js");
 var SiteMap = require("./SiteMap.js");
+var Hjsx$ResX = require("rescript-x/src/Hjsx.js");
 var FourOhFour = require("./FourOhFour.js");
 var $$Navigation = require("./Navigation.js");
 var UserRoutes = require("./UserRoutes.js");
@@ -10,8 +11,6 @@ var Caml_option = require("rescript/lib/js/caml_option.js");
 var HtmxHandler = require("./HtmxHandler.js");
 var BunUtils$ResX = require("rescript-x/src/BunUtils.js");
 var Handlers$ResX = require("rescript-x/src/Handlers.js");
-var ResX__React$ResX = require("rescript-x/src/ResX__React.js");
-var ResX__ReactDOM$ResX = require("rescript-x/src/ResX__ReactDOM.js");
 var RequestController$ResX = require("rescript-x/src/RequestController.js");
 
 var server = Bun.serve({
@@ -31,7 +30,7 @@ var server = Bun.serve({
                             var exit = 0;
                             if (path && path.hd === "sitemap.xml") {
                               if (!path.tl) {
-                                return ResX__React$ResX.jsx(SiteMap.make, {});
+                                return Hjsx$ResX.jsx(SiteMap.make, {});
                               }
                               exit = 1;
                             } else {
@@ -45,7 +44,7 @@ var server = Bun.serve({
                                 var exit$2 = 0;
                                 switch (path.hd) {
                                   case "moved" :
-                                      tmp = path.tl ? ResX__React$ResX.jsx(FourOhFour.make, {
+                                      tmp = path.tl ? Hjsx$ResX.jsx(FourOhFour.make, {
                                               setGenericTitle: true
                                             }) : RequestController$ResX.redirect(requestController, "/start", 302);
                                       break;
@@ -57,13 +56,13 @@ var server = Bun.serve({
                                       tmp = UserRoutes.match(path.tl, headers, requestController);
                                       break;
                                   default:
-                                    tmp = ResX__React$ResX.jsx(FourOhFour.make, {
+                                    tmp = Hjsx$ResX.jsx(FourOhFour.make, {
                                           setGenericTitle: true
                                         });
                                 }
                                 if (exit$2 === 3) {
                                   if (path.tl) {
-                                    tmp = ResX__React$ResX.jsx(FourOhFour.make, {
+                                    tmp = Hjsx$ResX.jsx(FourOhFour.make, {
                                           setGenericTitle: true
                                         });
                                   } else {
@@ -76,14 +75,14 @@ var server = Bun.serve({
                               }
                               if (exit$1 === 2) {
                                 headers.set("Cache-Control", "public, immutable, max-age=900");
-                                tmp = ResX__ReactDOM$ResX.jsx("div", {
+                                tmp = Hjsx$ResX.Elements.jsx("div", {
                                       children: "Start page!"
                                     });
                               }
-                              return ResX__React$ResX.jsxs(Html.make, {
+                              return Hjsx$ResX.jsxs(Html.make, {
                                           children: [
-                                            ResX__React$ResX.jsx($$Navigation.make, {}),
-                                            ResX__ReactDOM$ResX.jsx("div", {
+                                            Hjsx$ResX.jsx($$Navigation.make, {}),
+                                            Hjsx$ResX.Elements.jsx("div", {
                                                   children: tmp
                                                 })
                                           ]

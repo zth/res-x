@@ -1,10 +1,3 @@
-@val external null: Jsx.element = "null"
-
-external float: float => Jsx.element = "%identity"
-external int: int => Jsx.element = "%identity"
-external string: string => Jsx.element = "%identity"
-external array: array<Jsx.element> => Jsx.element = "%identity"
-
 @module("./vendor/hyperons.js")
 external renderToString: Jsx.element => promise<string> = "render"
 
@@ -31,10 +24,4 @@ module Context = {
   external useContext: t<'context> => 'context = "useContext"
 
   @get external provider: t<'context> => Jsx.component<props<'context>> = "Provider"
-}
-
-module Fragment = {
-  type fragmentProps = {children: Jsx.element}
-  @module("./vendor/hyperons.js")
-  external make: fragmentProps => Jsx.element = "Fragment"
 }

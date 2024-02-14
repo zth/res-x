@@ -23,7 +23,7 @@ let server = Bun.serve({
                 {switch appRoutes {
                 | list{"start" | ""} | list{} =>
                   headers->Headers.set("Cache-Control", "public, immutable, max-age=900")
-                  <div> {H.string("Start page!")} </div>
+                  <div> {Hjsx.string("Start page!")} </div>
                 | list{"moved"} =>
                   requestController->ResX.RequestController.redirect("/start", ~status=302)
                 | list{"user", ...userRoutes} =>

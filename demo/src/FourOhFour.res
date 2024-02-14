@@ -1,4 +1,4 @@
-@react.component
+@jsx.component
 let make = (~setGenericTitle=false) => {
   let context = HtmxHandler.useContext()
   context.requestController->ResX.RequestController.setStatus(404)
@@ -7,5 +7,5 @@ let make = (~setGenericTitle=false) => {
     context.requestController->ResX.RequestController.setFullTitle("Not Found")
   }
 
-  <div> {H.string("404")} </div>
+  <div> {Hjsx.string("404")} </div>
 }

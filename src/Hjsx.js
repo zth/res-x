@@ -13,7 +13,21 @@ function jsxs(prim0, prim1) {
   return HyperonsJs.h(prim0, prim1);
 }
 
+function jsx$1(prim0, prim1) {
+  return HyperonsJs.h(prim0, prim1);
+}
+
+function jsxs$1(prim0, prim1) {
+  return HyperonsJs.h(prim0, prim1);
+}
+
+var Elements = {
+  jsx: jsx$1,
+  jsxs: jsxs$1
+};
+
 exports.jsxFragment = jsxFragment;
 exports.jsx = jsx;
 exports.jsxs = jsxs;
+exports.Elements = Elements;
 /* jsxFragment Not a pure module */

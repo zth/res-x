@@ -1,4 +1,4 @@
-@react.component
+@jsx.component
 let make = () => {
   let context = HtmxHandler.useContext()
 
@@ -14,10 +14,10 @@ let make = () => {
 
   <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
-      <loc> {H.string("https://www.example.com/")} </loc>
-      <lastmod> {H.string("2023-10-15")} </lastmod>
-      <changefreq> {H.string("weekly")} </changefreq>
-      <priority> {H.string("1.0")} </priority>
+      <loc> {Hjsx.string("https://www.example.com/")} </loc>
+      <lastmod> {Hjsx.string("2023-10-15")} </lastmod>
+      <changefreq> {Hjsx.string("weekly")} </changefreq>
+      <priority> {Hjsx.string("1.0")} </priority>
     </url>
   </urlset>
 }

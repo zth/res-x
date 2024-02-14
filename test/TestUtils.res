@@ -1,5 +1,4 @@
-module React = ResX__React
-module ReactDOM = ResX__ReactDOM
+@@jsxConfig({module_: "Hjsx"})
 
 module Handler = {
   type context = unit
@@ -37,7 +36,7 @@ let getPort = () => {
 }
 
 module Html = {
-  @react.component
+  @jsx.component
   let make = (~children) => {
     <html>
       <head />

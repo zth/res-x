@@ -1,4 +1,4 @@
-module React = ResX__React
+@@jsxConfig({module_: "Hjsx"})
 
 @module("./vendor/hyperons.js")
 external createContext: ('context, @as("errorBoundary") _) => H.Context.t<'context> =
@@ -12,7 +12,7 @@ module Provider = {
   let make = H.Context.provider(context)
 }
 
-@react.component
+@jsx.component
 let make = (~children, ~renderError: errorFn) => {
   <Provider value={Some(renderError)}> {children} </Provider>
 }
