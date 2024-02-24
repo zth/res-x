@@ -138,18 +138,20 @@ export default function resXVitePlugin(options = {}) {
         if (v.facadeModuleId != null) {
           const moduleId = v.facadeModuleId.split("?")[0];
           const path = key;
-          const importedAsset = v.viteMetadata?.importedAssets
-            .values()
-            .next().value;
-
           const importedCss = v.viteMetadata?.importedCss.values().next().value;
 
-          if (importedAsset != null) {
-            map[moduleId] = importedAsset.toString();
-          } else if (importedCss != null) {
+          if (importedCss != null) {
             map[moduleId] = importedCss.toString();
           } else {
-            map[moduleId] = path.toString();
+            const importedAsset = v.viteMetadata?.importedAssets
+              .values()
+              .next().value;
+
+            if (importedAsset != null) {
+              map[moduleId] = importedAsset.toString();
+            } else {
+              map[moduleId] = path.toString();
+            }
           }
         }
       });
