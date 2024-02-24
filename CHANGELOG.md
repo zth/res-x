@@ -1,5 +1,7 @@
 # master
 
+# 0.1.1
+
 - Fix issue with Vite transform and CSS files with imports.
 
 # 0.1.0
