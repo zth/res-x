@@ -61,7 +61,7 @@ let make = (~requestToContext, ~options=?) => {
 
 let useContext = t => t.asyncLocalStorage->AsyncHooks.AsyncLocalStorage.getStoreUnsafe
 
-let defaultRenderTitle = segments => segments->Array.joinWith(" | ")
+let defaultRenderTitle = segments => segments->Array.join(" | ")
 
 @module("./vendor/hyperons.js")
 external escapeString: string => string = "escapeString"

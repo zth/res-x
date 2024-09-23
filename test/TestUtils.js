@@ -88,7 +88,7 @@ async function getResponse(getContent, onBeforeSendResponse, urlOpt) {
   var exit = 0;
   var res$1;
   try {
-    res$1 = await fetch("http://localhost:" + port.toString() + url, undefined);
+    res$1 = await fetch("http://localhost:" + port.toString() + url);
     exit = 1;
   }
   catch (raw_exn){

@@ -12,7 +12,7 @@ Buntest.describe("rendering HTML via JSX", (function () {
                       children: dangerousHtml
                     });
                 Buntest.expect(H$ResX.renderSyncToString(jsx)).toBe("<div>" + Bun.escapeHTML(dangerousHtml) + "</div>");
-              }), undefined);
+              }));
       }));
 
 /*  Not a pure module */

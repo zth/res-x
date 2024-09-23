@@ -15,7 +15,7 @@ Buntest.describe("HTMX handlers", (function () {
                       }), undefined, "/_api/test");
                 var text = await response.text();
                 Buntest.expect(text).toBe("<!DOCTYPE html>Test!");
-              }), undefined);
+              }));
       }));
 
 /*  Not a pure module */

@@ -40,14 +40,14 @@ let run = async (server: Server.t, ~urls: array<string>) => {
 
         switch dirStructure {
         | [] => ()
-        | dirStructure => await Fs.mkdir(dirStructure->Array.joinWith("/"), {recursive: true})
+        | dirStructure => await Fs.mkdir(dirStructure->Array.join("/"), {recursive: true})
         }
 
         dirStructure->Array.push(fileName)
-        let filePath = dirStructure->Array.joinWith("/")
+        let filePath = dirStructure->Array.join("/")
 
         let _ = await Bun.Write.writeResponseToFile(
-          ~file=dirStructure->Array.joinWith("/")->Bun.file,
+          ~file=dirStructure->Array.join("/")->Bun.file,
           ~response=res,
         )
 

@@ -34,7 +34,7 @@
                         
                       }
                     });
-              }), undefined);
+              }));
         document.addEventListener("invalid", (function ($$event) {
                 var $$this = $$event.target;
                 var match = $$this.validity;
@@ -78,7 +78,7 @@
                   return $$this.setCustomValidity("");
                 }
                 
-              }), undefined);
+              }));
       })());
 
 /*  Not a pure module */

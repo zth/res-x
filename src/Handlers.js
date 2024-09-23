@@ -122,7 +122,7 @@ async function handleRequest(t, config) {
                     targetHtmxHandler !== undefined ? "HtmxHandler" : "Default"
                   );
                 if (isFormAction) {
-                  var formActionHandler = Core__Option.getExn(targetFormActionHandler);
+                  var formActionHandler = Core__Option.getExn(targetFormActionHandler, undefined);
                   var response = await formActionHandler({
                         request: request,
                         context: ctx
@@ -145,7 +145,7 @@ async function handleRequest(t, config) {
                           })
                       });
                   var writer = match.writable.getWriter();
-                  var textEncoder = new TextEncoder(undefined);
+                  var textEncoder = new TextEncoder();
                   H$ResX.renderToStream(content, (function (chunk) {
                             var encoded = textEncoder.encode(chunk);
                             writer.write(encoded);

@@ -127,13 +127,13 @@ module CacheControl = {
       } else {
         None
       },
-      expiration->Option.map(e => e->Array.map(expirationToString)->Array.joinWith(", ")),
-      revalidation->Option.map(r => r->Array.map(revalidationToString)->Array.joinWith(", ")),
-      modifiers->Option.map(r => r->Array.map(modifiersToString)->Array.joinWith(", ")),
-      extensions->Option.map(r => r->Array.map(extensionsToString)->Array.joinWith(", ")),
+      expiration->Option.map(e => e->Array.map(expirationToString)->Array.join(", ")),
+      revalidation->Option.map(r => r->Array.map(revalidationToString)->Array.join(", ")),
+      modifiers->Option.map(r => r->Array.map(modifiersToString)->Array.join(", ")),
+      extensions->Option.map(r => r->Array.map(extensionsToString)->Array.join(", ")),
     ]
     ->Array.keepSome
-    ->Array.joinWith(", ")
+    ->Array.join(", ")
   }
 
   module Presets = {

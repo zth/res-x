@@ -29,7 +29,7 @@ Buntest.describe("rendering", (function () {
                                         });
                             });
                         Buntest.expect(text).toBe("<!DOCTYPE html><html><head><meta content=\"test\" name=\"test\"/></head><body></body></html>");
-                      }), undefined);
+                      }));
                 Buntest.test("render in head", (async function () {
                         var text = await TestUtils$ResX.getContentInBody(function (renderConfig) {
                               return Hjsx$ResX.jsx(TestUtils$ResX.Html.make, {
@@ -43,7 +43,7 @@ Buntest.describe("rendering", (function () {
                                         });
                             });
                         Buntest.expect(text).toBe("<!DOCTYPE html><html><head><meta content=\"test\" name=\"test\"/></head><body></body></html>");
-                      }), undefined);
+                      }));
               }));
         Buntest.describe("DOCTYPE", (function () {
                 Buntest.test("change DOCTYPE", (async function () {
@@ -52,7 +52,7 @@ Buntest.describe("rendering", (function () {
                               return null;
                             });
                         Buntest.expect(text).toBe("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-                      }), undefined);
+                      }));
                 Buntest.test("remove DOCTYPE", (async function () {
                         var text = await TestUtils$ResX.getContentInBody(function (renderConfig) {
                               RequestController$ResX.setDocHeader(renderConfig.requestController, undefined);
@@ -61,7 +61,7 @@ Buntest.describe("rendering", (function () {
                                         });
                             });
                         Buntest.expect(text).toBe("<html><head></head><body><div></div></body></html>");
-                      }), undefined);
+                      }));
               }));
         Buntest.describe("Security", (function () {
                 Buntest.test("title segments are escaped", (async function () {
@@ -72,7 +72,7 @@ Buntest.describe("rendering", (function () {
                                         });
                             });
                         Buntest.expect(text).toBe("<!DOCTYPE html><html><head><title>&lt;/title&gt;&lt;/head&gt;</title></head><body><div></div></body></html>");
-                      }), undefined);
+                      }));
               }));
         Buntest.describe("hooks", (function () {
                 Buntest.test("onBeforeSendResponse change status", (async function () {
@@ -92,7 +92,7 @@ Buntest.describe("rendering", (function () {
                         var text = await response.text();
                         Buntest.expect(status).toBe(400);
                         Buntest.expect(text).toBe("<!DOCTYPE html><html><head></head><body><div>Hi!</div></body></html>");
-                      }), undefined);
+                      }));
                 Buntest.test("onBeforeSendResponse set header", (async function () {
                         var response = await TestUtils$ResX.getResponse((function (_renderConfig) {
                                 return Hjsx$ResX.jsx(TestUtils$ResX.Html.make, {
@@ -106,7 +106,7 @@ Buntest.describe("rendering", (function () {
                               }), undefined);
                         var userIdHeader = response.headers.get("x-user-id");
                         Buntest.expect((userIdHeader == null) ? undefined : Caml_option.some(userIdHeader)).toBe("1");
-                      }), undefined);
+                      }));
               }));
       }));
 

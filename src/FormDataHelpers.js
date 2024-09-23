@@ -16,23 +16,26 @@ function getOrRaise(opt, name, expectedType, message) {
   }
 }
 
-function getString(t, name) {
+function getString(t, name, allowEmptyStringOpt) {
+  var allowEmptyString = allowEmptyStringOpt !== undefined ? allowEmptyStringOpt : false;
   var s = t.get(name);
   if (!(s instanceof File) && typeof s !== "string" || typeof s !== "string") {
     return ;
+  } else if (s === "" && allowEmptyString) {
+    return "";
   } else {
     return s;
   }
 }
 
 function getInt(t, name) {
-  return Core__Option.flatMap(getString(t, name), (function (s) {
-                return Core__Int.fromString(undefined, s);
+  return Core__Option.flatMap(getString(t, name, undefined), (function (s) {
+                return Core__Int.fromString(s, undefined);
               }));
 }
 
 function getFloat(t, name) {
-  return Core__Option.flatMap(getString(t, name), (function (s) {
+  return Core__Option.flatMap(getString(t, name, undefined), (function (s) {
                 return Core__Float.fromString(s);
               }));
 }
@@ -47,7 +50,9 @@ function getBool(t, name) {
   }
   switch (match) {
     case "false" :
+    case "off" :
         return false;
+    case "on" :
     case "true" :
         return true;
     default:
@@ -67,7 +72,7 @@ function getStringArray(t, name) {
 function getIntArray(t, name) {
   return Core__Array.keepSome(t.getAll(name).map(function (v) {
                   if (typeof v === "string") {
-                    return Core__Int.fromString(undefined, v);
+                    return Core__Int.fromString(v, undefined);
                   }
                   
                 }));
@@ -112,7 +117,7 @@ function expectCustom(t, name, decoder) {
 }
 
 function expectString(t, name, message) {
-  return getOrRaise(getString(t, name), name, "string", message);
+  return getOrRaise(getString(t, name, undefined), name, "string", message);
 }
 
 function expectInt(t, name, message) {

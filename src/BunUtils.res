@@ -56,7 +56,7 @@ let serveStaticFile = async request => {
   let pathname = url->URL.pathname
 
   let path = pathname->String.split("/")->Array.filter(p => p !== "")
-  let joined = path->Array.joinWith("/")
+  let joined = path->Array.join("/")
 
   switch staticFiles->Map.get(joined) {
   | None => None

@@ -37,7 +37,7 @@ module Swap = {
       ),
     ]
     ->Array.keepSome
-    ->Array.joinWith(" ")
+    ->Array.join(" ")
 }
 
 type hxTarget =
@@ -71,8 +71,8 @@ module Params = {
     switch p {
     | IncludeAll => "*"
     | IncludeNone => "none"
-    | Not(list) => `not ${list->Array.joinWith(",")}`
-    | Only(list) => list->Array.joinWith(",")
+    | Not(list) => `not ${list->Array.join(",")}`
+    | Only(list) => list->Array.join(",")
     }
   }
 }
@@ -192,7 +192,7 @@ module Disinherit = {
   let make = d =>
     switch d {
     | All => "*"
-    | Attributes(attrs) => attrs->Array.map(a => (a :> string))->Array.joinWith(" ")
+    | Attributes(attrs) => attrs->Array.map(a => (a :> string))->Array.join(" ")
     }
 }
 

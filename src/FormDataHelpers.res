@@ -10,17 +10,22 @@ let getOrRaise = (opt, ~name, ~expectedType, ~message=?) =>
   | Some(v) => v
   }
 
-let getString = (t, name) =>
+let getString = (t, name, ~allowEmptyString=false) =>
   switch t->FormData.get(name) {
-  | String(s) => Some(s)
+  | String(s) =>
+    switch s {
+    | "" if allowEmptyString => Some("")
+    | _ => Some(s)
+    }
   | _ => None
   }
+
 let getInt = (t, name) => t->getString(name)->Option.flatMap(s => s->Int.fromString)
 let getFloat = (t, name) => t->getString(name)->Option.flatMap(s => s->Float.fromString)
 let getBool = (t, name) =>
   switch t->FormData.get(name) {
-  | String("true") => Some(true)
-  | String("false") => Some(false)
+  | String("true" | "on") => Some(true)
+  | String("false" | "off") => Some(false)
   | _ => None
   }
 
