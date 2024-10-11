@@ -1,5 +1,7 @@
 # master
 
+- Add `hxSwapOob` and `rawHxSwapOob` attributes.
+
 # 0.1.2
 
 - Add `allowEmptyString` option to `FormDataHelpers.getString`, and make sure that empty strings are treated as `None` by default.

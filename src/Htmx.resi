@@ -157,6 +157,11 @@ type htmxProps = {
   hxSwap?: Swap.t,
   @as("data-hx-swap")
   rawHxSwap?: string,
+  /** https://htmx.org/attributes/hx-swap-oob/ */
+  @as("hx-swap-oob")
+  hxSwapOob?: Swap.t,
+  @as("data-hx-swap-oob")
+  rawHxSwapOob?: string,
   /** https://htmx.org/docs/#boosting */
   @as("hx-boost")
   hxBoost?: bool,
