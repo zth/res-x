@@ -1,5 +1,7 @@
 # master
 
+# 0.1.3
+
 - Add `hxSwapOob` and `rawHxSwapOob` attributes.
 
 # 0.1.2
