@@ -1,5 +1,7 @@
 # master
 
+- Add `onBeforeBuildResponse` hook for doing tasks that need to happen before the HTML/response is generated.
+
 # 0.1.3
 
 - Add `hxSwapOob` and `rawHxSwapOob` attributes.
