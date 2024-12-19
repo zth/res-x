@@ -54,6 +54,10 @@ function appendTitleSegment(t, segment) {
   t.titleSegments.push(segment);
 }
 
+function prependTitleSegment(t, segment) {
+  t.titleSegments.unshift(segment);
+}
+
 function setFullTitle(t, title) {
   t.titleSegments.splice(0, t.titleSegments.length, title);
 }
@@ -76,6 +80,7 @@ exports.getDocHeader = getDocHeader;
 exports.appendToHead = appendToHead;
 exports.getAppendedHeadContent = getAppendedHeadContent;
 exports.appendTitleSegment = appendTitleSegment;
+exports.prependTitleSegment = prependTitleSegment;
 exports.setFullTitle = setFullTitle;
 exports.setDocHeader = setDocHeader;
 /* H-ResX Not a pure module */
