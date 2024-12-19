@@ -67,6 +67,7 @@ var defaultHeaders = [[
   ]];
 
 async function handleRequest(t, config) {
+  var onBeforeBuildResponse = config.onBeforeBuildResponse;
   var onBeforeSendResponse = config.onBeforeSendResponse;
   var render = config.render;
   var request = config.request;
@@ -121,6 +122,13 @@ async function handleRequest(t, config) {
                 var responseType = targetFormActionHandler !== undefined ? "FormActionHandler" : (
                     targetHtmxHandler !== undefined ? "HtmxHandler" : "Default"
                   );
+                if (onBeforeBuildResponse !== undefined) {
+                  await onBeforeBuildResponse({
+                        request: request,
+                        context: ctx,
+                        responseType: responseType
+                      });
+                }
                 if (isFormAction) {
                   var formActionHandler = Core__Option.getExn(targetFormActionHandler, undefined);
                   var response = await formActionHandler({
