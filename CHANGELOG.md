@@ -1,5 +1,7 @@
 # master
 
+# 0.2.0
+
 - Add `onBeforeBuildResponse` hook for doing tasks that need to happen before the HTML/response is generated.
 - Add `prependTitleSegment`.
 

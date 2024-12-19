@@ -579,11 +579,27 @@ You can use as many error boundaries as you want. You're recommended to wrap you
 
 ResX ships with a number of conveniences for handling common things when building responses for requests.
 
+### `onBeforeBuildResponse` hook for manipulating the context before the response is built
+
+`onBeforeBuildResponse` lets you manipulate your request specific context before ResX starts generating HTML. Let's look at an example of adding a script tag to the head if a certain criteria has been met:
+
+```rescript
+await Handler.handler->ResX.Handlers.handleRequest({
+  request,
+  onBeforeBuildResponse: ({context, request}) => {
+    // Imagine `shouldLoadHtmx` can be set to true by the code that has executed for this particular route. A component could for example mark itself as needing HTMX.
+    if context.shouldLoadHtmx {
+      response->ResX.RequestController.appendToHead(<script src="https://unpkg.com/htmx.org@1.9.5" async=true />)
+    }
+  },
+  render: async ({path, requestController, headers}) => {
+    // This handles the actual request.
+    ...
+```
+
 ### `onBeforeSendResponse` hook for manipulating the final response before sending it
 
-ResX tries to ship with as few "hooks" and similar concepts as possible. You're encouraged to mold your application as you see if, in order to keep as much control as possible.
-
-But, we still do ship a few conveniences. The `onBeforeSendResponse` hook is one of them. It lets you manipulate the response you're producing one last time before sending it to the client. Let's look at an example of overriding any cache header set when the user is logged in:
+`onBeforeSendResponse` lets you manipulate the response you're producing one last time before sending it to the client. Let's look at an example of overriding any cache header set when the user is logged in:
 
 ```rescript
 await Handler.handler->ResX.Handlers.handleRequest({
@@ -612,15 +628,20 @@ Therefore, ResX ships with a helper for handling the title using `ResX.RequestCo
 ```rescript
 // App.res
 let context = ResX.Handlers.useContext(HtmxHandler.handler)
-context.requestController->ResX.RequestController.appendTitleSegment("My App")
+context.requestController->ResX.RequestController.prependTitleSegment("My App")
 
 // Users.res
-// Title is now "MyApp | Users"
-context.requestController->ResX.RequestController.appendTitleSegment("Users")
+// Title is now "Users | MyApp"
+context.requestController->ResX.RequestController.prependTitleSegment("Users")
 
 // SingleUser.res
-// Title is now "MyApp | Users | Someuser Name"
-context.requestController->ResX.RequestController.appendTitleSegment(user.name)
+// Title is now "Someuser Name | Users | MyApp"
+context.requestController->ResX.RequestController.prepentTitleSegment(user.name)
+
+// There's also an `appendTitleSegment` for appending to the title
+// Title is now "Someuser Name | Users | MyApp | Appeneded Content"
+context.requestController->ResX.RequestController.appendTitleSegment("Appeneded Content")
+
 ```
 
 It's also easy to set the title to something else entirely with `setFullTitle`:
