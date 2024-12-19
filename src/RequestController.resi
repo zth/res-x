@@ -9,5 +9,6 @@ let getDocHeader: t => string
 let appendToHead: (t, Jsx.element) => unit
 let getAppendedHeadContent: t => promise<option<string>>
 let appendTitleSegment: (t, string) => unit
+let prependTitleSegment: (t, string) => unit
 let setFullTitle: (t, string) => unit
 let setDocHeader: (t, option<string>) => unit

@@ -28,6 +28,7 @@ let getDocHeader = t => t.docHeader->Option.getOr("")
 let setDocHeader = (t, docHeader) => t.docHeader = docHeader
 let appendToHead = (t, content) => t.headContent->Array.push(content)
 let appendTitleSegment = (t, segment) => t.titleSegments->Array.push(segment)
+let prependTitleSegment = (t, segment) => t.titleSegments->Array.unshift(segment)
 let setFullTitle = (t, title) =>
   t.titleSegments->Array.splice(~insert=[title], ~start=0, ~remove={t.titleSegments->Array.length})
 let getAppendedHeadContent = async (t): option<string> =>
