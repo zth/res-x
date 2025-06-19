@@ -158,4 +158,78 @@ describe("rendering", () => {
       },
     )
   })
+
+  testAsync("escaped and raw content", async () => {
+    let text = await getContentInBody(
+      _renderConfig => {
+        <div>
+          {Hjsx.string("<div>Hi!</div>")}
+          {Hjsx.dangerouslyOutputUnescapedContent("<span>Hi!</span>")}
+        </div>
+      },
+    )
+
+    expect(
+      text,
+    )->Expect.toBe(`<!DOCTYPE html><div>&lt;div&gt;Hi!&lt;/div&gt;<span>Hi!</span></div>`)
+  })
+
+  describe("CSV export", () => {
+    testAsync(
+      "CSV with content that would be HTML escaped",
+      async () => {
+        let response = await getResponse(
+          ~getContent=renderConfig => {
+            renderConfig.requestController->RequestController.setDocHeader(None)
+
+            renderConfig.headers->Headers.set("Content-Type", "text/csv; charset=UTF-8")
+            renderConfig.headers->Headers.set(
+              "Content-Disposition",
+              "attachment; filename=\"test.csv\"",
+            )
+
+            // CSV content with characters that would be HTML escaped: <, >, &, quotes
+            let csvContent = `Name,Description,Tags
+"John & Jane Doe","<Special> characters & symbols","tag1,tag2"
+"Bob's Company","Uses "quotes" & <brackets>","web,tech"
+"Test Corp","R&D Department","research&development"`
+
+            Hjsx.dangerouslyOutputUnescapedContent(csvContent)
+          },
+        )
+
+        let contentType = response->Response.headers->Headers.get("Content-Type")
+        let contentDisposition = response->Response.headers->Headers.get("Content-Disposition")
+        let text = await response->Response.text
+
+        expect(contentType)->Expect.toBe(Some("text/csv; charset=UTF-8"))
+        expect(contentDisposition)->Expect.toBe(Some("attachment; filename=\"test.csv\""))
+
+        // Verify CSV content is not HTML escaped (no &lt;, &gt;, &amp;, etc.)
+        expect(text)->Expect.toBe(`Name,Description,Tags
+"John & Jane Doe","<Special> characters & symbols","tag1,tag2"
+"Bob's Company","Uses "quotes" & <brackets>","web,tech"
+"Test Corp","R&D Department","research&development"`)
+      },
+    )
+
+    testAsync(
+      "demonstrates difference with HTML escaping",
+      async () => {
+        let text = await getContentInBody(
+          _renderConfig => {
+            let csvContent = `"Company","Description"
+"Bob's Corp","<Special> characters & symbols"`
+
+            // This would incorrectly escape the CSV content for HTML
+            <div> {Hjsx.string(csvContent)} </div>
+          },
+        )
+
+        // Show that using Hjsx.string would escape the content, making it invalid CSV
+        expect(text)->Expect.toBe(`<!DOCTYPE html><div>&quot;Company&quot;,&quot;Description&quot;
+&quot;Bob&#x27;s Corp&quot;,&quot;&lt;Special&gt; characters &amp; symbols&quot;</div>`)
+      },
+    )
+  })
 })

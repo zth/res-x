@@ -4,8 +4,6 @@ A ReScript framework for building server-driven web sites and applications. Use 
 
 ResX is suitable for building everything from blogs to complex web applications.
 
-> THIS IS ALPHA GRADE SOFTWARE.
-
 ## Philosophy
 
 ResX focuses on the web platform, and aims to see how far we can get building web sites and applications before reaching for a full blown client side framework is necessary.
@@ -530,6 +528,36 @@ let make = (~userName) => {
 }
 ```
 
+### Rendering unescaped content
+
+By default, all content in ResX is properly HTML-escaped for security. However, there are legitimate cases where you need to output raw content (like content from a CMS, CSV files or similar "non HTML content", markdown processors, or trusted HTML strings). For these cases, ResX provides `Hjsx.dangerouslyOutputUnescapedContent`:
+
+```rescript
+@jsx.component
+let make = (~trustedHtmlContent) => {
+  <div>
+    {Hjsx.string("This content is escaped: <script>alert('xss')</script>")}
+    {Hjsx.dangerouslyOutputUnescapedContent(trustedHtmlContent)}
+  </div>
+}
+```
+
+**CRITICAL SECURITY WARNING**: `dangerouslyOutputUnescapedContent` completely bypasses HTML escaping. Never use this function with user-provided content or any untrusted data, as it can create XSS vulnerabilities. Only use this with content you trust completely, such as:
+
+- Static HTML strings in your code
+- Content from trusted CMS systems that handle their own sanitization
+- Pre-sanitized content from trusted markdown processors
+- Generated HTML from your own trusted systems
+- **Raw non-HTML content** like CSV data, or other structured data formats (see the [CSV export](#csv-export-example) example in the Doc header section)
+
+When outputting non-HTML content types (CSV, XML, etc.), you'll typically need to:
+
+1. Set the appropriate `Content-Type` header
+2. Remove or customize the doc header using `setDocHeader`
+3. Use `dangerouslyOutputUnescapedContent` to output the raw content without HTML escaping
+
+When in doubt, use `Hjsx.string` instead, which safely escapes all content.
+
 ### Async components
 
 Components can be defined using `async`/`await`. This enables you to do data fetching directly in them:
@@ -754,20 +782,22 @@ context.headers->Headers.set("Content-Type", "text/html")
 
 ### Advanced: Doc header
 
-By default, any returned content from your handlers is prefixed with `<!DOCTYPE html>` because you're expected to return HTML. However, there are cases where you might want to return other things than HTML but still use JSX. One example is returning XML to produce a site map. For that, you can leverage `ResX.RequestController.setDocHeader`:
+By default, any returned content from your handlers is prefixed with `<!DOCTYPE html>` because you're expected to return HTML. However, there are cases where you might want to return other things than HTML but still use JSX. Examples include returning XML to produce a site map, CSV files for data export, or other structured data formats. For that, you can leverage `ResX.RequestController.setDocHeader`:
+
+#### XML sitemap example
 
 ```rescript
 // SiteMap.res
 @jsx.component
 let make = () => {
-  let context = ResX.Handlers.useContext(HtmxHandler.handler)
+  let {requestController, headers} = HtmxHandler.handler->ResX.Handlers.useContext
 
-  context.requestController->ResX.RequestController.setDocHeader(
+  requestController->ResX.RequestController.setDocHeader(
     Some(`<?xml version="1.0" encoding="UTF-8"?>`),
   )
 
-  context.headers->Headers.set("Content-Type", "application/xml; charset=UTF-8")
-  context.headers->Headers.set(
+  headers->Headers.set("Content-Type", "application/xml; charset=UTF-8")
+  headers->Headers.set(
     "Cache-Control",
     ResX.Utils.CacheControl.make(~cacheability=Public, ~expiration=[MaxAge(Days(1.))]),
   )
@@ -783,12 +813,41 @@ let make = () => {
 }
 ```
 
-The above example renders a site map in XML. You can then simply render this whenever someone requests `/sitemap.xml`:
+#### CSV export example
+
+```rescript
+// UserCsvExport.res
+@jsx.component
+let make = async (~users: array<user>) => {
+  let {requestController, headers} = HtmxHandler.handler->ResX.Handlers.useContext
+
+  // Remove the HTML doctype since we're returning CSV
+  requestController->ResX.RequestController.setDocHeader(None)
+
+  headers->Headers.set("Content-Type", "text/csv; charset=UTF-8")
+  headers->Headers.set("Content-Disposition", "attachment; filename=\"users.csv\"")
+
+  let csvHeader = "Name,Email,Created At\n"
+  let csvRows = users
+    ->Array.map(user => `${user.name},${user.email},${user.createdAt}`)
+    ->Array.join("\n")
+
+  let fullCsvContent = csvHeader ++ csvRows
+
+  // Since we're outputting raw CSV content (not HTML), we need to use dangerouslyOutputUnescapedContent
+  Hjsx.dangerouslyOutputUnescapedContent(fullCsvContent)
+}
+```
+
+You can then render these whenever someone requests the appropriate paths:
 
 ```rescript
 render: async ({path}) => {
   switch path {
   | list{"sitemap.xml"} => <SiteMap />
+  | list{"users", "export.csv"} =>
+    let users = await Database.getAllUsers()
+    <UserCsvExport users />
   ...
 ```
 

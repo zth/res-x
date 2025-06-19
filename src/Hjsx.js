@@ -5,6 +5,10 @@ var HyperonsJs = require("./vendor/hyperons.js");
 
 var jsxFragment = HyperonsJs.Fragment;
 
+function dangerouslyOutputUnescapedContent(prim) {
+  return HyperonsJs.createRaw(prim);
+}
+
 function jsx(prim0, prim1) {
   return HyperonsJs.h(prim0, prim1);
 }
@@ -27,6 +31,7 @@ var Elements = {
 };
 
 exports.jsxFragment = jsxFragment;
+exports.dangerouslyOutputUnescapedContent = dangerouslyOutputUnescapedContent;
 exports.jsx = jsx;
 exports.jsxs = jsxs;
 exports.Elements = Elements;

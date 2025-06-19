@@ -7,6 +7,10 @@ type fragmentProps = {children?: element}
 
 @module("./vendor/hyperons.js") external jsxFragment: component<fragmentProps> = "Fragment"
 
+/** Outputs unescaped content. BE CAREFUL! */
+@module("./vendor/hyperons.js")
+external dangerouslyOutputUnescapedContent: string => Jsx.element = "createRaw"
+
 @module("./vendor/hyperons.js")
 external jsx: (component<'props>, 'props) => Jsx.element = "h"
 
