@@ -9,6 +9,7 @@ var HtmxHandler = require("./HtmxHandler.js");
 var ErrorMessage = require("./ErrorMessage.js");
 var Handlers$ResX = require("rescript-x/src/Handlers.js");
 var Caml_js_exceptions = require("rescript/lib/js/caml_js_exceptions.js");
+var SecurityPolicy$ResX = require("rescript-x/src/SecurityPolicy.js");
 var FormDataHelpers$ResX = require("rescript-x/src/FormDataHelpers.js");
 
 function myVariantFromString(a) {
@@ -34,7 +35,7 @@ function myVariantFromString(a) {
         };
 }
 
-var onButtonBlick = Handlers$ResX.hxPost(HtmxHandler.handler, "/button-click", (async function (param) {
+var onButtonBlick = Handlers$ResX.hxPost(HtmxHandler.handler, "/button-click", SecurityPolicy$ResX.allow, (async function (param) {
         try {
           var formData = await param.request.formData();
           var firstName = FormDataHelpers$ResX.expectString(formData, "firstName", undefined);

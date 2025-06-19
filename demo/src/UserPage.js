@@ -13,9 +13,10 @@ var Handlers$ResX = require("rescript-x/src/Handlers.js");
 var FailingComponent = require("./FailingComponent.js");
 var Caml_js_exceptions = require("rescript/lib/js/caml_js_exceptions.js");
 var ErrorBoundary$ResX = require("rescript-x/src/ErrorBoundary.js");
+var SecurityPolicy$ResX = require("rescript-x/src/SecurityPolicy.js");
 var FormDataHelpers$ResX = require("rescript-x/src/FormDataHelpers.js");
 
-var onForm = Handlers$ResX.hxPost(HtmxHandler.handler, "/user-single", (async function (param) {
+var onForm = Handlers$ResX.hxPost(HtmxHandler.handler, "/user-single", SecurityPolicy$ResX.allow, (async function (param) {
         var formData = await param.request.formData();
         try {
           var name = FormDataHelpers$ResX.expectString(formData, "name", undefined);
