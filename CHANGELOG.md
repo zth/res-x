@@ -1,5 +1,7 @@
 # master
 
+- Add endpoint URL helper functions for HTMX handlers and form actions: `hxGetToEndpointURL`, `hxPostToEndpointURL`, `hxPutToEndpointURL`, `hxDeleteToEndpointURL`, `hxPatchToEndpointURL`, `formActionToEndpointURL`, and `FormAction.toEndpointURL`. These functions return the actual URL string for the handler endpoints, useful for programmatic access to endpoint URLs.
+
 # 0.3.0
 
 - **Breaking** Add required `~securityPolicy` argument for all form and HTMX handlers, to enforce keeping security in mind.

@@ -14,8 +14,13 @@ function string(s) {
   return s;
 }
 
+function toEndpointURL(s) {
+  return s;
+}
+
 var FormAction = {
-  string: string
+  string: string,
+  toEndpointURL: toEndpointURL
 };
 
 function make(requestToContext, options) {
@@ -259,6 +264,10 @@ function hxGetDefine(t, path, securityPolicy, handler) {
       ]);
 }
 
+function hxGetToEndpointURL(s) {
+  return s;
+}
+
 function hxPost(t, path, securityPolicy, handler) {
   var path$1 = t.htmxApiPrefix + path;
   t.htmxHandlers.push([
@@ -281,6 +290,10 @@ function hxPostDefine(t, path, securityPolicy, handler) {
         securityPolicy,
         handler
       ]);
+}
+
+function hxPostToEndpointURL(s) {
+  return s;
 }
 
 function hxPut(t, path, securityPolicy, handler) {
@@ -307,6 +320,10 @@ function hxPutDefine(t, path, securityPolicy, handler) {
       ]);
 }
 
+function hxPutToEndpointURL(s) {
+  return s;
+}
+
 function hxDelete(t, path, securityPolicy, handler) {
   var path$1 = t.htmxApiPrefix + path;
   t.htmxHandlers.push([
@@ -329,6 +346,10 @@ function hxDeleteDefine(t, path, securityPolicy, handler) {
         securityPolicy,
         handler
       ]);
+}
+
+function hxDeleteToEndpointURL(s) {
+  return s;
 }
 
 function hxPatch(t, path, securityPolicy, handler) {
@@ -355,6 +376,10 @@ function hxPatchDefine(t, path, securityPolicy, handler) {
       ]);
 }
 
+function hxPatchToEndpointURL(s) {
+  return s;
+}
+
 function getHandlers(t) {
   return t.htmxHandlers;
 }
@@ -369,18 +394,23 @@ exports.formAction = formAction;
 exports.hxGet = hxGet;
 exports.hxGetRef = hxGetRef;
 exports.hxGetDefine = hxGetDefine;
+exports.hxGetToEndpointURL = hxGetToEndpointURL;
 exports.hxPost = hxPost;
 exports.hxPostRef = hxPostRef;
 exports.hxPostDefine = hxPostDefine;
+exports.hxPostToEndpointURL = hxPostToEndpointURL;
 exports.hxPut = hxPut;
 exports.hxPutRef = hxPutRef;
 exports.hxPutDefine = hxPutDefine;
+exports.hxPutToEndpointURL = hxPutToEndpointURL;
 exports.hxDelete = hxDelete;
 exports.hxDeleteRef = hxDeleteRef;
 exports.hxDeleteDefine = hxDeleteDefine;
+exports.hxDeleteToEndpointURL = hxDeleteToEndpointURL;
 exports.hxPatch = hxPatch;
 exports.hxPatchRef = hxPatchRef;
 exports.hxPatchDefine = hxPatchDefine;
+exports.hxPatchToEndpointURL = hxPatchToEndpointURL;
 exports.useContext = useContext;
 exports.handleRequest = handleRequest;
 exports.Internal = Internal;

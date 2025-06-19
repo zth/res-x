@@ -4,6 +4,7 @@ external string: string => Jsx.element = "%identity"
 module FormAction = {
   type t = string
   let string = s => s
+  let toEndpointURL = s => s
 }
 
 type htmxHandlerConfig<'ctx> = {
@@ -308,6 +309,7 @@ let hxGetRef = (t: t<_>, path) => {
 let hxGetDefine = (t, path, ~securityPolicy, ~handler) => {
   t.htmxHandlers->Array.push((GET, path, securityPolicy, handler))
 }
+let hxGetToEndpointURL = s => s
 
 let hxPost = (t: t<_>, path, ~securityPolicy, ~handler) => {
   let path = t->getHtmxPath(path)
@@ -320,6 +322,7 @@ let hxPostRef = (t: t<_>, path) => {
 let hxPostDefine = (t, path, ~securityPolicy, ~handler) => {
   t.htmxHandlers->Array.push((POST, path, securityPolicy, handler))
 }
+let hxPostToEndpointURL = s => s
 
 let hxPut = (t: t<_>, path, ~securityPolicy, ~handler) => {
   let path = t->getHtmxPath(path)
@@ -332,6 +335,7 @@ let hxPutRef = (t: t<_>, path) => {
 let hxPutDefine = (t, path, ~securityPolicy, ~handler) => {
   t.htmxHandlers->Array.push((PUT, path, securityPolicy, handler))
 }
+let hxPutToEndpointURL = s => s
 
 let hxDelete = (t: t<_>, path, ~securityPolicy, ~handler) => {
   let path = t->getHtmxPath(path)
@@ -344,6 +348,7 @@ let hxDeleteRef = (t: t<_>, path) => {
 let hxDeleteDefine = (t, path, ~securityPolicy, ~handler) => {
   t.htmxHandlers->Array.push((DELETE, path, securityPolicy, handler))
 }
+let hxDeleteToEndpointURL = s => s
 
 let hxPatch = (t: t<_>, path, ~securityPolicy, ~handler) => {
   let path = t->getHtmxPath(path)
@@ -356,6 +361,7 @@ let hxPatchRef = (t: t<_>, path) => {
 let hxPatchDefine = (t, path, ~securityPolicy, ~handler) => {
   t.htmxHandlers->Array.push((PATCH, path, securityPolicy, handler))
 }
+let hxPatchToEndpointURL = s => s
 
 module Internal = {
   let getHandlers = t => t.htmxHandlers

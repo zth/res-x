@@ -75,6 +75,32 @@ Buntest.describe("HTMX handlers", (function () {
                 var text = await response.text();
                 Buntest.expect(text).toBe("<!DOCTYPE html>Test!");
               }));
+        Buntest.test("endpoint URL helpers return the correct URLs", (async function () {
+                var getHandler = Handlers$ResX.hxGet(TestUtils$ResX.Handler.testHandler, "/test-url-get", SecurityPolicy$ResX.allow, (async function (param) {
+                        return "Test!";
+                      }));
+                var postHandler = Handlers$ResX.hxPost(TestUtils$ResX.Handler.testHandler, "/test-url-post", SecurityPolicy$ResX.allow, (async function (param) {
+                        return "Test!";
+                      }));
+                var putHandler = Handlers$ResX.hxPut(TestUtils$ResX.Handler.testHandler, "/test-url-put", SecurityPolicy$ResX.allow, (async function (param) {
+                        return "Test!";
+                      }));
+                var deleteHandler = Handlers$ResX.hxDelete(TestUtils$ResX.Handler.testHandler, "/test-url-delete", SecurityPolicy$ResX.allow, (async function (param) {
+                        return "Test!";
+                      }));
+                var patchHandler = Handlers$ResX.hxPatch(TestUtils$ResX.Handler.testHandler, "/test-url-patch", SecurityPolicy$ResX.allow, (async function (param) {
+                        return "Test!";
+                      }));
+                var formActionHandler = Handlers$ResX.formAction(TestUtils$ResX.Handler.testHandler, "/test-form", SecurityPolicy$ResX.allow, (async function (param) {
+                        return Response.redirect("/test");
+                      }));
+                Buntest.expect(Handlers$ResX.hxGetToEndpointURL(getHandler)).toBe("/_api/test-url-get");
+                Buntest.expect(Handlers$ResX.hxPostToEndpointURL(postHandler)).toBe("/_api/test-url-post");
+                Buntest.expect(Handlers$ResX.hxPutToEndpointURL(putHandler)).toBe("/_api/test-url-put");
+                Buntest.expect(Handlers$ResX.hxDeleteToEndpointURL(deleteHandler)).toBe("/_api/test-url-delete");
+                Buntest.expect(Handlers$ResX.hxPatchToEndpointURL(patchHandler)).toBe("/_api/test-url-patch");
+                Buntest.expect(Handlers$ResX.FormAction.toEndpointURL(formActionHandler)).toBe("/_form/test-form");
+              }));
       }));
 
 /*  Not a pure module */

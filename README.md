@@ -454,6 +454,42 @@ Form actions have access to your `context` object, as well as the full `request`
 
 You control whether you want the form method to be `POST` or `GET` via the `method` attribute on `<form>`, just like you normally do.
 
+### Getting endpoint URLs (Advanced)
+
+> Note: This is an advanced feature for exceptional use cases. In most situations, you should pass HTMX handlers and form actions directly to their respective HTML attributes instead of extracting their URLs.
+
+In rare cases where you need programmatic access to the actual URL string for your handlers, ResX provides helper functions:
+
+```rescript
+// For HTMX handlers
+let getHandler = Handler.handler->ResX.Handlers.hxGet("/api/users", ~securityPolicy=ResX.SecurityPolicy.allow, ~handler=async _ => {
+  // handler implementation
+})
+
+// Extract the URL (advanced use only)
+let endpointUrl = getHandler->ResX.Handlers.hxGetToEndpointURL
+// endpointUrl contains the actual endpoint URL
+
+// Similar functions exist for all HTTP methods:
+// hxPostToEndpointURL, hxPutToEndpointURL, hxDeleteToEndpointURL, hxPatchToEndpointURL
+
+// For form actions
+let submitAction = Handler.handler->ResX.Handlers.formAction("/submit-form", ~securityPolicy=ResX.SecurityPolicy.allow, ~handler=async _ => {
+  // handler implementation
+})
+
+// Extract the URL (advanced use only)
+let formUrl = submitAction->ResX.Handlers.FormAction.toEndpointURL
+```
+
+These functions should only be used in exceptional cases where you need to:
+
+- Build custom JavaScript that needs to know the endpoint URLs
+- Create dynamic redirects or navigation logic that can't use the handlers directly
+- Generate API documentation or debugging tools
+
+**In the vast majority of cases, you should use the handlers directly with HTML attributes instead of extracting their URLs.**
+
 ### ResX Client
 
 ResX also ships with a tiny client side library that will help you do basic client side tasks fully declaratively. It's quite basic at the moment, but will be extended (tastefully) as we discover more places where it can help you avoid having to use a full blown client side framework to accomplish fairly basic tasks.

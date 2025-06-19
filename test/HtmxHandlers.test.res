@@ -115,4 +115,56 @@ describe("HTMX handlers", () => {
 
     expect(text)->Expect.toBe(`<!DOCTYPE html>Test!`)
   })
+
+  testAsync("endpoint URL helpers return the correct URLs", async () => {
+    let getHandler = Handler.testHandler->Handlers.hxGet(
+      "/test-url-get",
+      ~securityPolicy=SecurityPolicy.allow,
+      ~handler=async _ => {
+        Hjsx.string("Test!")
+      },
+    )
+    let postHandler = Handler.testHandler->Handlers.hxPost(
+      "/test-url-post",
+      ~securityPolicy=SecurityPolicy.allow,
+      ~handler=async _ => {
+        Hjsx.string("Test!")
+      },
+    )
+    let putHandler = Handler.testHandler->Handlers.hxPut(
+      "/test-url-put",
+      ~securityPolicy=SecurityPolicy.allow,
+      ~handler=async _ => {
+        Hjsx.string("Test!")
+      },
+    )
+    let deleteHandler = Handler.testHandler->Handlers.hxDelete(
+      "/test-url-delete",
+      ~securityPolicy=SecurityPolicy.allow,
+      ~handler=async _ => {
+        Hjsx.string("Test!")
+      },
+    )
+    let patchHandler = Handler.testHandler->Handlers.hxPatch(
+      "/test-url-patch",
+      ~securityPolicy=SecurityPolicy.allow,
+      ~handler=async _ => {
+        Hjsx.string("Test!")
+      },
+    )
+    let formActionHandler = Handler.testHandler->Handlers.formAction(
+      "/test-form",
+      ~securityPolicy=SecurityPolicy.allow,
+      ~handler=async _ => {
+        Response.makeRedirect("/test")
+      },
+    )
+
+    expect(getHandler->Handlers.hxGetToEndpointURL)->Expect.toBe("/_api/test-url-get")
+    expect(postHandler->Handlers.hxPostToEndpointURL)->Expect.toBe("/_api/test-url-post")
+    expect(putHandler->Handlers.hxPutToEndpointURL)->Expect.toBe("/_api/test-url-put")
+    expect(deleteHandler->Handlers.hxDeleteToEndpointURL)->Expect.toBe("/_api/test-url-delete")
+    expect(patchHandler->Handlers.hxPatchToEndpointURL)->Expect.toBe("/_api/test-url-patch")
+    expect(formActionHandler->Handlers.FormAction.toEndpointURL)->Expect.toBe("/_form/test-form")
+  })
 })

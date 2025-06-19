@@ -1,6 +1,8 @@
 module FormAction: {
   type t
   let string: string => t
+  /** Returns the actual endpoint URL string for this form action. Most of the time you should pass the FormAction.t directly to form elements instead of using this. */
+  let toEndpointURL: t => string
 }
 
 type htmxHandlerConfig<'ctx> = {
@@ -78,6 +80,8 @@ let hxGetDefine: (
   ~securityPolicy: SecurityPolicy.handler<'ctx>,
   ~handler: htmxHandler<'ctx>,
 ) => unit
+/** Returns the actual endpoint URL string for this hxGet handler. Most of the time you should pass the hxGet directly to HTMX attributes instead of using this. */
+let hxGetToEndpointURL: hxGet => string
 
 let hxPost: (
   t<'ctx>,
@@ -92,6 +96,8 @@ let hxPostDefine: (
   ~securityPolicy: SecurityPolicy.handler<'ctx>,
   ~handler: htmxHandler<'ctx>,
 ) => unit
+/** Returns the actual endpoint URL string for this hxPost handler. Most of the time you should pass the hxPost directly to HTMX attributes instead of using this. */
+let hxPostToEndpointURL: hxPost => string
 
 let hxPut: (
   t<'ctx>,
@@ -106,6 +112,8 @@ let hxPutDefine: (
   ~securityPolicy: SecurityPolicy.handler<'ctx>,
   ~handler: htmxHandler<'ctx>,
 ) => unit
+/** Returns the actual endpoint URL string for this hxPut handler. Most of the time you should pass the hxPut directly to HTMX attributes instead of using this. */
+let hxPutToEndpointURL: hxPut => string
 
 let hxDelete: (
   t<'ctx>,
@@ -120,6 +128,8 @@ let hxDeleteDefine: (
   ~securityPolicy: SecurityPolicy.handler<'ctx>,
   ~handler: htmxHandler<'ctx>,
 ) => unit
+/** Returns the actual endpoint URL string for this hxDelete handler. Most of the time you should pass the hxDelete directly to HTMX attributes instead of using this. */
+let hxDeleteToEndpointURL: hxDelete => string
 
 let hxPatch: (
   t<'ctx>,
@@ -134,6 +144,8 @@ let hxPatchDefine: (
   ~securityPolicy: SecurityPolicy.handler<'ctx>,
   ~handler: htmxHandler<'ctx>,
 ) => unit
+/** Returns the actual endpoint URL string for this hxPatch handler. Most of the time you should pass the hxPatch directly to HTMX attributes instead of using this. */
+let hxPatchToEndpointURL: hxPatch => string
 
 type renderConfig<'ctx> = {
   request: Request.t,
