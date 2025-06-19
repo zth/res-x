@@ -5,7 +5,7 @@ describe("Form action handlers", () => {
   testAsync("prefixing of form action handler routes work", async () => {
     let _getHandler = Handler.handler->Handlers.formAction(
       "/test",
-      ~securityPolicy=async _ => ResX.SecurityPolicy.Allow,
+      ~securityPolicy=SecurityPolicy.allow,
       ~handler=async _ => {
         Response.make("Test!")
       },
