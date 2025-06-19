@@ -316,7 +316,7 @@ Now, we can attach and use actions via this handler:
 
 ```rescript
 // User.res
-let onForm = Handler.handler->ResX.Handlers.hxPost("/user-single", ~handler=async ({request}) => {
+let onForm = Handler.handler->ResX.Handlers.hxPost("/user-single", ~securityPolicy=ResX.SecurityPolicy.allow, ~handler=async ({request}) => {
   let formData = await request->Request.formData
   try {
     let name = formData->ResX.FormDataHelpers.expectString("name")
@@ -355,7 +355,7 @@ Let's look at the example above and adjust it to work that way instead:
 // User.res
 let onForm = Handler.handler->ResX.Handlers.makeHxPostIdentifier("/user-single")
 
-Handler.handler->ResX.Handlers.implementHxPostIdentifier(onForm, ~handler=async ({request}) => {
+Handler.handler->ResX.Handlers.implementHxPostIdentifier(onForm, ~securityPolicy=ResX.SecurityPolicy.allow, ~handler=async ({request}) => {
   let formData = await request->Request.formData
   try {
     let name = formData->ResX.FormDataHelpers.expectString("name")
@@ -408,6 +408,30 @@ let make = () => {
 
 Notice how `hxSwap` and `hxTarget` are passed things from `Htmx.Something.make`? This is the way you interface with the typed `hx` attributes.
 
+### Security policies
+
+All HTMX handlers and form actions require a `securityPolicy` parameter. This allows you to control access to your endpoints by evaluating each request before the handler is executed, and forces you to consider security for each endpoint you expose.
+
+A security policy is a function that takes the request and context, and returns either `Allow` or `Block` with optional error details:
+
+```rescript
+// Allow all requests
+~securityPolicy=ResX.SecurityPolicy.allow
+
+// Custom security policy
+~securityPolicy=async ({request, context}) => {
+  switch context.userId {
+  | Some(_userId) => ResX.SecurityPolicy.Allow
+  | None => ResX.SecurityPolicy.Block({
+      code: Some(401),
+      message: Some("Authentication required"),
+    })
+  }
+}
+```
+
+When a request is blocked by a security policy, a response is returned with (optionally) the status code and message provided by the security policy function.
+
 ### Regular form actions
 
 Sometimes you don't need a full blown HTMX handler for handling a form action. Maybe all you want to do is redirect, or something else where you want full control over what response you return.
@@ -416,7 +440,7 @@ This is easy to do in `ResX` using a `formAction`. It's similar to a HTMX handle
 
 ```rescript
 // User.res
-let onSubmit = Handler.handler->ResX.Handlers.formAction("/some-url", ~handler=async ({request, context}) => {
+let onSubmit = Handler.handler->ResX.Handlers.formAction("/some-url", ~securityPolicy=ResX.SecurityPolicy.allow, ~handler=async ({request, context}) => {
   Response.makeRedirect("/some-other-page")
 })
 
