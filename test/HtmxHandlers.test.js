@@ -4,10 +4,11 @@
 var Buntest = require("bun:test");
 var Handlers$ResX = require("../src/Handlers.js");
 var TestUtils$ResX = require("./TestUtils.js");
+var SecurityPolicy$ResX = require("../src/SecurityPolicy.js");
 
 Buntest.describe("HTMX handlers", (function () {
         Buntest.test("prefixing of HTMX handler routes work", (async function () {
-                Handlers$ResX.hxGet(TestUtils$ResX.Handler.handler, "/test", (async function (param) {
+                Handlers$ResX.hxGet(TestUtils$ResX.Handler.handler, "/test", SecurityPolicy$ResX.allow, (async function (param) {
                         return "Test!";
                       }));
                 var response = await TestUtils$ResX.getResponse((function (param) {
@@ -15,6 +16,23 @@ Buntest.describe("HTMX handlers", (function () {
                       }), undefined, "/_api/test");
                 var text = await response.text();
                 Buntest.expect(text).toBe("<!DOCTYPE html>Test!");
+              }));
+        Buntest.test("security policy can block content", (async function () {
+                Handlers$ResX.hxGet(TestUtils$ResX.Handler.handler, "/test-block", (async function (param) {
+                        return {
+                                TAG: "Block",
+                                code: 403,
+                                message: "Forbidden"
+                              };
+                      }), (async function (param) {
+                        return "Test!";
+                      }));
+                var response = await TestUtils$ResX.getResponse((function (param) {
+                        return null;
+                      }), undefined, "/_api/test-block");
+                var text = await response.text();
+                Buntest.expect(text).toBe("<!DOCTYPE html>Forbidden");
+                Buntest.expect(response.status).toBe(403);
               }));
       }));
 

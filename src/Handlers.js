@@ -84,13 +84,19 @@ async function handleRequest(t, config) {
               return ;
           }
           if (param[0] === pathname) {
-            return param[1];
+            return [
+                    param[1],
+                    param[2]
+                  ];
           }
           
         }));
   var targetHtmxHandler = Core__Array.findMap(t.htmxHandlers, (function (param) {
           if (param[0] === request.method && param[1] === pathname) {
-            return param[2];
+            return [
+                    param[2],
+                    param[3]
+                  ];
           }
           
         }));
@@ -111,14 +117,28 @@ async function handleRequest(t, config) {
   };
   return await t.asyncLocalStorage.run(renderConfig, (async function (_token) {
                 var isFormAction = Core__Option.isSome(targetFormActionHandler);
-                var content = targetFormActionHandler !== undefined ? null : (
-                    targetHtmxHandler !== undefined ? await targetHtmxHandler({
-                            request: request,
-                            context: ctx,
-                            headers: headers,
-                            requestController: requestController
-                          }) : await render(renderConfig)
-                  );
+                var content;
+                if (targetFormActionHandler !== undefined) {
+                  content = null;
+                } else if (targetHtmxHandler !== undefined) {
+                  var securityPolicy = await targetHtmxHandler[0]({
+                        request: request,
+                        context: ctx
+                      });
+                  if (typeof securityPolicy !== "object") {
+                    content = await targetHtmxHandler[1]({
+                          request: request,
+                          context: ctx,
+                          headers: headers,
+                          requestController: requestController
+                        });
+                  } else {
+                    RequestController$ResX.setStatus(requestController, Core__Option.getOr(securityPolicy.code, 403));
+                    content = Core__Option.getOr(securityPolicy.message, "Not Allowed.");
+                  }
+                } else {
+                  content = await render(renderConfig);
+                }
                 var responseType = targetFormActionHandler !== undefined ? "FormActionHandler" : (
                     targetHtmxHandler !== undefined ? "HtmxHandler" : "Default"
                   );
@@ -130,11 +150,18 @@ async function handleRequest(t, config) {
                       });
                 }
                 if (isFormAction) {
-                  var formActionHandler = Core__Option.getExn(targetFormActionHandler, undefined);
-                  var response = await formActionHandler({
+                  var match = Core__Option.getExn(targetFormActionHandler, undefined);
+                  var match$1 = await match[0]({
                         request: request,
                         context: ctx
                       });
+                  var response;
+                  response = typeof match$1 !== "object" ? await match[1]({
+                          request: request,
+                          context: ctx
+                        }) : new Response(Core__Option.getOr(match$1.message, "Not Allowed."), {
+                          status: Core__Option.getOr(match$1.code, 403)
+                        });
                   if (onBeforeSendResponse !== undefined) {
                     return await onBeforeSendResponse({
                                 request: request,
@@ -147,12 +174,12 @@ async function handleRequest(t, config) {
                   }
                 }
                 if (stream) {
-                  var match = new TransformStream({
+                  var match$2 = new TransformStream({
                         transform: (function (chunk, controller) {
                             controller.enqueue(chunk);
                           })
                       });
-                  var writer = match.writable.getWriter();
+                  var writer = match$2.writable.getWriter();
                   var textEncoder = new TextEncoder();
                   H$ResX.renderToStream(content, (function (chunk) {
                             var encoded = textEncoder.encode(chunk);
@@ -160,7 +187,7 @@ async function handleRequest(t, config) {
                           })).then(function () {
                         return writer.close();
                       });
-                  var response$1 = new Response(match.readable, {
+                  var response$1 = new Response(match$2.readable, {
                         status: 200,
                         headers: [[
                             "Content-Type",
@@ -179,10 +206,10 @@ async function handleRequest(t, config) {
                   }
                 }
                 var content$1 = await renderWithDocType(content, requestController, config.renderTitle);
-                var match$1 = RequestController$ResX.getCurrentRedirect(requestController);
-                var match$2 = RequestController$ResX.getCurrentStatus(requestController);
-                var response$2 = match$1 !== undefined ? Response.redirect(match$1[0], Caml_option.option_get(match$1[1])) : new Response(content$1, {
-                        status: match$2,
+                var match$3 = RequestController$ResX.getCurrentRedirect(requestController);
+                var match$4 = RequestController$ResX.getCurrentStatus(requestController);
+                var response$2 = match$3 !== undefined ? Response.redirect(match$3[0], Caml_option.option_get(match$3[1])) : new Response(content$1, {
+                        status: match$4,
                         headers: Caml_option.some(headers)
                       });
                 if (onBeforeSendResponse !== undefined) {
@@ -198,20 +225,22 @@ async function handleRequest(t, config) {
               }));
 }
 
-function formAction(t, path, handler) {
+function formAction(t, path, securityPolicy, handler) {
   var path$1 = t.formActionHandlerApiPrefix + path;
   t.formActionHandlers.push([
         path$1,
+        securityPolicy,
         handler
       ]);
   return path$1;
 }
 
-function hxGet(t, path, handler) {
+function hxGet(t, path, securityPolicy, handler) {
   var path$1 = t.htmxApiPrefix + path;
   t.htmxHandlers.push([
         "GET",
         path$1,
+        securityPolicy,
         handler
       ]);
   return path$1;
@@ -221,15 +250,16 @@ function makeHxGetIdentifier(t, path) {
   return t.htmxApiPrefix + path;
 }
 
-function implementHxGetIdentifier(t, path, handler) {
-  hxGet(t, path, handler);
+function implementHxGetIdentifier(t, path, securityPolicy, handler) {
+  hxGet(t, path, securityPolicy, handler);
 }
 
-function hxPost(t, path, handler) {
+function hxPost(t, path, securityPolicy, handler) {
   var path$1 = t.htmxApiPrefix + path;
   t.htmxHandlers.push([
         "POST",
         path$1,
+        securityPolicy,
         handler
       ]);
   return path$1;
@@ -239,15 +269,16 @@ function makeHxPostIdentifier(t, path) {
   return t.htmxApiPrefix + path;
 }
 
-function implementHxPostIdentifier(t, path, handler) {
-  hxPost(t, path, handler);
+function implementHxPostIdentifier(t, path, securityPolicy, handler) {
+  hxPost(t, path, securityPolicy, handler);
 }
 
-function hxPut(t, path, handler) {
+function hxPut(t, path, securityPolicy, handler) {
   var path$1 = t.htmxApiPrefix + path;
   t.htmxHandlers.push([
         "PUT",
         path$1,
+        securityPolicy,
         handler
       ]);
   return path$1;
@@ -257,15 +288,16 @@ function makeHxPutIdentifier(t, path) {
   return t.htmxApiPrefix + path;
 }
 
-function implementHxPutIdentifier(t, path, handler) {
-  hxPut(t, path, handler);
+function implementHxPutIdentifier(t, path, securityPolicy, handler) {
+  hxPut(t, path, securityPolicy, handler);
 }
 
-function hxDelete(t, path, handler) {
+function hxDelete(t, path, securityPolicy, handler) {
   var path$1 = t.htmxApiPrefix + path;
   t.htmxHandlers.push([
         "DELETE",
         path$1,
+        securityPolicy,
         handler
       ]);
   return path$1;
@@ -275,15 +307,16 @@ function makeHxDeleteIdentifier(t, path) {
   return t.htmxApiPrefix + path;
 }
 
-function implementHxDeleteIdentifier(t, path, handler) {
-  hxDelete(t, path, handler);
+function implementHxDeleteIdentifier(t, path, securityPolicy, handler) {
+  hxDelete(t, path, securityPolicy, handler);
 }
 
-function hxPatch(t, path, handler) {
+function hxPatch(t, path, securityPolicy, handler) {
   var path$1 = t.htmxApiPrefix + path;
   t.htmxHandlers.push([
         "PATCH",
         path$1,
+        securityPolicy,
         handler
       ]);
   return path$1;
@@ -293,8 +326,8 @@ function makeHxPatchIdentifier(t, path) {
   return t.htmxApiPrefix + path;
 }
 
-function implementHxPatchIdentifier(t, path, handler) {
-  hxPatch(t, path, handler);
+function implementHxPatchIdentifier(t, path, securityPolicy, handler) {
+  hxPatch(t, path, securityPolicy, handler);
 }
 
 function getHandlers(t) {

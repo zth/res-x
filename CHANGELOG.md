@@ -1,5 +1,7 @@
 # master
 
+- **Breaking** Add required `~securityPolicy` argument for all form and HTMX handlers, to enforce keeping security in mind.
+
 # 0.2.0
 
 - Add `onBeforeBuildResponse` hook for doing tasks that need to happen before the HTML/response is generated.

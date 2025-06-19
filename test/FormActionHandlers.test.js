@@ -4,10 +4,11 @@
 var Buntest = require("bun:test");
 var Handlers$ResX = require("../src/Handlers.js");
 var TestUtils$ResX = require("./TestUtils.js");
+var SecurityPolicy$ResX = require("../src/SecurityPolicy.js");
 
 Buntest.describe("Form action handlers", (function () {
         Buntest.test("prefixing of form action handler routes work", (async function () {
-                Handlers$ResX.formAction(TestUtils$ResX.Handler.handler, "/test", (async function (param) {
+                Handlers$ResX.formAction(TestUtils$ResX.Handler.handler, "/test", SecurityPolicy$ResX.allow, (async function (param) {
                         return new Response("Test!");
                       }));
                 var response = await TestUtils$ResX.getResponse((function (param) {

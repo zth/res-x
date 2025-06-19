@@ -21,10 +21,10 @@ var server = Bun.serve({
                   })
               });
           var writer = match.writable.getWriter();
-          var textEncoder = new TextEncoder(undefined);
+          var textEncoder = new TextEncoder();
           writer.write(textEncoder.encode("Hello!"));
           writer.close();
-          var response = new Response(match.readable, undefined);
+          var response = new Response(match.readable);
           response.headers.set("Content-Type", "text/html");
           return response;
         })

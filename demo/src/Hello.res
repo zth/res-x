@@ -7,21 +7,23 @@ let myVariantFromString = (a: FormData.formDataValueResult) => {
   | other => Error(`Unknown value: "${String.make(other)}"`)
   }
 }
-let onButtonBlick = HtmxHandler.handler->ResX.Handlers.hxPost("/button-click", ~handler=async ({
-  request,
-}) => {
-  try {
-    let formData = await request->Request.formData
-    let firstName = formData->ResX.FormDataHelpers.expectString("firstName")
-    let lastName = formData->ResX.FormDataHelpers.expectString("lastName")
-    let _myvariant =
-      formData->ResX.FormDataHelpers.expectCustom("myVariant", ~decoder=myVariantFromString)
+let onButtonBlick = HtmxHandler.handler->ResX.Handlers.hxPost(
+  "/button-click",
+  ~securityPolicy=ResX.SecurityPolicy.allow,
+  ~handler=async ({request}) => {
+    try {
+      let formData = await request->Request.formData
+      let firstName = formData->ResX.FormDataHelpers.expectString("firstName")
+      let lastName = formData->ResX.FormDataHelpers.expectString("lastName")
+      let _myvariant =
+        formData->ResX.FormDataHelpers.expectCustom("myVariant", ~decoder=myVariantFromString)
 
-    <span> {Hjsx.string("Hi " ++ firstName ++ " " ++ lastName ++ "!")} </span>
-  } catch {
-  | Exn.Error(_) => <ErrorMessage message="Something went wrong..." />
-  }
-})
+      <span> {Hjsx.string("Hi " ++ firstName ++ " " ++ lastName ++ "!")} </span>
+    } catch {
+    | Exn.Error(_) => <ErrorMessage message="Something went wrong..." />
+    }
+  },
+)
 
 @jsx.component
 let make = (~name) => {

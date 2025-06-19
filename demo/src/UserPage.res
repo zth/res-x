@@ -4,28 +4,30 @@ type inputValue = | @as("on") On | @as("off") Off
 @unboxed
 type inputValueDecode = | ...inputValue | Other(string)
 
-let onForm = HtmxHandler.handler->ResX.Handlers.hxPost("/user-single", ~handler=async ({
-  request,
-}) => {
-  let formData = await request->Request.formData
-  try {
-    let name = formData->ResX.FormDataHelpers.expectString("name")
-    let active = formData->ResX.FormDataHelpers.expectCheckbox("active")
+let onForm = HtmxHandler.handler->ResX.Handlers.hxPost(
+  "/user-single",
+  ~securityPolicy=ResX.SecurityPolicy.allow,
+  ~handler=async ({request}) => {
+    let formData = await request->Request.formData
+    try {
+      let name = formData->ResX.FormDataHelpers.expectString("name")
+      let active = formData->ResX.FormDataHelpers.expectCheckbox("active")
 
-    <div>
-      {Hjsx.string(
-        `Some user ${name} is ${switch active {
-          | false => "not active"
-          | true => "active"
-          }}`,
-      )}
-    </div>
-  } catch {
-  | Exn.Error(err) =>
-    Console.error(err)
-    <div> {Hjsx.string("Failed")} </div>
-  }
-})
+      <div>
+        {Hjsx.string(
+          `Some user ${name} is ${switch active {
+            | false => "not active"
+            | true => "active"
+            }}`,
+        )}
+      </div>
+    } catch {
+    | Exn.Error(err) =>
+      Console.error(err)
+      <div> {Hjsx.string("Failed")} </div>
+    }
+  },
+)
 
 @jsx.component
 let make = (~innerContent, ~userId) => {
