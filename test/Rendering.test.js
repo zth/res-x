@@ -108,6 +108,41 @@ Buntest.describe("rendering", (function () {
                         Buntest.expect((userIdHeader == null) ? undefined : Caml_option.some(userIdHeader)).toBe("1");
                       }));
               }));
+        Buntest.test("escaped and raw content", (async function () {
+                var text = await TestUtils$ResX.getContentInBody(function (_renderConfig) {
+                      return Hjsx$ResX.Elements.jsxs("div", {
+                                  children: [
+                                    "<div>Hi!</div>",
+                                    Hjsx$ResX.dangerouslyOutputUnescapedContent("<span>Hi!</span>")
+                                  ]
+                                });
+                    });
+                Buntest.expect(text).toBe("<!DOCTYPE html><div>&lt;div&gt;Hi!&lt;/div&gt;<span>Hi!</span></div>");
+              }));
+        Buntest.describe("CSV export", (function () {
+                Buntest.test("CSV with content that would be HTML escaped", (async function () {
+                        var response = await TestUtils$ResX.getResponse(undefined, (function (renderConfig) {
+                                RequestController$ResX.setDocHeader(renderConfig.requestController, undefined);
+                                renderConfig.headers.set("Content-Type", "text/csv; charset=UTF-8");
+                                renderConfig.headers.set("Content-Disposition", "attachment; filename=\"test.csv\"");
+                                return Hjsx$ResX.dangerouslyOutputUnescapedContent("Name,Description,Tags\n\"John & Jane Doe\",\"<Special> characters & symbols\",\"tag1,tag2\"\n\"Bob's Company\",\"Uses \"quotes\" & <brackets>\",\"web,tech\"\n\"Test Corp\",\"R&D Department\",\"research&development\"");
+                              }), undefined, undefined);
+                        var contentType = response.headers.get("Content-Type");
+                        var contentDisposition = response.headers.get("Content-Disposition");
+                        var text = await response.text();
+                        Buntest.expect((contentType == null) ? undefined : Caml_option.some(contentType)).toBe("text/csv; charset=UTF-8");
+                        Buntest.expect((contentDisposition == null) ? undefined : Caml_option.some(contentDisposition)).toBe("attachment; filename=\"test.csv\"");
+                        Buntest.expect(text).toBe("Name,Description,Tags\n\"John & Jane Doe\",\"<Special> characters & symbols\",\"tag1,tag2\"\n\"Bob's Company\",\"Uses \"quotes\" & <brackets>\",\"web,tech\"\n\"Test Corp\",\"R&D Department\",\"research&development\"");
+                      }));
+                Buntest.test("demonstrates difference with HTML escaping", (async function () {
+                        var text = await TestUtils$ResX.getContentInBody(function (_renderConfig) {
+                              return Hjsx$ResX.Elements.jsx("div", {
+                                          children: "\"Company\",\"Description\"\n\"Bob's Corp\",\"<Special> characters & symbols\""
+                                        });
+                            });
+                        Buntest.expect(text).toBe("<!DOCTYPE html><div>&quot;Company&quot;,&quot;Description&quot;\n&quot;Bob&#x27;s Corp&quot;,&quot;&lt;Special&gt; characters &amp; symbols&quot;</div>");
+                      }));
+              }));
       }));
 
 /*  Not a pure module */

@@ -1,5 +1,11 @@
 // Inlined from https://github.com/zth/hyperons (built)
 let id = 0;
+
+const RAW = Symbol("Raw");
+function createRaw(content) {
+  return { [RAW]: content };
+}
+
 class Context {
   constructor(defaultValue, forceId) {
     this.id = forceId != null ? forceId : id++;
@@ -150,6 +156,12 @@ const VOID_ELEMENTS = /* @__PURE__ */ new Set([
 const EMPTY_OBJECT = Object.freeze({});
 function renderToString(element, context = {}, controller) {
   dispatcher.context = context;
+
+  // Check for raw HTML objects first
+  if (element && typeof element === "object" && RAW in element) {
+    return controller.content.push(element[RAW]);
+  }
+
   if (typeof element === "string") {
     return controller.content.push(escapeString(element));
   } else if (typeof element === "number") {
@@ -295,4 +307,5 @@ export {
   renderSync,
   useContext,
   escapeString,
+  createRaw,
 };
