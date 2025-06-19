@@ -1,5 +1,7 @@
 # master
 
+# 0.3.0
+
 - **Breaking** Add required `~securityPolicy` argument for all form and HTMX handlers, to enforce keeping security in mind.
 - **Breaking** Rename HTMX handler identifier functions: `makeHxXXXIdentifier` → `hxXXXRef` and `implementHxXXXIdentifier` → `hxXXXDefine`. Also fix bug with ref/define functionality.
 - Add `Hjsx.dangerouslyOutputUnescapedContent` for rendering raw HTML content without HTML escaping.
