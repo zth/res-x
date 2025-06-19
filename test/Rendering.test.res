@@ -8,7 +8,7 @@ describe("rendering", () => {
     module AsyncComponent = {
       @jsx.component
       let make = async () => {
-        let context = Handler.handler->Handlers.useContext
+        let context = Handler.testHandler->Handlers.useContext
 
         <RenderInHead requestController=context.requestController>
           <meta name="test" content="test" />
@@ -112,7 +112,7 @@ describe("rendering", () => {
       "onBeforeSendResponse change status",
       async () => {
         let response = await getResponse(
-          _renderConfig => {
+          ~getContent=_renderConfig => {
             <Html>
               <div> {Hjsx.string("Hi!")} </div>
             </Html>
@@ -142,7 +142,7 @@ describe("rendering", () => {
       "onBeforeSendResponse set header",
       async () => {
         let response = await getResponse(
-          _renderConfig => {
+          ~getContent=_renderConfig => {
             <Html>
               <div> {Hjsx.string("Hi!")} </div>
             </Html>

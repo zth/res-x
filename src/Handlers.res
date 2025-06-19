@@ -293,64 +293,68 @@ let formAction = (t: t<_>, path, ~securityPolicy, ~handler) => {
   path
 }
 
+let getHtmxPath = (t: t<_>, path) => {
+  t.htmxApiPrefix ++ path
+}
+
 let hxGet = (t: t<_>, path, ~securityPolicy, ~handler) => {
   let path = t.htmxApiPrefix ++ path
   t.htmxHandlers->Array.push((GET, path, securityPolicy, handler))
   path
 }
-let makeHxGetIdentifier = (t: t<_>, path) => {
-  t.htmxApiPrefix ++ path
+let hxGetRef = (t: t<_>, path) => {
+  t->getHtmxPath(path)
 }
-let implementHxGetIdentifier = (t, path, ~securityPolicy, ~handler) => {
-  let _: hxGet = hxGet(t, path, ~securityPolicy, ~handler)
+let hxGetDefine = (t, path, ~securityPolicy, ~handler) => {
+  t.htmxHandlers->Array.push((GET, path, securityPolicy, handler))
 }
 
 let hxPost = (t: t<_>, path, ~securityPolicy, ~handler) => {
-  let path = t.htmxApiPrefix ++ path
+  let path = t->getHtmxPath(path)
   t.htmxHandlers->Array.push((POST, path, securityPolicy, handler))
   path
 }
-let makeHxPostIdentifier = (t: t<_>, path) => {
-  t.htmxApiPrefix ++ path
+let hxPostRef = (t: t<_>, path) => {
+  t->getHtmxPath(path)
 }
-let implementHxPostIdentifier = (t, path, ~securityPolicy, ~handler) => {
-  let _: hxPost = hxPost(t, path, ~securityPolicy, ~handler)
+let hxPostDefine = (t, path, ~securityPolicy, ~handler) => {
+  t.htmxHandlers->Array.push((POST, path, securityPolicy, handler))
 }
 
 let hxPut = (t: t<_>, path, ~securityPolicy, ~handler) => {
-  let path = t.htmxApiPrefix ++ path
+  let path = t->getHtmxPath(path)
   t.htmxHandlers->Array.push((PUT, path, securityPolicy, handler))
   path
 }
-let makeHxPutIdentifier = (t: t<_>, path) => {
-  t.htmxApiPrefix ++ path
+let hxPutRef = (t: t<_>, path) => {
+  t->getHtmxPath(path)
 }
-let implementHxPutIdentifier = (t, path, ~securityPolicy, ~handler) => {
-  let _: hxPut = hxPut(t, path, ~securityPolicy, ~handler)
+let hxPutDefine = (t, path, ~securityPolicy, ~handler) => {
+  t.htmxHandlers->Array.push((PUT, path, securityPolicy, handler))
 }
 
 let hxDelete = (t: t<_>, path, ~securityPolicy, ~handler) => {
-  let path = t.htmxApiPrefix ++ path
+  let path = t->getHtmxPath(path)
   t.htmxHandlers->Array.push((DELETE, path, securityPolicy, handler))
   path
 }
-let makeHxDeleteIdentifier = (t: t<_>, path) => {
-  t.htmxApiPrefix ++ path
+let hxDeleteRef = (t: t<_>, path) => {
+  t->getHtmxPath(path)
 }
-let implementHxDeleteIdentifier = (t, path, ~securityPolicy, ~handler) => {
-  let _: hxDelete = hxDelete(t, path, ~securityPolicy, ~handler)
+let hxDeleteDefine = (t, path, ~securityPolicy, ~handler) => {
+  t.htmxHandlers->Array.push((DELETE, path, securityPolicy, handler))
 }
 
 let hxPatch = (t: t<_>, path, ~securityPolicy, ~handler) => {
-  let path = t.htmxApiPrefix ++ path
+  let path = t->getHtmxPath(path)
   t.htmxHandlers->Array.push((PATCH, path, securityPolicy, handler))
   path
 }
-let makeHxPatchIdentifier = (t: t<_>, path) => {
-  t.htmxApiPrefix ++ path
+let hxPatchRef = (t: t<_>, path) => {
+  t->getHtmxPath(path)
 }
-let implementHxPatchIdentifier = (t, path, ~securityPolicy, ~handler) => {
-  let _: hxPatch = hxPatch(t, path, ~securityPolicy, ~handler)
+let hxPatchDefine = (t, path, ~securityPolicy, ~handler) => {
+  t.htmxHandlers->Array.push((PATCH, path, securityPolicy, handler))
 }
 
 module Internal = {

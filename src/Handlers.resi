@@ -71,8 +71,8 @@ let hxGet: (
   ~securityPolicy: SecurityPolicy.handler<'ctx>,
   ~handler: htmxHandler<'ctx>,
 ) => hxGet
-let makeHxGetIdentifier: (t<_>, string) => hxGet
-let implementHxGetIdentifier: (
+let hxGetRef: (t<_>, string) => hxGet
+let hxGetDefine: (
   t<'ctx>,
   hxGet,
   ~securityPolicy: SecurityPolicy.handler<'ctx>,
@@ -85,8 +85,8 @@ let hxPost: (
   ~securityPolicy: SecurityPolicy.handler<'ctx>,
   ~handler: htmxHandler<'ctx>,
 ) => hxPost
-let makeHxPostIdentifier: (t<_>, string) => hxPost
-let implementHxPostIdentifier: (
+let hxPostRef: (t<_>, string) => hxPost
+let hxPostDefine: (
   t<'ctx>,
   hxPost,
   ~securityPolicy: SecurityPolicy.handler<'ctx>,
@@ -99,8 +99,8 @@ let hxPut: (
   ~securityPolicy: SecurityPolicy.handler<'ctx>,
   ~handler: htmxHandler<'ctx>,
 ) => hxPut
-let makeHxPutIdentifier: (t<_>, string) => hxPut
-let implementHxPutIdentifier: (
+let hxPutRef: (t<_>, string) => hxPut
+let hxPutDefine: (
   t<'ctx>,
   hxPut,
   ~securityPolicy: SecurityPolicy.handler<'ctx>,
@@ -113,8 +113,8 @@ let hxDelete: (
   ~securityPolicy: SecurityPolicy.handler<'ctx>,
   ~handler: htmxHandler<'ctx>,
 ) => hxDelete
-let makeHxDeleteIdentifier: (t<_>, string) => hxDelete
-let implementHxDeleteIdentifier: (
+let hxDeleteRef: (t<_>, string) => hxDelete
+let hxDeleteDefine: (
   t<'ctx>,
   hxDelete,
   ~securityPolicy: SecurityPolicy.handler<'ctx>,
@@ -127,8 +127,8 @@ let hxPatch: (
   ~securityPolicy: SecurityPolicy.handler<'ctx>,
   ~handler: htmxHandler<'ctx>,
 ) => hxPatch
-let makeHxPatchIdentifier: (t<_>, string) => hxPatch
-let implementHxPatchIdentifier: (
+let hxPatchRef: (t<_>, string) => hxPatch
+let hxPatchDefine: (
   t<'ctx>,
   hxPatch,
   ~securityPolicy: SecurityPolicy.handler<'ctx>,

@@ -12,7 +12,7 @@ var RequestController$ResX = require("../src/RequestController.js");
 Buntest.describe("rendering", (function () {
         Buntest.describe("render in head", (function () {
                 var make = async function (param) {
-                  var context = Handlers$ResX.useContext(TestUtils$ResX.Handler.handler);
+                  var context = Handlers$ResX.useContext(TestUtils$ResX.Handler.testHandler);
                   return Hjsx$ResX.jsx(RenderInHead$ResX.make, {
                               children: Hjsx$ResX.Elements.jsx("meta", {
                                     content: "test",
@@ -76,7 +76,7 @@ Buntest.describe("rendering", (function () {
               }));
         Buntest.describe("hooks", (function () {
                 Buntest.test("onBeforeSendResponse change status", (async function () {
-                        var response = await TestUtils$ResX.getResponse((function (_renderConfig) {
+                        var response = await TestUtils$ResX.getResponse(undefined, (function (_renderConfig) {
                                 return Hjsx$ResX.jsx(TestUtils$ResX.Html.make, {
                                             children: Hjsx$ResX.Elements.jsx("div", {
                                                   children: "Hi!"
@@ -94,7 +94,7 @@ Buntest.describe("rendering", (function () {
                         Buntest.expect(text).toBe("<!DOCTYPE html><html><head></head><body><div>Hi!</div></body></html>");
                       }));
                 Buntest.test("onBeforeSendResponse set header", (async function () {
-                        var response = await TestUtils$ResX.getResponse((function (_renderConfig) {
+                        var response = await TestUtils$ResX.getResponse(undefined, (function (_renderConfig) {
                                 return Hjsx$ResX.jsx(TestUtils$ResX.Html.make, {
                                             children: Hjsx$ResX.Elements.jsx("div", {
                                                   children: "Hi!"

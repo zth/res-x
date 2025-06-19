@@ -8,12 +8,12 @@ var RescriptCore = require("@rescript/core/src/RescriptCore.js");
 var Handlers$ResX = require("../src/Handlers.js");
 var Caml_js_exceptions = require("rescript/lib/js/caml_js_exceptions.js");
 
-var handler = Handlers$ResX.make((async function (_req) {
+var testHandler = Handlers$ResX.make((async function (_req) {
         
       }), undefined);
 
 var Handler = {
-  handler: handler
+  testHandler: testHandler
 };
 
 var currentPortsUsed = new Set();
@@ -61,7 +61,8 @@ var Html = {
   make: TestUtils$Html
 };
 
-async function getResponse(getContent, onBeforeSendResponse, urlOpt) {
+async function getResponse(methodOpt, getContent, onBeforeSendResponse, urlOpt) {
+  var method = methodOpt !== undefined ? methodOpt : "GET";
   var url = urlOpt !== undefined ? urlOpt : "/";
   var match = getPort();
   var port = match[0];
@@ -69,10 +70,14 @@ async function getResponse(getContent, onBeforeSendResponse, urlOpt) {
         development: true,
         port: port,
         fetch: (async function (request, _server) {
-            return await Handlers$ResX.handleRequest(handler, {
+            return await Handlers$ResX.handleRequest(testHandler, {
                         request: request,
                         render: (async function (renderConfig) {
-                            return getContent(renderConfig);
+                            if (getContent !== undefined) {
+                              return getContent(renderConfig);
+                            } else {
+                              return null;
+                            }
                           }),
                         setupHeaders: (function () {
                             return new Headers([[
@@ -88,7 +93,9 @@ async function getResponse(getContent, onBeforeSendResponse, urlOpt) {
   var exit = 0;
   var res$1;
   try {
-    res$1 = await fetch("http://localhost:" + port.toString() + url);
+    res$1 = await fetch("http://localhost:" + port.toString() + url, {
+          method: method
+        });
     exit = 1;
   }
   catch (raw_exn){
@@ -118,7 +125,7 @@ async function getResponse(getContent, onBeforeSendResponse, urlOpt) {
 }
 
 async function getContentInBody(getContent) {
-  var content = await getResponse(getContent, undefined, undefined);
+  var content = await getResponse(undefined, getContent, undefined, undefined);
   return await content.text();
 }
 
@@ -131,4 +138,4 @@ exports.getPort = getPort;
 exports.Html = Html;
 exports.getResponse = getResponse;
 exports.getContentInBody = getContentInBody;
-/* handler Not a pure module */
+/* testHandler Not a pure module */

@@ -246,12 +246,17 @@ function hxGet(t, path, securityPolicy, handler) {
   return path$1;
 }
 
-function makeHxGetIdentifier(t, path) {
+function hxGetRef(t, path) {
   return t.htmxApiPrefix + path;
 }
 
-function implementHxGetIdentifier(t, path, securityPolicy, handler) {
-  hxGet(t, path, securityPolicy, handler);
+function hxGetDefine(t, path, securityPolicy, handler) {
+  t.htmxHandlers.push([
+        "GET",
+        path,
+        securityPolicy,
+        handler
+      ]);
 }
 
 function hxPost(t, path, securityPolicy, handler) {
@@ -265,12 +270,17 @@ function hxPost(t, path, securityPolicy, handler) {
   return path$1;
 }
 
-function makeHxPostIdentifier(t, path) {
+function hxPostRef(t, path) {
   return t.htmxApiPrefix + path;
 }
 
-function implementHxPostIdentifier(t, path, securityPolicy, handler) {
-  hxPost(t, path, securityPolicy, handler);
+function hxPostDefine(t, path, securityPolicy, handler) {
+  t.htmxHandlers.push([
+        "POST",
+        path,
+        securityPolicy,
+        handler
+      ]);
 }
 
 function hxPut(t, path, securityPolicy, handler) {
@@ -284,12 +294,17 @@ function hxPut(t, path, securityPolicy, handler) {
   return path$1;
 }
 
-function makeHxPutIdentifier(t, path) {
+function hxPutRef(t, path) {
   return t.htmxApiPrefix + path;
 }
 
-function implementHxPutIdentifier(t, path, securityPolicy, handler) {
-  hxPut(t, path, securityPolicy, handler);
+function hxPutDefine(t, path, securityPolicy, handler) {
+  t.htmxHandlers.push([
+        "PUT",
+        path,
+        securityPolicy,
+        handler
+      ]);
 }
 
 function hxDelete(t, path, securityPolicy, handler) {
@@ -303,12 +318,17 @@ function hxDelete(t, path, securityPolicy, handler) {
   return path$1;
 }
 
-function makeHxDeleteIdentifier(t, path) {
+function hxDeleteRef(t, path) {
   return t.htmxApiPrefix + path;
 }
 
-function implementHxDeleteIdentifier(t, path, securityPolicy, handler) {
-  hxDelete(t, path, securityPolicy, handler);
+function hxDeleteDefine(t, path, securityPolicy, handler) {
+  t.htmxHandlers.push([
+        "DELETE",
+        path,
+        securityPolicy,
+        handler
+      ]);
 }
 
 function hxPatch(t, path, securityPolicy, handler) {
@@ -322,12 +342,17 @@ function hxPatch(t, path, securityPolicy, handler) {
   return path$1;
 }
 
-function makeHxPatchIdentifier(t, path) {
+function hxPatchRef(t, path) {
   return t.htmxApiPrefix + path;
 }
 
-function implementHxPatchIdentifier(t, path, securityPolicy, handler) {
-  hxPatch(t, path, securityPolicy, handler);
+function hxPatchDefine(t, path, securityPolicy, handler) {
+  t.htmxHandlers.push([
+        "PATCH",
+        path,
+        securityPolicy,
+        handler
+      ]);
 }
 
 function getHandlers(t) {
@@ -342,20 +367,20 @@ exports.FormAction = FormAction;
 exports.make = make;
 exports.formAction = formAction;
 exports.hxGet = hxGet;
-exports.makeHxGetIdentifier = makeHxGetIdentifier;
-exports.implementHxGetIdentifier = implementHxGetIdentifier;
+exports.hxGetRef = hxGetRef;
+exports.hxGetDefine = hxGetDefine;
 exports.hxPost = hxPost;
-exports.makeHxPostIdentifier = makeHxPostIdentifier;
-exports.implementHxPostIdentifier = implementHxPostIdentifier;
+exports.hxPostRef = hxPostRef;
+exports.hxPostDefine = hxPostDefine;
 exports.hxPut = hxPut;
-exports.makeHxPutIdentifier = makeHxPutIdentifier;
-exports.implementHxPutIdentifier = implementHxPutIdentifier;
+exports.hxPutRef = hxPutRef;
+exports.hxPutDefine = hxPutDefine;
 exports.hxDelete = hxDelete;
-exports.makeHxDeleteIdentifier = makeHxDeleteIdentifier;
-exports.implementHxDeleteIdentifier = implementHxDeleteIdentifier;
+exports.hxDeleteRef = hxDeleteRef;
+exports.hxDeleteDefine = hxDeleteDefine;
 exports.hxPatch = hxPatch;
-exports.makeHxPatchIdentifier = makeHxPatchIdentifier;
-exports.implementHxPatchIdentifier = implementHxPatchIdentifier;
+exports.hxPatchRef = hxPatchRef;
+exports.hxPatchDefine = hxPatchDefine;
 exports.useContext = useContext;
 exports.handleRequest = handleRequest;
 exports.Internal = Internal;

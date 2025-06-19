@@ -2,7 +2,7 @@
 
 module Handler = {
   type context = unit
-  let handler = Handlers.make(~requestToContext=async _req => {
+  let testHandler = Handlers.make(~requestToContext=async _req => {
     ()
   })
 }
@@ -45,27 +45,33 @@ module Html = {
   }
 }
 
-let getResponse = async (getContent, ~onBeforeSendResponse=?, ~url="/") => {
+let getResponse = async (~method=GET, ~getContent=?, ~onBeforeSendResponse=?, ~url="/") => {
   let (port, unsubPort) = getPort()
 
   let server = Bun.serve({
     port,
     development: true,
     fetch: async (request, _server) => {
-      await Handler.handler->ResX.Handlers.handleRequest({
+      await Handler.testHandler->ResX.Handlers.handleRequest({
         request,
         setupHeaders: () => {
           Headers.make(~init=FromArray([("Content-Type", "text/html")]))
         },
         render: async renderConfig => {
-          getContent(renderConfig)
+          switch getContent {
+          | Some(getContent) => getContent(renderConfig)
+          | None => Hjsx.null
+          }
         },
         ?onBeforeSendResponse,
       })
     },
   })
 
-  let res = switch await fetch(`http://localhost:${port->Int.toString}${url}`) {
+  let res = switch await fetch(
+    `http://localhost:${port->Int.toString}${url}`,
+    ~init={method: (method :> string)},
+  ) {
   | res => Ok(res)
   | exception Exn.Error(_) => Error("Failed to fetch.")
   }
@@ -80,6 +86,6 @@ let getResponse = async (getContent, ~onBeforeSendResponse=?, ~url="/") => {
 }
 
 let getContentInBody = async getContent => {
-  let content = await getResponse(getContent)
+  let content = await getResponse(~getContent)
   await content->Response.text
 }

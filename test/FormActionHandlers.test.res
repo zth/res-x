@@ -3,7 +3,7 @@ open TestUtils
 
 describe("Form action handlers", () => {
   testAsync("prefixing of form action handler routes work", async () => {
-    let _getHandler = Handler.handler->Handlers.formAction(
+    let _getHandler = Handler.testHandler->Handlers.formAction(
       "/test",
       ~securityPolicy=SecurityPolicy.allow,
       ~handler=async _ => {
@@ -11,7 +11,7 @@ describe("Form action handlers", () => {
       },
     )
     let response = await getResponse(
-      _ => {
+      ~getContent=_ => {
         Hjsx.string("nope")
       },
       ~url="/_form/test",
