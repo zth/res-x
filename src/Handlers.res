@@ -1,4 +1,5 @@
-@val external null: Jsx.element = "null"
+external null: Jsx.element = "null"
+external string: string => Jsx.element = "%identity"
 
 module FormAction = {
   type t = string
@@ -30,8 +31,8 @@ type renderConfig<'ctx> = {
 }
 
 type t<'ctx> = {
-  htmxHandlers: array<(method, string, htmxHandler<'ctx>)>,
-  formActionHandlers: array<(string, formActionHandler<'ctx>)>,
+  htmxHandlers: array<(method, string, SecurityPolicy.handler<'ctx>, htmxHandler<'ctx>)>,
+  formActionHandlers: array<(string, SecurityPolicy.handler<'ctx>, formActionHandler<'ctx>)>,
   requestToContext: Request.t => promise<'ctx>,
   asyncLocalStorage: AsyncHooks.AsyncLocalStorage.t<renderConfig<'ctx>>,
   htmxApiPrefix: string,
@@ -126,16 +127,25 @@ let handleRequest = async (
   let pathname = url->URL.pathname
 
   // TODO: Can optimize when this runs
-  let targetFormActionHandler = t.formActionHandlers->Array.findMap(((path, handler)) =>
+  let targetFormActionHandler = t.formActionHandlers->Array.findMap(((
+    path,
+    securityPolicyHandler,
+    handler,
+  )) =>
     switch request->Request.method {
-    | POST | GET if path === pathname => Some(handler)
+    | POST | GET if path === pathname => Some((securityPolicyHandler, handler))
     | _ => None
     }
   )
 
-  let targetHtmxHandler = t.htmxHandlers->Array.findMap(((handlerType, path, handler)) =>
+  let targetHtmxHandler = t.htmxHandlers->Array.findMap(((
+    handlerType,
+    path,
+    securityPolicyHandler,
+    handler,
+  )) =>
     if handlerType === request->Request.method && path === pathname {
-      Some(handler)
+      Some((securityPolicyHandler, handler))
     } else {
       None
     }
@@ -166,13 +176,20 @@ let handleRequest = async (
     let content = switch (targetFormActionHandler, targetHtmxHandler) {
     | (Some(_), _) => null
     | (None, None) => await render(renderConfig)
-    | (None, Some(handler)) =>
-      await handler({
-        request,
-        context: ctx,
-        headers,
-        requestController,
-      })
+    | (None, Some((securityPolicyHandler, handler))) =>
+      let securityPolicy = await securityPolicyHandler({request, context: ctx})
+      switch securityPolicy {
+      | Allow =>
+        await handler({
+          request,
+          context: ctx,
+          headers,
+          requestController,
+        })
+      | Block({message, code}) =>
+        requestController->RequestController.setStatus(code->Option.getOr(403))
+        string(message->Option.getOr("Not Allowed."))
+      }
     }
 
     let responseType = switch (targetFormActionHandler, targetHtmxHandler) {
@@ -193,8 +210,15 @@ let handleRequest = async (
     }
 
     if isFormAction {
-      let formActionHandler = targetFormActionHandler->Option.getExn
-      let response = await formActionHandler({context: ctx, request})
+      let (securityPolicyHandler, formActionHandler) = targetFormActionHandler->Option.getExn
+      let response = switch await securityPolicyHandler({request, context: ctx}) {
+      | Allow => await formActionHandler({context: ctx, request})
+      | Block({message, code}) =>
+        Response.make(
+          message->Option.getOr("Not Allowed."),
+          ~options={status: code->Option.getOr(403)},
+        )
+      }
       switch onBeforeSendResponse {
       | Some(onBeforeSendResponse) =>
         await onBeforeSendResponse({
@@ -263,70 +287,70 @@ let handleRequest = async (
   })
 }
 
-let formAction = (t: t<_>, path, ~handler) => {
+let formAction = (t: t<_>, path, ~securityPolicy, ~handler) => {
   let path = t.formActionHandlerApiPrefix ++ path
-  t.formActionHandlers->Array.push((path, handler))
+  t.formActionHandlers->Array.push((path, securityPolicy, handler))
   path
 }
 
-let hxGet = (t: t<_>, path, ~handler) => {
+let hxGet = (t: t<_>, path, ~securityPolicy, ~handler) => {
   let path = t.htmxApiPrefix ++ path
-  t.htmxHandlers->Array.push((GET, path, handler))
+  t.htmxHandlers->Array.push((GET, path, securityPolicy, handler))
   path
 }
 let makeHxGetIdentifier = (t: t<_>, path) => {
   t.htmxApiPrefix ++ path
 }
-let implementHxGetIdentifier = (t, path, ~handler) => {
-  let _: hxGet = hxGet(t, path, ~handler)
+let implementHxGetIdentifier = (t, path, ~securityPolicy, ~handler) => {
+  let _: hxGet = hxGet(t, path, ~securityPolicy, ~handler)
 }
 
-let hxPost = (t: t<_>, path, ~handler) => {
+let hxPost = (t: t<_>, path, ~securityPolicy, ~handler) => {
   let path = t.htmxApiPrefix ++ path
-  t.htmxHandlers->Array.push((POST, path, handler))
+  t.htmxHandlers->Array.push((POST, path, securityPolicy, handler))
   path
 }
 let makeHxPostIdentifier = (t: t<_>, path) => {
   t.htmxApiPrefix ++ path
 }
-let implementHxPostIdentifier = (t, path, ~handler) => {
-  let _: hxPost = hxPost(t, path, ~handler)
+let implementHxPostIdentifier = (t, path, ~securityPolicy, ~handler) => {
+  let _: hxPost = hxPost(t, path, ~securityPolicy, ~handler)
 }
 
-let hxPut = (t: t<_>, path, ~handler) => {
+let hxPut = (t: t<_>, path, ~securityPolicy, ~handler) => {
   let path = t.htmxApiPrefix ++ path
-  t.htmxHandlers->Array.push((PUT, path, handler))
+  t.htmxHandlers->Array.push((PUT, path, securityPolicy, handler))
   path
 }
 let makeHxPutIdentifier = (t: t<_>, path) => {
   t.htmxApiPrefix ++ path
 }
-let implementHxPutIdentifier = (t, path, ~handler) => {
-  let _: hxPut = hxPut(t, path, ~handler)
+let implementHxPutIdentifier = (t, path, ~securityPolicy, ~handler) => {
+  let _: hxPut = hxPut(t, path, ~securityPolicy, ~handler)
 }
 
-let hxDelete = (t: t<_>, path, ~handler) => {
+let hxDelete = (t: t<_>, path, ~securityPolicy, ~handler) => {
   let path = t.htmxApiPrefix ++ path
-  t.htmxHandlers->Array.push((DELETE, path, handler))
+  t.htmxHandlers->Array.push((DELETE, path, securityPolicy, handler))
   path
 }
 let makeHxDeleteIdentifier = (t: t<_>, path) => {
   t.htmxApiPrefix ++ path
 }
-let implementHxDeleteIdentifier = (t, path, ~handler) => {
-  let _: hxDelete = hxDelete(t, path, ~handler)
+let implementHxDeleteIdentifier = (t, path, ~securityPolicy, ~handler) => {
+  let _: hxDelete = hxDelete(t, path, ~securityPolicy, ~handler)
 }
 
-let hxPatch = (t: t<_>, path, ~handler) => {
+let hxPatch = (t: t<_>, path, ~securityPolicy, ~handler) => {
   let path = t.htmxApiPrefix ++ path
-  t.htmxHandlers->Array.push((PATCH, path, handler))
+  t.htmxHandlers->Array.push((PATCH, path, securityPolicy, handler))
   path
 }
 let makeHxPatchIdentifier = (t: t<_>, path) => {
   t.htmxApiPrefix ++ path
 }
-let implementHxPatchIdentifier = (t, path, ~handler) => {
-  let _: hxPatch = hxPatch(t, path, ~handler)
+let implementHxPatchIdentifier = (t, path, ~securityPolicy, ~handler) => {
+  let _: hxPatch = hxPatch(t, path, ~securityPolicy, ~handler)
 }
 
 module Internal = {

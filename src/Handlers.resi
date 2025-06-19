@@ -50,7 +50,7 @@ let make: (~requestToContext: Request.t => promise<'ctx>, ~options: options=?) =
 
  ## Example
  ```rescript
- let onSubmit = Handler.handler->ResX.Handlers.formAction("/user-submitted", ~handler=async _ => {
+ let onSubmit = Handler.handler->ResX.Handlers.formAction("/user-submitted", ~securityPolicy=ResX.SecurityPolicy.allow, ~handler=async _ => {
   Response.makeRedirect("/some-other-page")
  })
 
@@ -58,27 +58,82 @@ let make: (~requestToContext: Request.t => promise<'ctx>, ~options: options=?) =
  </form>
  ```
  */
-let formAction: (t<'ctx>, string, ~handler: formActionHandler<'ctx>) => FormAction.t
+let formAction: (
+  t<'ctx>,
+  string,
+  ~securityPolicy: SecurityPolicy.handler<'ctx>,
+  ~handler: formActionHandler<'ctx>,
+) => FormAction.t
 
-let hxGet: (t<'ctx>, string, ~handler: htmxHandler<'ctx>) => hxGet
+let hxGet: (
+  t<'ctx>,
+  string,
+  ~securityPolicy: SecurityPolicy.handler<'ctx>,
+  ~handler: htmxHandler<'ctx>,
+) => hxGet
 let makeHxGetIdentifier: (t<_>, string) => hxGet
-let implementHxGetIdentifier: (t<'ctx>, hxGet, ~handler: htmxHandler<'ctx>) => unit
+let implementHxGetIdentifier: (
+  t<'ctx>,
+  hxGet,
+  ~securityPolicy: SecurityPolicy.handler<'ctx>,
+  ~handler: htmxHandler<'ctx>,
+) => unit
 
-let hxPost: (t<'ctx>, string, ~handler: htmxHandler<'ctx>) => hxPost
+let hxPost: (
+  t<'ctx>,
+  string,
+  ~securityPolicy: SecurityPolicy.handler<'ctx>,
+  ~handler: htmxHandler<'ctx>,
+) => hxPost
 let makeHxPostIdentifier: (t<_>, string) => hxPost
-let implementHxPostIdentifier: (t<'ctx>, hxPost, ~handler: htmxHandler<'ctx>) => unit
+let implementHxPostIdentifier: (
+  t<'ctx>,
+  hxPost,
+  ~securityPolicy: SecurityPolicy.handler<'ctx>,
+  ~handler: htmxHandler<'ctx>,
+) => unit
 
-let hxPut: (t<'ctx>, string, ~handler: htmxHandler<'ctx>) => hxPut
+let hxPut: (
+  t<'ctx>,
+  string,
+  ~securityPolicy: SecurityPolicy.handler<'ctx>,
+  ~handler: htmxHandler<'ctx>,
+) => hxPut
 let makeHxPutIdentifier: (t<_>, string) => hxPut
-let implementHxPutIdentifier: (t<'ctx>, hxPut, ~handler: htmxHandler<'ctx>) => unit
+let implementHxPutIdentifier: (
+  t<'ctx>,
+  hxPut,
+  ~securityPolicy: SecurityPolicy.handler<'ctx>,
+  ~handler: htmxHandler<'ctx>,
+) => unit
 
-let hxDelete: (t<'ctx>, string, ~handler: htmxHandler<'ctx>) => hxDelete
+let hxDelete: (
+  t<'ctx>,
+  string,
+  ~securityPolicy: SecurityPolicy.handler<'ctx>,
+  ~handler: htmxHandler<'ctx>,
+) => hxDelete
 let makeHxDeleteIdentifier: (t<_>, string) => hxDelete
-let implementHxDeleteIdentifier: (t<'ctx>, hxDelete, ~handler: htmxHandler<'ctx>) => unit
+let implementHxDeleteIdentifier: (
+  t<'ctx>,
+  hxDelete,
+  ~securityPolicy: SecurityPolicy.handler<'ctx>,
+  ~handler: htmxHandler<'ctx>,
+) => unit
 
-let hxPatch: (t<'ctx>, string, ~handler: htmxHandler<'ctx>) => hxPatch
+let hxPatch: (
+  t<'ctx>,
+  string,
+  ~securityPolicy: SecurityPolicy.handler<'ctx>,
+  ~handler: htmxHandler<'ctx>,
+) => hxPatch
 let makeHxPatchIdentifier: (t<_>, string) => hxPatch
-let implementHxPatchIdentifier: (t<'ctx>, hxPatch, ~handler: htmxHandler<'ctx>) => unit
+let implementHxPatchIdentifier: (
+  t<'ctx>,
+  hxPatch,
+  ~securityPolicy: SecurityPolicy.handler<'ctx>,
+  ~handler: htmxHandler<'ctx>,
+) => unit
 
 type renderConfig<'ctx> = {
   request: Request.t,
@@ -119,5 +174,10 @@ type handleRequestConfig<'ctx> = {
 let handleRequest: (t<'ctx>, handleRequestConfig<'ctx>) => promise<Response.t>
 
 module Internal: {
-  let getHandlers: t<'ctx> => array<(method, string, htmxHandler<'ctx>)>
+  let getHandlers: t<'ctx> => array<(
+    method,
+    string,
+    SecurityPolicy.handler<'ctx>,
+    htmxHandler<'ctx>,
+  )>
 }

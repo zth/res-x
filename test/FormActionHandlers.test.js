@@ -8,6 +8,8 @@ var TestUtils$ResX = require("./TestUtils.js");
 Buntest.describe("Form action handlers", (function () {
         Buntest.test("prefixing of form action handler routes work", (async function () {
                 Handlers$ResX.formAction(TestUtils$ResX.Handler.handler, "/test", (async function (param) {
+                        return "Allow";
+                      }), (async function (param) {
                         return new Response("Test!");
                       }));
                 var response = await TestUtils$ResX.getResponse((function (param) {
