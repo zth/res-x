@@ -13,7 +13,7 @@ Buntest.describe("Form action handlers", (function () {
                       }));
                 var response = await TestUtils$ResX.getResponse(undefined, (function (param) {
                         return "nope";
-                      }), undefined, "/_form/test");
+                      }), undefined, undefined, "/_form/test");
                 var text = await response.text();
                 Buntest.expect(text).toBe("Test!");
               }));

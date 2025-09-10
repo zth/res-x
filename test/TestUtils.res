@@ -1,9 +1,9 @@
 @@jsxConfig({module_: "Hjsx"})
 
 module Handler = {
-  type context = unit
+  type context = {mutable shouldAppendToHead: bool}
   let testHandler = Handlers.make(~requestToContext=async _req => {
-    ()
+    {shouldAppendToHead: false}
   })
 }
 
@@ -45,7 +45,13 @@ module Html = {
   }
 }
 
-let getResponse = async (~method=GET, ~getContent=?, ~onBeforeSendResponse=?, ~url="/") => {
+let getResponse = async (
+  ~method=GET,
+  ~getContent=?,
+  ~onBeforeSendResponse=?,
+  ~onBeforeBuildResponse=?,
+  ~url="/",
+) => {
   let (port, unsubPort) = getPort()
 
   let server = Bun.serve({
@@ -64,6 +70,7 @@ let getResponse = async (~method=GET, ~getContent=?, ~onBeforeSendResponse=?, ~u
           }
         },
         ?onBeforeSendResponse,
+        ?onBeforeBuildResponse,
       })
     },
   })

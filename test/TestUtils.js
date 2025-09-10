@@ -9,7 +9,9 @@ var Handlers$ResX = require("../src/Handlers.js");
 var Caml_js_exceptions = require("rescript/lib/js/caml_js_exceptions.js");
 
 var testHandler = Handlers$ResX.make((async function (_req) {
-        
+        return {
+                shouldAppendToHead: false
+              };
       }), undefined);
 
 var Handler = {
@@ -61,7 +63,7 @@ var Html = {
   make: TestUtils$Html
 };
 
-async function getResponse(methodOpt, getContent, onBeforeSendResponse, urlOpt) {
+async function getResponse(methodOpt, getContent, onBeforeSendResponse, onBeforeBuildResponse, urlOpt) {
   var method = methodOpt !== undefined ? methodOpt : "GET";
   var url = urlOpt !== undefined ? urlOpt : "/";
   var match = getPort();
@@ -85,7 +87,8 @@ async function getResponse(methodOpt, getContent, onBeforeSendResponse, urlOpt) 
                                           "text/html"
                                         ]]);
                           }),
-                        onBeforeSendResponse: onBeforeSendResponse
+                        onBeforeSendResponse: onBeforeSendResponse,
+                        onBeforeBuildResponse: onBeforeBuildResponse
                       });
           })
       });
@@ -125,7 +128,7 @@ async function getResponse(methodOpt, getContent, onBeforeSendResponse, urlOpt) 
 }
 
 async function getContentInBody(getContent) {
-  var content = await getResponse(undefined, getContent, undefined, undefined);
+  var content = await getResponse(undefined, getContent, undefined, undefined, undefined);
   return await content.text();
 }
 

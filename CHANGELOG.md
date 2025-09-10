@@ -1,5 +1,6 @@
 # master
 
+- Expose `requestController` in `onBeforeBuildResponse` so you can do some final manipulations before the response is built.
 - Add endpoint URL helper functions for HTMX handlers and form actions: `hxGetToEndpointURL`, `hxPostToEndpointURL`, `hxPutToEndpointURL`, `hxDeleteToEndpointURL`, `hxPatchToEndpointURL`, `formActionToEndpointURL`, and `FormAction.toEndpointURL`. These functions return the actual URL string for the handler endpoints, useful for programmatic access to endpoint URLs.
 
 # 0.3.0

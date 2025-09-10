@@ -75,6 +75,36 @@ Buntest.describe("rendering", (function () {
                       }));
               }));
         Buntest.describe("hooks", (function () {
+                Buntest.describe("onBeforeBuildResponse can set appended header content", (function () {
+                        var getResponseWithShouldAppendToHeadValue = function (shouldAppendToHead) {
+                          return TestUtils$ResX.getResponse(undefined, (function (param) {
+                                        param.context.shouldAppendToHead = shouldAppendToHead;
+                                        return Hjsx$ResX.jsx(TestUtils$ResX.Html.make, {
+                                                    children: Hjsx$ResX.Elements.jsx("div", {
+                                                          children: "Hi!"
+                                                        })
+                                                  });
+                                      }), undefined, (async function (config) {
+                                        if (config.context.shouldAppendToHead) {
+                                          return RequestController$ResX.appendToHead(config.requestController, Hjsx$ResX.Elements.jsx("meta", {
+                                                          content: "test",
+                                                          name: "test"
+                                                        }));
+                                        }
+                                        
+                                      }), undefined);
+                        };
+                        Buntest.test("can read context to control appending to head - should append", (async function () {
+                                var response = await getResponseWithShouldAppendToHeadValue(true);
+                                var text = await response.text();
+                                Buntest.expect(text).toBe("<!DOCTYPE html><html><head><meta content=\"test\" name=\"test\"/></head><body><div>Hi!</div></body></html>");
+                              }));
+                        Buntest.test("can read context to control appending to head - should not append", (async function () {
+                                var response = await getResponseWithShouldAppendToHeadValue(false);
+                                var text = await response.text();
+                                Buntest.expect(text).toBe("<!DOCTYPE html><html><head></head><body><div>Hi!</div></body></html>");
+                              }));
+                      }));
                 Buntest.test("onBeforeSendResponse change status", (async function () {
                         var response = await TestUtils$ResX.getResponse(undefined, (function (_renderConfig) {
                                 return Hjsx$ResX.jsx(TestUtils$ResX.Html.make, {
@@ -87,7 +117,7 @@ Buntest.describe("rendering", (function () {
                                             status: 400,
                                             headers: config.response.headers.toJSON()
                                           });
-                              }), undefined);
+                              }), undefined, undefined);
                         var status = response.status;
                         var text = await response.text();
                         Buntest.expect(status).toBe(400);
@@ -103,7 +133,7 @@ Buntest.describe("rendering", (function () {
                               }), (async function (config) {
                                 config.response.headers.set("x-user-id", "1");
                                 return config.response;
-                              }), undefined);
+                              }), undefined, undefined);
                         var userIdHeader = response.headers.get("x-user-id");
                         Buntest.expect((userIdHeader == null) ? undefined : Caml_option.some(userIdHeader)).toBe("1");
                       }));
@@ -126,7 +156,7 @@ Buntest.describe("rendering", (function () {
                                 renderConfig.headers.set("Content-Type", "text/csv; charset=UTF-8");
                                 renderConfig.headers.set("Content-Disposition", "attachment; filename=\"test.csv\"");
                                 return Hjsx$ResX.dangerouslyOutputUnescapedContent("Name,Description,Tags\n\"John & Jane Doe\",\"<Special> characters & symbols\",\"tag1,tag2\"\n\"Bob's Company\",\"Uses \"quotes\" & <brackets>\",\"web,tech\"\n\"Test Corp\",\"R&D Department\",\"research&development\"");
-                              }), undefined, undefined);
+                              }), undefined, undefined, undefined);
                         var contentType = response.headers.get("Content-Type");
                         var contentDisposition = response.headers.get("Content-Disposition");
                         var text = await response.text();

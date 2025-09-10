@@ -106,6 +106,7 @@ type onBeforeBuildResponse<'ctx> = {
   request: Request.t,
   context: 'ctx,
   responseType: responseType,
+  requestController: RequestController.t,
 }
 
 type handleRequestConfig<'ctx> = {
@@ -207,6 +208,7 @@ let handleRequest = async (
         context: ctx,
         request,
         responseType,
+        requestController,
       })
     }
 

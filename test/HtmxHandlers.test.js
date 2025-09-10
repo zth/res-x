@@ -11,7 +11,7 @@ Buntest.describe("HTMX handlers", (function () {
                 Handlers$ResX.hxGet(TestUtils$ResX.Handler.testHandler, "/test", SecurityPolicy$ResX.allow, (async function (param) {
                         return "Test!";
                       }));
-                var response = await TestUtils$ResX.getResponse(undefined, undefined, undefined, "/_api/test");
+                var response = await TestUtils$ResX.getResponse(undefined, undefined, undefined, undefined, "/_api/test");
                 var text = await response.text();
                 Buntest.expect(text).toBe("<!DOCTYPE html>Test!");
               }));
@@ -25,7 +25,7 @@ Buntest.describe("HTMX handlers", (function () {
                       }), (async function (param) {
                         return "Test!";
                       }));
-                var response = await TestUtils$ResX.getResponse(undefined, undefined, undefined, "/_api/test-block");
+                var response = await TestUtils$ResX.getResponse(undefined, undefined, undefined, undefined, "/_api/test-block");
                 var text = await response.text();
                 Buntest.expect(text).toBe("<!DOCTYPE html>Forbidden");
                 Buntest.expect(response.status).toBe(403);
@@ -35,7 +35,7 @@ Buntest.describe("HTMX handlers", (function () {
                 Handlers$ResX.hxGetDefine(TestUtils$ResX.Handler.testHandler, getHandler, SecurityPolicy$ResX.allow, (async function (param) {
                         return "Test!";
                       }));
-                var response = await TestUtils$ResX.getResponse(undefined, undefined, undefined, "/_api/test-delay");
+                var response = await TestUtils$ResX.getResponse(undefined, undefined, undefined, undefined, "/_api/test-delay");
                 var text = await response.text();
                 Buntest.expect(text).toBe("<!DOCTYPE html>Test!");
               }));
@@ -44,7 +44,7 @@ Buntest.describe("HTMX handlers", (function () {
                 Handlers$ResX.hxPostDefine(TestUtils$ResX.Handler.testHandler, postHandler, SecurityPolicy$ResX.allow, (async function (param) {
                         return "Test!";
                       }));
-                var response = await TestUtils$ResX.getResponse("POST", undefined, undefined, "/_api/test-delay");
+                var response = await TestUtils$ResX.getResponse("POST", undefined, undefined, undefined, "/_api/test-delay");
                 var text = await response.text();
                 Buntest.expect(text).toBe("<!DOCTYPE html>Test!");
               }));
@@ -53,7 +53,7 @@ Buntest.describe("HTMX handlers", (function () {
                 Handlers$ResX.hxPutDefine(TestUtils$ResX.Handler.testHandler, putHandler, SecurityPolicy$ResX.allow, (async function (param) {
                         return "Test!";
                       }));
-                var response = await TestUtils$ResX.getResponse("PUT", undefined, undefined, "/_api/test-delay");
+                var response = await TestUtils$ResX.getResponse("PUT", undefined, undefined, undefined, "/_api/test-delay");
                 var text = await response.text();
                 Buntest.expect(text).toBe("<!DOCTYPE html>Test!");
               }));
@@ -62,7 +62,7 @@ Buntest.describe("HTMX handlers", (function () {
                 Handlers$ResX.hxDeleteDefine(TestUtils$ResX.Handler.testHandler, deleteHandler, SecurityPolicy$ResX.allow, (async function (param) {
                         return "Test!";
                       }));
-                var response = await TestUtils$ResX.getResponse("DELETE", undefined, undefined, "/_api/test-delay");
+                var response = await TestUtils$ResX.getResponse("DELETE", undefined, undefined, undefined, "/_api/test-delay");
                 var text = await response.text();
                 Buntest.expect(text).toBe("<!DOCTYPE html>Test!");
               }));
@@ -71,7 +71,7 @@ Buntest.describe("HTMX handlers", (function () {
                 Handlers$ResX.hxPatchDefine(TestUtils$ResX.Handler.testHandler, patchHandler, SecurityPolicy$ResX.allow, (async function (param) {
                         return "Test!";
                       }));
-                var response = await TestUtils$ResX.getResponse("PATCH", undefined, undefined, "/_api/test-delay");
+                var response = await TestUtils$ResX.getResponse("PATCH", undefined, undefined, undefined, "/_api/test-delay");
                 var text = await response.text();
                 Buntest.expect(text).toBe("<!DOCTYPE html>Test!");
               }));

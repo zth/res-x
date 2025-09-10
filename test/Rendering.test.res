@@ -108,6 +108,50 @@ describe("rendering", () => {
   })
 
   describe("hooks", () => {
+    describe(
+      "onBeforeBuildResponse can set appended header content",
+      () => {
+        let getResponseWithShouldAppendToHeadValue = shouldAppendToHead => {
+          getResponse(
+            ~getContent=({context}) => {
+              context.shouldAppendToHead = shouldAppendToHead
+              <Html>
+                <div> {Hjsx.string("Hi!")} </div>
+              </Html>
+            },
+            ~onBeforeBuildResponse=async config => {
+              if config.context.shouldAppendToHead {
+                config.requestController->RequestController.appendToHead(
+                  <meta name="test" content="test" />,
+                )
+              }
+            },
+          )
+        }
+        testAsync(
+          "can read context to control appending to head - should append",
+          async () => {
+            let response = await getResponseWithShouldAppendToHeadValue(true)
+            let text = await response->Response.text
+            expect(
+              text,
+            )->Expect.toBe(`<!DOCTYPE html><html><head><meta content="test" name="test"/></head><body><div>Hi!</div></body></html>`)
+          },
+        )
+
+        testAsync(
+          "can read context to control appending to head - should not append",
+          async () => {
+            let response = await getResponseWithShouldAppendToHeadValue(false)
+            let text = await response->Response.text
+            expect(
+              text,
+            )->Expect.toBe(`<!DOCTYPE html><html><head></head><body><div>Hi!</div></body></html>`)
+          },
+        )
+      },
+    )
+
     testAsync(
       "onBeforeSendResponse change status",
       async () => {

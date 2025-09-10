@@ -151,7 +151,8 @@ async function handleRequest(t, config) {
                   await onBeforeBuildResponse({
                         request: request,
                         context: ctx,
-                        responseType: responseType
+                        responseType: responseType,
+                        requestController: requestController
                       });
                 }
                 if (isFormAction) {
