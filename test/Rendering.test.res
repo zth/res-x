@@ -277,3 +277,35 @@ describe("rendering", () => {
     )
   })
 })
+
+module PanicComponent = {
+  let fnThatErrors = () => {
+    if true {
+      panic("panic!")
+    }
+
+    "hello"
+  }
+  @jsx.component
+  let make = () => {
+    <div> {Hjsx.string(fnThatErrors())} </div>
+  }
+}
+
+describe("error boundaries", () => {
+  testAsync("error boundary catches panic", async () => {
+    let text = await getContentInBody(
+      _renderConfig => {
+        <Html>
+          <ErrorBoundary renderError={_ => <div> {Hjsx.string("Error!")} </div>}>
+            <PanicComponent />
+          </ErrorBoundary>
+        </Html>
+      },
+    )
+
+    expect(
+      text,
+    )->Expect.toBe(`<!DOCTYPE html><html><head></head><body><div>Error!</div></body></html>`)
+  })
+})

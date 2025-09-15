@@ -4,9 +4,11 @@
 var Buntest = require("bun:test");
 var Hjsx$ResX = require("../src/Hjsx.js");
 var Caml_option = require("rescript/lib/js/caml_option.js");
+var RescriptCore = require("@rescript/core/src/RescriptCore.js");
 var Handlers$ResX = require("../src/Handlers.js");
 var TestUtils$ResX = require("./TestUtils.js");
 var RenderInHead$ResX = require("../src/RenderInHead.js");
+var ErrorBoundary$ResX = require("../src/ErrorBoundary.js");
 var RequestController$ResX = require("../src/RequestController.js");
 
 Buntest.describe("rendering", (function () {
@@ -175,4 +177,39 @@ Buntest.describe("rendering", (function () {
               }));
       }));
 
+function fnThatErrors() {
+  RescriptCore.panic("panic!");
+  return "hello";
+}
+
+function Rendering$dottest$PanicComponent(props) {
+  return Hjsx$ResX.Elements.jsx("div", {
+              children: (RescriptCore.panic("panic!"), "hello")
+            });
+}
+
+var PanicComponent = {
+  fnThatErrors: fnThatErrors,
+  make: Rendering$dottest$PanicComponent
+};
+
+Buntest.describe("error boundaries", (function () {
+        Buntest.test("error boundary catches panic", (async function () {
+                var text = await TestUtils$ResX.getContentInBody(function (_renderConfig) {
+                      return Hjsx$ResX.jsx(TestUtils$ResX.Html.make, {
+                                  children: Hjsx$ResX.jsx(ErrorBoundary$ResX.make, {
+                                        children: Hjsx$ResX.jsx(Rendering$dottest$PanicComponent, {}),
+                                        renderError: (function (param) {
+                                            return Hjsx$ResX.Elements.jsx("div", {
+                                                        children: "Error!"
+                                                      });
+                                          })
+                                      })
+                                });
+                    });
+                Buntest.expect(text).toBe("<!DOCTYPE html><html><head></head><body><div>Error!</div></body></html>");
+              }));
+      }));
+
+exports.PanicComponent = PanicComponent;
 /*  Not a pure module */
