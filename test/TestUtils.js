@@ -63,7 +63,7 @@ var Html = {
   make: TestUtils$Html
 };
 
-async function getResponse(methodOpt, getContent, onBeforeSendResponse, onBeforeBuildResponse, urlOpt) {
+async function getResponse(methodOpt, getContent, onBeforeSendResponse, onBeforeBuildResponse, onAfterBuildResponse, urlOpt) {
   var method = methodOpt !== undefined ? methodOpt : "GET";
   var url = urlOpt !== undefined ? urlOpt : "/";
   var match = getPort();
@@ -88,7 +88,8 @@ async function getResponse(methodOpt, getContent, onBeforeSendResponse, onBefore
                                         ]]);
                           }),
                         onBeforeSendResponse: onBeforeSendResponse,
-                        onBeforeBuildResponse: onBeforeBuildResponse
+                        onBeforeBuildResponse: onBeforeBuildResponse,
+                        onAfterBuildResponse: onAfterBuildResponse
                       });
           })
       });
@@ -128,7 +129,7 @@ async function getResponse(methodOpt, getContent, onBeforeSendResponse, onBefore
 }
 
 async function getContentInBody(getContent) {
-  var content = await getResponse(undefined, getContent, undefined, undefined, undefined);
+  var content = await getResponse(undefined, getContent, undefined, undefined, undefined, undefined);
   return await content.text();
 }
 

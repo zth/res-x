@@ -10,8 +10,24 @@ var TestUtils$ResX = require("./TestUtils.js");
 var RenderInHead$ResX = require("../src/RenderInHead.js");
 var ErrorBoundary$ResX = require("../src/ErrorBoundary.js");
 var RequestController$ResX = require("../src/RequestController.js");
+var RenderBeforeBodyEnd$ResX = require("../src/RenderBeforeBodyEnd.js");
 
 Buntest.describe("rendering", (function () {
+        Buntest.describe("render before body end", (function () {
+                Buntest.test("render body-end content", (async function () {
+                        var text = await TestUtils$ResX.getContentInBody(function (renderConfig) {
+                              return Hjsx$ResX.jsx(TestUtils$ResX.Html.make, {
+                                          children: Hjsx$ResX.jsx(RenderBeforeBodyEnd$ResX.make, {
+                                                children: Hjsx$ResX.Elements.jsx("script", {
+                                                      src: "/test.js"
+                                                    }),
+                                                requestController: renderConfig.requestController
+                                              })
+                                        });
+                            });
+                        Buntest.expect(text).toBe("<!DOCTYPE html><html><head></head><body><script src=\"/test.js\"></script></body></html>");
+                      }));
+              }));
         Buntest.describe("render in head", (function () {
                 var make = async function (param) {
                   var context = Handlers$ResX.useContext(TestUtils$ResX.Handler.testHandler);
@@ -77,6 +93,21 @@ Buntest.describe("rendering", (function () {
                       }));
               }));
         Buntest.describe("hooks", (function () {
+                Buntest.test("onAfterBuildResponse can append before body end", (async function () {
+                        var response = await TestUtils$ResX.getResponse(undefined, (function (_renderConfig) {
+                                return Hjsx$ResX.jsx(TestUtils$ResX.Html.make, {
+                                            children: Hjsx$ResX.Elements.jsx("div", {
+                                                  children: "Hi!"
+                                                })
+                                          });
+                              }), undefined, undefined, (async function (config) {
+                                return RequestController$ResX.appendBeforeBodyEnd(config.requestController, Hjsx$ResX.Elements.jsx("script", {
+                                                src: "/after.js"
+                                              }));
+                              }), undefined);
+                        var text = await response.text();
+                        Buntest.expect(text).toBe("<!DOCTYPE html><html><head></head><body><div>Hi!</div><script src=\"/after.js\"></script></body></html>");
+                      }));
                 Buntest.describe("onBeforeBuildResponse can set appended header content", (function () {
                         var getResponseWithShouldAppendToHeadValue = function (shouldAppendToHead) {
                           return TestUtils$ResX.getResponse(undefined, (function (param) {
@@ -94,7 +125,7 @@ Buntest.describe("rendering", (function () {
                                                         }));
                                         }
                                         
-                                      }), undefined);
+                                      }), undefined, undefined);
                         };
                         Buntest.test("can read context to control appending to head - should append", (async function () {
                                 var response = await getResponseWithShouldAppendToHeadValue(true);
@@ -119,7 +150,7 @@ Buntest.describe("rendering", (function () {
                                             status: 400,
                                             headers: config.response.headers.toJSON()
                                           });
-                              }), undefined, undefined);
+                              }), undefined, undefined, undefined);
                         var status = response.status;
                         var text = await response.text();
                         Buntest.expect(status).toBe(400);
@@ -135,7 +166,7 @@ Buntest.describe("rendering", (function () {
                               }), (async function (config) {
                                 config.response.headers.set("x-user-id", "1");
                                 return config.response;
-                              }), undefined, undefined);
+                              }), undefined, undefined, undefined);
                         var userIdHeader = response.headers.get("x-user-id");
                         Buntest.expect((userIdHeader == null) ? undefined : Caml_option.some(userIdHeader)).toBe("1");
                       }));
@@ -158,7 +189,7 @@ Buntest.describe("rendering", (function () {
                                 renderConfig.headers.set("Content-Type", "text/csv; charset=UTF-8");
                                 renderConfig.headers.set("Content-Disposition", "attachment; filename=\"test.csv\"");
                                 return Hjsx$ResX.dangerouslyOutputUnescapedContent("Name,Description,Tags\n\"John & Jane Doe\",\"<Special> characters & symbols\",\"tag1,tag2\"\n\"Bob's Company\",\"Uses \"quotes\" & <brackets>\",\"web,tech\"\n\"Test Corp\",\"R&D Department\",\"research&development\"");
-                              }), undefined, undefined, undefined);
+                              }), undefined, undefined, undefined, undefined);
                         var contentType = response.headers.get("Content-Type");
                         var contentDisposition = response.headers.get("Content-Disposition");
                         var text = await response.text();

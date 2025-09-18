@@ -174,6 +174,13 @@ type onBeforeBuildResponse<'ctx> = {
   requestController: RequestController.t,
 }
 
+type onAfterBuildResponse<'ctx> = {
+  request: Request.t,
+  context: 'ctx,
+  responseType: responseType,
+  requestController: RequestController.t,
+}
+
 type handleRequestConfig<'ctx> = {
   request: Request.t,
   render: renderConfig<'ctx> => promise<Jsx.element>,
@@ -182,6 +189,7 @@ type handleRequestConfig<'ctx> = {
   experimental_stream?: bool,
   onBeforeSendResponse?: onBeforeSendResponse<'ctx> => promise<Response.t>,
   onBeforeBuildResponse?: onBeforeBuildResponse<'ctx> => promise<unit>,
+  onAfterBuildResponse?: onAfterBuildResponse<'ctx> => promise<unit>,
 }
 
 let handleRequest: (t<'ctx>, handleRequestConfig<'ctx>) => promise<Response.t>

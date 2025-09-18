@@ -46,10 +46,15 @@ function defaultRenderTitle(segments) {
   return segments.join(" | ");
 }
 
-async function renderWithDocType(el, requestController, renderTitleOpt) {
+async function renderWithDocType(el, requestController, renderTitleOpt, onAfterRenderOpt) {
   var renderTitle = renderTitleOpt !== undefined ? renderTitleOpt : defaultRenderTitle;
+  var onAfterRender = onAfterRenderOpt !== undefined ? onAfterRenderOpt : (async function () {
+        
+      });
   var content = await H$ResX.renderToString(el);
+  await onAfterRender();
   var appendToHead = await RequestController$ResX.getAppendedHeadContent(requestController);
+  var appendBeforeBodyEnd = await RequestController$ResX.getAppendedBeforeBodyEndContent(requestController);
   var match = RequestController$ResX.getTitleSegments(requestController);
   var appendToHead$1;
   if (match.length !== 0) {
@@ -63,7 +68,8 @@ async function renderWithDocType(el, requestController, renderTitleOpt) {
     appendToHead$1 = appendToHead;
   }
   var content$1 = appendToHead$1 !== undefined ? content.replace("</head>", appendToHead$1 + "</head>") : content;
-  return RequestController$ResX.getDocHeader(requestController) + content$1;
+  var content$2 = appendBeforeBodyEnd !== undefined ? content$1.replace("</body>", appendBeforeBodyEnd + "</body>") : content$1;
+  return RequestController$ResX.getDocHeader(requestController) + content$2;
 }
 
 var defaultHeaders = [[
@@ -72,6 +78,7 @@ var defaultHeaders = [[
   ]];
 
 async function handleRequest(t, config) {
+  var onAfterBuildResponse = config.onAfterBuildResponse;
   var onBeforeBuildResponse = config.onBeforeBuildResponse;
   var onBeforeSendResponse = config.onBeforeSendResponse;
   var render = config.render;
@@ -211,7 +218,15 @@ async function handleRequest(t, config) {
                     return response$1;
                   }
                 }
-                var content$1 = await renderWithDocType(content, requestController, config.renderTitle);
+                var onAfterRender = onAfterBuildResponse !== undefined ? (async function () {
+                      return await onAfterBuildResponse({
+                                  request: request,
+                                  context: ctx,
+                                  responseType: responseType,
+                                  requestController: requestController
+                                });
+                    }) : undefined;
+                var content$1 = await renderWithDocType(content, requestController, config.renderTitle, onAfterRender);
                 var match$3 = RequestController$ResX.getCurrentRedirect(requestController);
                 var match$4 = RequestController$ResX.getCurrentStatus(requestController);
                 var response$2 = match$3 !== undefined ? Response.redirect(match$3[0], Caml_option.option_get(match$3[1])) : new Response(content$1, {

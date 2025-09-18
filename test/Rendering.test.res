@@ -4,6 +4,26 @@ open Test
 open TestUtils
 
 describe("rendering", () => {
+  describe("render before body end", () => {
+    testAsync(
+      "render body-end content",
+      async () => {
+        let text = await getContentInBody(
+          renderConfig => {
+            <Html>
+              <RenderBeforeBodyEnd requestController=renderConfig.requestController>
+                <script src="/test.js" />
+              </RenderBeforeBodyEnd>
+            </Html>
+          },
+        )
+
+        expect(
+          text,
+        )->Expect.toBe(`<!DOCTYPE html><html><head></head><body><script src="/test.js"></script></body></html>`)
+      },
+    )
+  })
   describe("render in head", () => {
     module AsyncComponent = {
       @jsx.component
@@ -108,6 +128,28 @@ describe("rendering", () => {
   })
 
   describe("hooks", () => {
+    testAsync(
+      "onAfterBuildResponse can append before body end",
+      async () => {
+        let response = await getResponse(
+          ~getContent=_renderConfig => {
+            <Html>
+              <div> {Hjsx.string("Hi!")} </div>
+            </Html>
+          },
+          ~onAfterBuildResponse=async config => {
+            config.requestController->RequestController.appendBeforeBodyEnd(
+              <script src="/after.js" />,
+            )
+          },
+        )
+
+        let text = await response->Response.text
+        expect(
+          text,
+        )->Expect.toBe(`<!DOCTYPE html><html><head></head><body><div>Hi!</div><script src="/after.js"></script></body></html>`)
+      },
+    )
     describe(
       "onBeforeBuildResponse can set appended header content",
       () => {

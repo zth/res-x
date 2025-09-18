@@ -50,6 +50,7 @@ let getResponse = async (
   ~getContent=?,
   ~onBeforeSendResponse=?,
   ~onBeforeBuildResponse=?,
+  ~onAfterBuildResponse=?,
   ~url="/",
 ) => {
   let (port, unsubPort) = getPort()
@@ -71,6 +72,7 @@ let getResponse = async (
         },
         ?onBeforeSendResponse,
         ?onBeforeBuildResponse,
+        ?onAfterBuildResponse,
       })
     },
   })

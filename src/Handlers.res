@@ -72,9 +72,14 @@ let renderWithDocType = async (
   el,
   ~requestController: RequestController.t,
   ~renderTitle=defaultRenderTitle,
+  ~onAfterRender: unit => promise<unit>=async () => (),
 ) => {
   let content = await H.renderToString(el)
+
+  await onAfterRender()
   let appendToHead = await requestController->RequestController.getAppendedHeadContent
+  let appendBeforeBodyEnd =
+    await requestController->RequestController.getAppendedBeforeBodyEndContent
 
   let appendToHead = switch (appendToHead, requestController->RequestController.getTitleSegments) {
   | (appendToHead, []) => appendToHead
@@ -87,6 +92,12 @@ let renderWithDocType = async (
   let content = switch appendToHead {
   | None => content
   | Some(appendToHead) => content->String.replace("</head>", appendToHead ++ "</head>")
+  }
+
+  let content = switch appendBeforeBodyEnd {
+  | None => content
+  | Some(appendBeforeBodyEnd) =>
+    content->String.replace("</body>", appendBeforeBodyEnd ++ "</body>")
   }
 
   requestController->RequestController.getDocHeader ++ content
@@ -109,6 +120,13 @@ type onBeforeBuildResponse<'ctx> = {
   requestController: RequestController.t,
 }
 
+type onAfterBuildResponse<'ctx> = {
+  request: Request.t,
+  context: 'ctx,
+  responseType: responseType,
+  requestController: RequestController.t,
+}
+
 type handleRequestConfig<'ctx> = {
   request: Request.t,
   render: renderConfig<'ctx> => promise<Jsx.element>,
@@ -117,11 +135,19 @@ type handleRequestConfig<'ctx> = {
   experimental_stream?: bool,
   onBeforeSendResponse?: onBeforeSendResponse<'ctx> => promise<Response.t>,
   onBeforeBuildResponse?: onBeforeBuildResponse<'ctx> => promise<unit>,
+  onAfterBuildResponse?: onAfterBuildResponse<'ctx> => promise<unit>,
 }
 
 let handleRequest = async (
   t,
-  {request, render, ?experimental_stream, ?onBeforeSendResponse, ?onBeforeBuildResponse} as config,
+  {
+    request,
+    render,
+    ?experimental_stream,
+    ?onBeforeSendResponse,
+    ?onBeforeBuildResponse,
+    ?onAfterBuildResponse,
+  } as config,
 ) => {
   let stream = experimental_stream->Option.getOr(false)
 
@@ -269,10 +295,25 @@ let handleRequest = async (
       | None => response
       }
     } else {
+      let onAfterRender: option<unit => promise<unit>> = switch onAfterBuildResponse {
+      | Some(onAfterBuildResponse) =>
+        Some(
+          async () =>
+            await onAfterBuildResponse({
+              context: ctx,
+              request,
+              responseType,
+              requestController,
+            }),
+        )
+      | None => None
+      }
+
       let content = await renderWithDocType(
         content,
         ~requestController,
         ~renderTitle=?config.renderTitle,
+        ~onAfterRender?,
       )
       let response = switch (
         requestController->RequestController.getCurrentRedirect,

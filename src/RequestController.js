@@ -10,6 +10,7 @@ function make() {
           redirect: undefined,
           docHeader: "<!DOCTYPE html>",
           headContent: [],
+          bodyEndContent: [],
           titleSegments: []
         };
 }
@@ -50,6 +51,10 @@ function appendToHead(t, content) {
   t.headContent.push(content);
 }
 
+function appendBeforeBodyEnd(t, content) {
+  t.bodyEndContent.push(content);
+}
+
 function appendTitleSegment(t, segment) {
   t.titleSegments.push(segment);
 }
@@ -70,6 +75,14 @@ async function getAppendedHeadContent(t) {
   
 }
 
+async function getAppendedBeforeBodyEndContent(t) {
+  var bodyEndContent = t.bodyEndContent;
+  if (bodyEndContent.length !== 0) {
+    return await H$ResX.renderToString(bodyEndContent);
+  }
+  
+}
+
 exports.make = make;
 exports.setStatus = setStatus;
 exports.redirect = redirect;
@@ -79,6 +92,8 @@ exports.getTitleSegments = getTitleSegments;
 exports.getDocHeader = getDocHeader;
 exports.appendToHead = appendToHead;
 exports.getAppendedHeadContent = getAppendedHeadContent;
+exports.appendBeforeBodyEnd = appendBeforeBodyEnd;
+exports.getAppendedBeforeBodyEndContent = getAppendedBeforeBodyEndContent;
 exports.appendTitleSegment = appendTitleSegment;
 exports.prependTitleSegment = prependTitleSegment;
 exports.setFullTitle = setFullTitle;

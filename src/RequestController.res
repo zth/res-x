@@ -3,12 +3,14 @@ type t = {
   mutable redirect: option<(string, option<int>)>,
   mutable docHeader: option<string>,
   headContent: array<Jsx.element>,
+  bodyEndContent: array<Jsx.element>,
   titleSegments: array<string>,
 }
 let make = () => {
   status: 200,
   redirect: None,
   headContent: [],
+  bodyEndContent: [],
   titleSegments: [],
   docHeader: Some("<!DOCTYPE html>"),
 }
@@ -27,6 +29,7 @@ let getTitleSegments = t => t.titleSegments->Array.copy
 let getDocHeader = t => t.docHeader->Option.getOr("")
 let setDocHeader = (t, docHeader) => t.docHeader = docHeader
 let appendToHead = (t, content) => t.headContent->Array.push(content)
+let appendBeforeBodyEnd = (t, content) => t.bodyEndContent->Array.push(content)
 let appendTitleSegment = (t, segment) => t.titleSegments->Array.push(segment)
 let prependTitleSegment = (t, segment) => t.titleSegments->Array.unshift(segment)
 let setFullTitle = (t, title) =>
@@ -35,4 +38,9 @@ let getAppendedHeadContent = async (t): option<string> =>
   switch t.headContent {
   | [] => None
   | headContent => Some(await headContent->array->H.renderToString)
+  }
+let getAppendedBeforeBodyEndContent = async (t): option<string> =>
+  switch t.bodyEndContent {
+  | [] => None
+  | bodyEndContent => Some(await bodyEndContent->array->H.renderToString)
   }

@@ -1,5 +1,10 @@
 # master
 
+# 0.5.0
+
+- Add `onAfterBuildResponse` hook that runs after render but before head/body injections.
+- Add body-end append support: `RequestController.appendBeforeBodyEnd` and `RenderBeforeBodyEnd` component for content inserted before `</body>`.
+
 # 0.4.0
 
 - Expose `requestController` in `onBeforeBuildResponse` so you can do some final manipulations before the response is built.
