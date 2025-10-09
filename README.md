@@ -192,6 +192,8 @@ You can now start up the dev environment: `bun run dev`. Open up `localhost:9000
 
 There's a ton more to ResX of course, but this should get you started.
 
+> TypeScript users: See the dedicated guide in [TYPESCRIPT.md](./TYPESCRIPT.md) for JSX setup and examples.
+
 ### Routing
 
 As you noticed from the example above, there's no explicit router in ResX itself. In the future, we might ship a dedicated type safe router in the style of [rescript-relay-router](https://github.com/zth/rescript-relay-router). But for now, we'll use pattern matching!

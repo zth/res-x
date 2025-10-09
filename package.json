@@ -5,7 +5,8 @@
     "res:build": "rescript",
     "res:clean": "rescript clean",
     "res:dev": "rescript build -w",
-    "test": "bun test ./test/*.test.js"
+    "test": "bun test ./test/*.test.js",
+    "typecheck": "tsc --noEmit"
   },
   "keywords": [
     "rescript"
@@ -17,6 +18,33 @@
     "src/**/*",
     "res-x-vite-plugin.mjs"
   ],
+  "exports": {
+    "./jsx-runtime": {
+      "types": "./src/Hjsx.d.ts",
+      "import": "./src/Hjsx/jsx-runtime.js"
+    },
+    "./jsx-dev-runtime": {
+      "types": "./src/Hjsx.d.ts",
+      "import": "./src/Hjsx/jsx-dev-runtime.js"
+    },
+    "./src/Hjsx/jsx-runtime": {
+      "types": "./src/Hjsx.d.ts",
+      "import": "./src/Hjsx/jsx-runtime.js"
+    },
+    "./src/Hjsx/jsx-dev-runtime": {
+      "types": "./src/Hjsx.d.ts",
+      "import": "./src/Hjsx/jsx-dev-runtime.js"
+    },
+    "./src/*": {
+      "types": "./src/*.d.ts",
+      "import": "./src/*.js"
+    },
+    "./res-x-vite-plugin.mjs": {
+      "import": "./res-x-vite-plugin.mjs",
+      "types": "./res-x-vite-plugin.d.ts"
+    },
+    "./package.json": "./package.json"
+  },
   "author": "Gabriel Nordeborn",
   "license": "MIT",
   "peerDependencies": {
@@ -27,7 +55,10 @@
   "devDependencies": {
     "fast-glob": "^3.3.1",
     "rescript": "12.0.0-rc.3",
-    "rescript-bun": "2.1.0"
+    "rescript-bun": "2.1.0",
+    "vite": ">=4.4.11",
+    "bun-types": "^1.2.23",
+    "typescript": "^5.9.3"
   },
   "dependencies": {
     "fast-glob": "^3.3.1"
