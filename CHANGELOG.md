@@ -1,5 +1,7 @@
 # master
 
+- Fix issue with the new `CopyToClipboard` action.
+
 # 0.5.0
 
 - Add `onAfterBuildResponse` hook that runs after render but before head/body injections.

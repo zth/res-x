@@ -14,40 +14,57 @@
           var target;
           target = action.kind === "CopyToClipboard" ? null : getTarget(action.target, $$this);
           if (target === null) {
+            if (action.kind !== "CopyToClipboard") {
+              return ;
+            }
+            var onAfterFailure = action.onAfterFailure;
+            var onAfterSuccess = action.onAfterSuccess;
+            navigator.clipboard.writeText(action.text).catch(function (param) {
+                    if (onAfterFailure !== undefined) {
+                      return Promise.resolve((onAfterFailure.forEach(function (action) {
+                                        handleAction(action, $$this);
+                                      }), undefined));
+                    } else {
+                      return Promise.resolve();
+                    }
+                  }).then(function () {
+                  if (onAfterSuccess !== undefined) {
+                    onAfterSuccess.forEach(function (action) {
+                          handleAction(action, $$this);
+                        });
+                    return ;
+                  }
+                  
+                });
             return ;
           }
           switch (action.kind) {
             case "ToggleClass" :
-                return target.classList.toggle(action.className);
+                action.className.split(" ").forEach(function (className) {
+                      target.classList.toggle(className);
+                    });
+                return ;
             case "RemoveClass" :
-                return target.classList.remove(action.className);
+                action.className.split(" ").forEach(function (className) {
+                      target.classList.remove(className);
+                    });
+                return ;
             case "AddClass" :
-                return target.classList.add(action.className);
+                action.className.split(" ").forEach(function (className) {
+                      target.classList.add(className);
+                    });
+                return ;
             case "SwapClass" :
-                target.classList.remove(action.fromClassName);
-                return target.classList.add(action.toClassName);
+                action.fromClassName.split(" ").forEach(function (className) {
+                      target.classList.remove(className);
+                    });
+                action.toClassName.split(" ").forEach(function (className) {
+                      target.classList.add(className);
+                    });
+                return ;
             case "RemoveElement" :
                 return target.remove();
             case "CopyToClipboard" :
-                var onAfterFailure = action.onAfterFailure;
-                var onAfterSuccess = action.onAfterSuccess;
-                navigator.clipboard.writeText(action.text).catch(function (param) {
-                        if (onAfterFailure !== undefined) {
-                          return Promise.resolve((onAfterFailure.forEach(function (action) {
-                                            handleAction(action, $$this);
-                                          }), undefined));
-                        } else {
-                          return Promise.resolve();
-                        }
-                      }).then(function () {
-                      if (onAfterSuccess !== undefined) {
-                        onAfterSuccess.forEach(function (action) {
-                              handleAction(action, $$this);
-                            });
-                        return ;
-                      }
-                      
-                    });
                 return ;
             
           }

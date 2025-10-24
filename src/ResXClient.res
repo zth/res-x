@@ -57,16 +57,8 @@ external parseValidityMessage: string => Client.ValidityMessage.config = "JSON.p
       }
 
       switch target {
-      | Null => ()
-      | Value(target) =>
+      | Null =>
         switch action {
-        | ToggleClass({className}) => target["classList"].toggle(className)
-        | RemoveClass({className}) => target["classList"].remove(className)
-        | AddClass({className}) => target["classList"].add(className)
-        | SwapClass({fromClassName, toClassName}) =>
-          target["classList"].remove(fromClassName)
-          target["classList"].add(toClassName)
-        | RemoveElement(_) => target["remove"]()
         | CopyToClipboard({text, ?onAfterFailure, ?onAfterSuccess}) =>
           navigator["clipboard"]["writeText"](text)
           ->catchPromise(_ =>
@@ -83,6 +75,32 @@ external parseValidityMessage: string => Client.ValidityMessage.config = "JSON.p
             }
           )
           ->Promise.done
+        | AddClass(_) | RemoveClass(_) | RemoveElement(_) | SwapClass(_) | ToggleClass(_) => ()
+        }
+      | Value(target) =>
+        switch action {
+        | ToggleClass({className}) =>
+          className
+          ->String.split(" ")
+          ->Array.forEach(className => target["classList"].toggle(className))
+        | RemoveClass({className}) =>
+          className
+          ->String.split(" ")
+          ->Array.forEach(className => target["classList"].remove(className))
+        | AddClass({className}) =>
+          className
+          ->String.split(" ")
+          ->Array.forEach(className => target["classList"].add(className))
+        | SwapClass({fromClassName, toClassName}) =>
+          fromClassName
+          ->String.split(" ")
+          ->Array.forEach(className => target["classList"].remove(className))
+
+          toClassName
+          ->String.split(" ")
+          ->Array.forEach(className => target["classList"].add(className))
+        | RemoveElement(_) => target["remove"]()
+        | CopyToClipboard(_) => ()
         }
       }
     }
