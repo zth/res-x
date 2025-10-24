@@ -1,5 +1,7 @@
 # master
 
+# 0.5.1
+
 - Fix issue with the new `CopyToClipboard` action.
 
 # 0.5.0
