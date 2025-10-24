@@ -10,29 +10,54 @@
             return document.querySelector(target.selector);
           }
         };
+        var handleAction = function (action, $$this) {
+          var target;
+          target = action.kind === "CopyToClipboard" ? null : getTarget(action.target, $$this);
+          if (target === null) {
+            return ;
+          }
+          switch (action.kind) {
+            case "ToggleClass" :
+                return target.classList.toggle(action.className);
+            case "RemoveClass" :
+                return target.classList.remove(action.className);
+            case "AddClass" :
+                return target.classList.add(action.className);
+            case "SwapClass" :
+                target.classList.remove(action.fromClassName);
+                return target.classList.add(action.toClassName);
+            case "RemoveElement" :
+                return target.remove();
+            case "CopyToClipboard" :
+                var onAfterFailure = action.onAfterFailure;
+                var onAfterSuccess = action.onAfterSuccess;
+                navigator.clipboard.writeText(action.text).catch(function (param) {
+                        if (onAfterFailure !== undefined) {
+                          return Promise.resolve((onAfterFailure.forEach(function (action) {
+                                            handleAction(action, $$this);
+                                          }), undefined));
+                        } else {
+                          return Promise.resolve();
+                        }
+                      }).then(function () {
+                      if (onAfterSuccess !== undefined) {
+                        onAfterSuccess.forEach(function (action) {
+                              handleAction(action, $$this);
+                            });
+                        return ;
+                      }
+                      
+                    });
+                return ;
+            
+          }
+        };
         document.addEventListener("click", (function ($$event) {
                 var $$this = $$event.target;
                 var match = $$this.attributes["resx-onclick"];
                 var actions = match !== undefined ? JSON.parse(match.value) : [];
                 actions.forEach(function (action) {
-                      var target = getTarget(action.target, $$this);
-                      if (target === null) {
-                        return ;
-                      }
-                      switch (action.kind) {
-                        case "ToggleClass" :
-                            return target.classList.toggle(action.className);
-                        case "RemoveClass" :
-                            return target.classList.remove(action.className);
-                        case "AddClass" :
-                            return target.classList.add(action.className);
-                        case "SwapClass" :
-                            target.classList.remove(action.fromClassName);
-                            return target.classList.add(action.toClassName);
-                        case "RemoveElement" :
-                            return target.remove();
-                        
-                      }
+                      handleAction(action, $$this);
                     });
               }));
         document.addEventListener("invalid", (function ($$event) {

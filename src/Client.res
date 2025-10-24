@@ -5,12 +5,17 @@ module Actions: {
   type target = This | CssSelector({selector: string})
 
   @tag("kind")
-  type action =
+  type rec action =
     | ToggleClass({target: target, className: string})
     | RemoveClass({target: target, className: string})
     | AddClass({target: target, className: string})
     | SwapClass({target: target, fromClassName: string, toClassName: string})
     | RemoveElement({target: target})
+    | CopyToClipboard({
+        text: string,
+        onAfterSuccess?: array<action>,
+        onAfterFailure?: array<action>,
+      })
 
   let make: array<action> => t
 } = {
@@ -20,12 +25,17 @@ module Actions: {
   type target = This | CssSelector({selector: string})
 
   @tag("kind")
-  type action =
+  type rec action =
     | ToggleClass({target: target, className: string})
     | RemoveClass({target: target, className: string})
     | AddClass({target: target, className: string})
     | SwapClass({target: target, fromClassName: string, toClassName: string})
     | RemoveElement({target: target})
+    | CopyToClipboard({
+        text: string,
+        onAfterSuccess?: array<action>,
+        onAfterFailure?: array<action>,
+      })
 
   external stringifyActions: array<action> => string = "JSON.stringify"
 

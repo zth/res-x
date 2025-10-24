@@ -2,6 +2,10 @@
 external addEventListener: (Dom.document, string, 'event => unit, ~capturePhase: bool=?) => unit =
   "addEventListener"
 external document: Dom.document = "document"
+external navigator: 'navigator = "navigator"
+
+@send
+external catchPromise: (promise<'a>, 'e => promise<'a>) => promise<'a> = "catch"
 
 external querySelector: string => Null.t<'element> = "document.querySelector"
 
@@ -41,7 +45,7 @@ external parseValidityMessage: string => Client.ValidityMessage.config = "JSON.p
       }
     }
 
-    let handleAction = (action: Client.Actions.action, this) => {
+    let rec handleAction = (action: Client.Actions.action, this) => {
       let target = switch action {
       | ToggleClass({target})
       | RemoveClass({target})
@@ -49,6 +53,7 @@ external parseValidityMessage: string => Client.ValidityMessage.config = "JSON.p
       | SwapClass({target})
       | RemoveElement({target}) =>
         getTarget(target, this)
+      | CopyToClipboard(_) => Null
       }
 
       switch target {
@@ -62,6 +67,22 @@ external parseValidityMessage: string => Client.ValidityMessage.config = "JSON.p
           target["classList"].remove(fromClassName)
           target["classList"].add(toClassName)
         | RemoveElement(_) => target["remove"]()
+        | CopyToClipboard({text, ?onAfterFailure, ?onAfterSuccess}) =>
+          navigator["clipboard"]["writeText"](text)
+          ->catchPromise(_ =>
+            switch onAfterFailure {
+            | None => Promise.resolve()
+            | Some(actions) =>
+              actions->Array.forEach(action => handleAction(action, this))->Promise.resolve
+            }
+          )
+          ->Promise.thenResolve(_ =>
+            switch onAfterSuccess {
+            | None => ()
+            | Some(actions) => actions->Array.forEach(action => handleAction(action, this))
+            }
+          )
+          ->Promise.done
         }
       }
     }
