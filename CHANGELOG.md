@@ -1,5 +1,7 @@
 # master
 
+# 0.5.0
+
 - Add `onAfterBuildResponse` hook that runs after render but before head/body injections.
 - Add body-end append support: `RequestController.appendBeforeBodyEnd` and `RenderBeforeBodyEnd` component for content inserted before `</body>`.
 - Add `CopyToClipboard` action to `ResXClient`, for simple copying of text to the clipboard.
