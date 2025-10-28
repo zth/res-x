@@ -78,8 +78,7 @@ let renderWithDocType = async (
 
   await onAfterRender()
   let appendToHead = await requestController->RequestController.getAppendedHeadContent
-  let appendBeforeBodyEnd =
-    await requestController->RequestController.getAppendedBeforeBodyEndContent
+  let appendBeforeBodyEnd = await requestController->RequestController.getAppendedBeforeBodyEndContent
 
   let appendToHead = switch (appendToHead, requestController->RequestController.getTitleSegments) {
   | (appendToHead, []) => appendToHead
@@ -239,7 +238,7 @@ let handleRequest = async (
     }
 
     if isFormAction {
-      let (securityPolicyHandler, formActionHandler) = targetFormActionHandler->Option.getExn
+      let (securityPolicyHandler, formActionHandler) = targetFormActionHandler->Option.getOrThrow
       let response = switch await securityPolicyHandler({request, context: ctx}) {
       | Allow => await formActionHandler({context: ctx, request})
       | Block({message, code}) =>
@@ -269,12 +268,12 @@ let handleRequest = async (
 
       H.renderToStream(content, ~onChunk=chunk => {
         let encoded = textEncoder->TextEncoder.encode(chunk)
-        writer->WritableStream.WritableStreamDefaultWriter.write(encoded)->Promise.done
+        writer->WritableStream.WritableStreamDefaultWriter.write(encoded)->Promise.ignore
       })
       ->Promise.thenResolve(_ => {
         writer->WritableStream.WritableStreamDefaultWriter.close
       })
-      ->Promise.done
+      ->Promise.ignore
 
       let response = Response.makeFromReadableStream(
         readable,

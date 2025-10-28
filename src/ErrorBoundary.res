@@ -4,7 +4,7 @@
 external createContext: ('context, @as("errorBoundary") _) => H.Context.t<'context> =
   "createContext"
 
-type errorFn = Exn.t => Jsx.element
+type errorFn = JsExn.t => Jsx.element
 
 let context = createContext(None)
 

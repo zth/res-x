@@ -107,15 +107,12 @@ module Headers: {
 }
 
 type hxSyncStrategyQueueModifier =
-  | /** queue the first request to show up while a request is in flight */
-  @as("first")
-  First
-  | /** queue the last request to show up while a request is in flight */
-  @as("last")
-  Last
-  | /** queue all requests that show up while a request is in flight */
-  @as("all")
-  All
+  /** queue the first request to show up while a request is in flight */
+  | @as("first") First
+  /** queue the last request to show up while a request is in flight */
+  | @as("last") Last
+  /** queue all requests that show up while a request is in flight */
+  | @as("all") All
 
 type hxSyncStrategy =
   Drop | Abort | Replace | Queue | QueueWithModifier(hxSyncStrategyQueueModifier)
@@ -146,12 +143,14 @@ module Sync = {
 }
 
 type hxVals =
-  | /** A JSON value. */ Json(Js.Json.t)
-  | /** Raw string. This needs to be valid, parseable JSON. */ JsonUnsafe(string)
-  | /** WARNING: This might introduce security issues. Avoid unless really needed.
+  /** A JSON value. */
+  | Json(JSON.t)
+  /** Raw string. This needs to be valid, parseable JSON. */
+  | JsonUnsafe(string)
+  /** WARNING: This might introduce security issues. Avoid unless really needed.
   
   Stringified JS that will be evaluated. */
-  RawJavaScript(string)
+  | RawJavaScript(string)
 
 module Vals = {
   type t = string

@@ -1,5 +1,9 @@
 # master
 
+# 1.0.0
+
+- Move fully to ReScript v12.
+
 # 0.5.1
 
 - Fix issue with the new `CopyToClipboard` action.

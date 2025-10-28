@@ -1,11 +1,11 @@
 {
   "name": "rescript-x",
-  "version": "0.5.1",
+  "version": "1.0.0",
   "scripts": {
     "res:build": "rescript",
     "res:clean": "rescript clean",
     "res:dev": "rescript build -w",
-    "test": "bun test test/*.test.js"
+    "test": "bun test ./test/*.test.js"
   },
   "keywords": [
     "rescript"
@@ -20,16 +20,14 @@
   "author": "Gabriel Nordeborn",
   "license": "MIT",
   "peerDependencies": {
-    "rescript": ">=11.1.0",
-    "@rescript/core": ">=1.0.0",
+    "rescript": ">=12.0.0-0 <13.0.0",
     "vite": ">=4.4.11",
-    "rescript-bun": ">=0.4.1"
+    "rescript-bun": ">=2.0.0"
   },
   "devDependencies": {
-    "@rescript/core": "1.6.0",
     "fast-glob": "^3.3.1",
-    "rescript": "11.1.4",
-    "rescript-bun": "0.5.0"
+    "rescript": "12.0.0-rc.3",
+    "rescript-bun": "2.0.3"
   },
   "dependencies": {
     "fast-glob": "^3.3.1"

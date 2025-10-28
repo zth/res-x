@@ -2,9 +2,9 @@
 'use strict';
 
 
-var H;
+let H;
 
-var Hjsx;
+let Hjsx;
 
 exports.H = H;
 exports.Hjsx = Hjsx;

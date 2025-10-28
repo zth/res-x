@@ -36,7 +36,7 @@ let run = async (server: Server.t, ~urls: array<string>) => {
 
         structure->Array.push("dist")
 
-        let dirStructure = structure->Array.sliceToEnd(~start=sliceStart)->Array.toReversed
+        let dirStructure = structure->Array.slice(~start=sliceStart)->Array.toReversed
 
         switch dirStructure {
         | [] => ()

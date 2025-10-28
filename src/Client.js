@@ -6,7 +6,7 @@ function make(actions) {
   return JSON.stringify(actions);
 }
 
-var Actions = {
+let Actions = {
   make: make
 };
 
@@ -14,7 +14,7 @@ function make$1(config) {
   return JSON.stringify(config);
 }
 
-var ValidityMessage = {
+let ValidityMessage = {
   make: make$1
 };
 

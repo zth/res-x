@@ -30,7 +30,7 @@ module Elements = {
   type method = POST | GET
 
   type props = {
-    children?: JsxU.element,
+    children?: Jsx.element,
     /* accessibility */
     /* https://www.w3.org/TR/wai-aria-1.1/ */
     /* https://accessibilityresources.org/<aria-tag> is a great resource for these */
@@ -203,7 +203,7 @@ module Elements = {
     kind?: string /* has a fixed set of possible values */,
     label?: string,
     list?: string,
-    loading?: [#"lazy" | #eager],
+    loading?: [#lazy | #eager],
     loop?: bool,
     low?: int,
     manifest?: string /* uri */,

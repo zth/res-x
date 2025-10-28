@@ -62,19 +62,16 @@ module Indicator: {
 
 module Headers: {
   type t
-  let make: RescriptCore.Dict.t<string> => t
+  let make: dict<string> => t
 }
 
 type hxSyncStrategyQueueModifier =
-  | /** queue the first request to show up while a request is in flight */
-  @as("first")
-  First
-  | /** queue the last request to show up while a request is in flight */
-  @as("last")
-  Last
-  | /** queue all requests that show up while a request is in flight */
-  @as("all")
-  All
+  /** queue the first request to show up while a request is in flight */
+  | @as("first") First
+  /** queue the last request to show up while a request is in flight */
+  | @as("last") Last
+  /** queue all requests that show up while a request is in flight */
+  | @as("all") All
 
 type hxSyncStrategy =
   | Drop
@@ -90,7 +87,7 @@ module Sync: {
   let make: hxSync => t
 }
 
-type hxVals = Json(Js.Json.t) | JsonUnsafe(string) | RawJavaScript(string)
+type hxVals = Json(JSON.t) | JsonUnsafe(string) | RawJavaScript(string)
 
 module Vals: {
   type t

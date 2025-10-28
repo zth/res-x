@@ -39,8 +39,8 @@ let serveStaticFile = async request => {
       ->Array.map(f => {
         (
           switch isDev {
-          | true if f->String.startsWith("public/") => f->String.sliceToEnd(~start=7)
-          | false if f->String.startsWith("dist/") => f->String.sliceToEnd(~start=5)
+          | true if f->String.startsWith("public/") => f->String.slice(~start=7)
+          | false if f->String.startsWith("dist/") => f->String.slice(~start=5)
           | _ => f
           },
           f,

@@ -1,7 +1,6 @@
 {
   "jsx": {
-    "mode": "automatic",
-    "module": "react",
+    "module": "Hjsx",
     "version": 4
   },
   "namespace": "res-x",
@@ -21,10 +20,6 @@
     "in-source": true
   },
   "suffix": ".js",
-  "bs-dependencies": ["@rescript/core", "rescript-bun"],
-  "bsc-flags": [
-    "-open RescriptCore",
-    "-open RescriptBun",
-    "-open RescriptBun.Globals"
-  ]
+  "dependencies": ["rescript-bun"],
+  "compiler-flags": ["-open RescriptBun", "-open RescriptBun.Globals"]
 }

@@ -2,8 +2,7 @@
 external renderToString: Jsx.element => promise<string> = "render"
 
 /** Renders a subtree to content. Throws if the subtree is asynchronous. */
-@module("./vendor/hyperons.js")
-@raises(Js.Exn.t)
+@module("./vendor/hyperons.js") @raises(Js.Exn.t)
 external renderSyncToString: Jsx.element => string = "renderSync"
 
 @module("./vendor/hyperons.js")
