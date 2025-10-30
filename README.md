@@ -430,6 +430,100 @@ A security policy is a function that takes the request and context, and returns 
 
 When a request is blocked by a security policy, a response is returned with (optionally) the status code and message provided by the security policy function.
 
+### CSRF protection
+
+ResX has built‑in CSRF support for both HTMX handlers and regular form actions using Bun.CSRF.
+
+- Per‑route: enable with `~csrfCheck=true` on any `hx` or `formAction`.
+- Global default: enable for all routes via `Handlers.make(~options={defaultCsrfCheck: true})`.
+- Token verification happens before `securityPolicy` when enabled.
+
+Accepted token locations:
+
+- HTTP header: `X-CSRF-Token: <token>`
+- Form field: a hidden input named `resx_csrf_token` (rendered via a helper component below)
+
+Generate + include token in forms:
+
+```rescript
+// Render this inside your form to include a CSRF token field automatically
+@jsx.component
+let make = () => {
+  <form>
+    <ResX.CSRFToken />
+    {/* ...other inputs... */}
+  </form>
+}
+```
+
+Enable CSRF per route:
+
+```rescript
+// HTMX handler with CSRF enabled
+let onForm = Handler.handler->ResX.Handlers.hxPost(
+  "/submit",
+  ~securityPolicy=ResX.SecurityPolicy.allow,
+  ~csrfCheck=true,
+  ~handler=async ({request}) => {
+    // ...
+    Hjsx.string("ok")
+  },
+)
+
+// Form action with CSRF enabled
+let onSubmit = Handler.handler->ResX.Handlers.formAction(
+  "/submit-form",
+  ~securityPolicy=ResX.SecurityPolicy.allow,
+  ~csrfCheck=true,
+  ~handler=async _ => Response.make("ok"),
+)
+```
+
+Set a global default for all handlers:
+
+```rescript
+let handler = ResX.Handlers.make(
+  ~requestToContext=async _ => {userId: None},
+  ~options={defaultCsrfCheck: ForAllMethods(true)},
+)
+```
+
+Per‑method defaults:
+
+```rescript
+let handler = ResX.Handlers.make(
+  ~requestToContext=async _ => {userId: None},
+  ~options={
+    defaultCsrfCheck: PerMethod({
+      get: false,
+      post: true,
+      put: true,
+      patch: true,
+      delete: true,
+    })
+  },
+)
+```
+
+Custom secret (recommended in production):
+
+- By default, Bun keeps an in‑memory secret per process for CSRF tokens. In multi‑instance setups or during rolling deploys, you should configure a shared secret so tokens minted on one instance verify on another.
+- Set `RESX_CSRF_SECRET` in your environment to a stable value. ResX will generate and verify tokens using that secret via `Bun.CSRF`.
+
+Manual helpers (advanced):
+
+```rescript
+// Extract token
+let tokOpt = await ResX.CSRF.getTokenFromRequest(request)
+
+// Verify request (uses RESX_CSRF_SECRET if set)
+let ok = await ResX.CSRF.verifyRequest(request)
+
+// Access constants & generator
+let name = ResX.CSRF.tokenInputName // "resx_csrf_token"
+let token = ResX.CSRF.generateToken()
+```
+
 ### Regular form actions
 
 Sometimes you don't need a full blown HTMX handler for handling a form action. Maybe all you want to do is redirect, or something else where you want full control over what response you return.

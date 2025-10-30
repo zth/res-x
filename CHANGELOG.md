@@ -1,5 +1,7 @@
 # master
 
+- First class CSRF protection with `Bun.CSRF` tokens.
+
 # 1.0.0
 
 - Move fully to ReScript v12.

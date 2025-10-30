@@ -22,6 +22,21 @@ type formActionConfig<'ctx> = {
 type htmxHandler<'ctx> = htmxHandlerConfig<'ctx> => promise<Jsx.element>
 type formActionHandler<'ctx> = formActionConfig<'ctx> => promise<Response.t>
 
+type htmxRegistration<'ctx> = {
+  method: method,
+  path: string,
+  securityPolicyHandler: SecurityPolicy.handler<'ctx>,
+  csrfCheckOpt: option<bool>,
+  handler: htmxHandler<'ctx>,
+}
+
+type formActionRegistration<'ctx> = {
+  path: string,
+  securityPolicyHandler: SecurityPolicy.handler<'ctx>,
+  csrfCheckOpt: option<bool>,
+  handler: formActionHandler<'ctx>,
+}
+
 type renderConfig<'ctx> = {
   request: Request.t,
   headers: Headers.t,
@@ -31,13 +46,24 @@ type renderConfig<'ctx> = {
   requestController: RequestController.t,
 }
 
+type defaultCsrfCheck =
+  | ForAllMethods(bool)
+  | PerMethod({
+      get: option<bool>,
+      post: option<bool>,
+      put: option<bool>,
+      patch: option<bool>,
+      delete: option<bool>,
+    })
+
 type t<'ctx> = {
-  htmxHandlers: array<(method, string, SecurityPolicy.handler<'ctx>, htmxHandler<'ctx>)>,
-  formActionHandlers: array<(string, SecurityPolicy.handler<'ctx>, formActionHandler<'ctx>)>,
+  htmxHandlers: array<htmxRegistration<'ctx>>,
+  formActionHandlers: array<formActionRegistration<'ctx>>,
   requestToContext: Request.t => promise<'ctx>,
   asyncLocalStorage: AsyncHooks.AsyncLocalStorage.t<renderConfig<'ctx>>,
   htmxApiPrefix: string,
   formActionHandlerApiPrefix: string,
+  defaultCsrfCheck: defaultCsrfCheck,
 }
 
 type hxGet = string
@@ -46,7 +72,11 @@ type hxPut = string
 type hxPatch = string
 type hxDelete = string
 
-type options = {htmxApiPrefix?: string, formActionHandlerApiPrefix?: string}
+type options = {
+  htmxApiPrefix?: string,
+  formActionHandlerApiPrefix?: string,
+  defaultCsrfCheck?: defaultCsrfCheck,
+}
 
 let make = (~requestToContext, ~options=?) => {
   htmxHandlers: [],
@@ -59,7 +89,24 @@ let make = (~requestToContext, ~options=?) => {
   formActionHandlerApiPrefix: options
   ->Option.flatMap(options => options.formActionHandlerApiPrefix)
   ->Option.getOr("/_form"),
+  defaultCsrfCheck: options
+  ->Option.flatMap(options => options.defaultCsrfCheck)
+  ->Option.getOr(ForAllMethods(false)),
 }
+
+let isCsrfEnabledFor = (t: t<_>, m: method) =>
+  switch t.defaultCsrfCheck {
+  | ForAllMethods(v) => v
+  | PerMethod({get, post, put, patch, delete}) =>
+    switch m {
+    | GET => get->Option.getOr(false)
+    | POST => post->Option.getOr(false)
+    | PUT => put->Option.getOr(false)
+    | PATCH => patch->Option.getOr(false)
+    | DELETE => delete->Option.getOr(false)
+    | _ => false
+    }
+  }
 
 let useContext = t => t.asyncLocalStorage->AsyncHooks.AsyncLocalStorage.getStoreUnsafe
 
@@ -154,25 +201,16 @@ let handleRequest = async (
   let pathname = url->URL.pathname
 
   // TODO: Can optimize when this runs
-  let targetFormActionHandler = t.formActionHandlers->Array.findMap(((
-    path,
-    securityPolicyHandler,
-    handler,
-  )) =>
+  let targetFormActionHandler = t.formActionHandlers->Array.findMap(reg =>
     switch request->Request.method {
-    | POST | GET if path === pathname => Some((securityPolicyHandler, handler))
+    | POST | GET if reg.path === pathname => Some(reg)
     | _ => None
     }
   )
 
-  let targetHtmxHandler = t.htmxHandlers->Array.findMap(((
-    handlerType,
-    path,
-    securityPolicyHandler,
-    handler,
-  )) =>
-    if handlerType === request->Request.method && path === pathname {
-      Some((securityPolicyHandler, handler))
+  let targetHtmxHandler = t.htmxHandlers->Array.findMap(reg =>
+    if reg.method === request->Request.method && reg.path === pathname {
+      Some(reg)
     } else {
       None
     }
@@ -203,19 +241,29 @@ let handleRequest = async (
     let content = switch (targetFormActionHandler, targetHtmxHandler) {
     | (Some(_), _) => null
     | (None, None) => await render(renderConfig)
-    | (None, Some((securityPolicyHandler, handler))) =>
-      let securityPolicy = await securityPolicyHandler({request, context: ctx})
-      switch securityPolicy {
-      | Allow =>
-        await handler({
-          request,
-          context: ctx,
-          headers,
-          requestController,
-        })
-      | Block({message, code}) =>
-        requestController->RequestController.setStatus(code->Option.getOr(403))
-        string(message->Option.getOr("Not Allowed."))
+    | (None, Some(reg)) =>
+      let csrfEnabled = reg.csrfCheckOpt->Option.getOr(t->isCsrfEnabledFor(reg.method))
+      let csrfOk = switch csrfEnabled {
+      | true => await CSRF.verifyRequest(request)
+      | false => true
+      }
+      if !csrfOk {
+        requestController->RequestController.setStatus(403)
+        string("Invalid CSRF token.")
+      } else {
+        let securityPolicy = await reg.securityPolicyHandler({request, context: ctx})
+        switch securityPolicy {
+        | Allow =>
+          await reg.handler({
+            request,
+            context: ctx,
+            headers,
+            requestController,
+          })
+        | Block({message, code}) =>
+          requestController->RequestController.setStatus(code->Option.getOr(403))
+          string(message->Option.getOr("Not Allowed."))
+        }
       }
     }
 
@@ -238,14 +286,23 @@ let handleRequest = async (
     }
 
     if isFormAction {
-      let (securityPolicyHandler, formActionHandler) = targetFormActionHandler->Option.getOrThrow
-      let response = switch await securityPolicyHandler({request, context: ctx}) {
-      | Allow => await formActionHandler({context: ctx, request})
-      | Block({message, code}) =>
-        Response.make(
-          message->Option.getOr("Not Allowed."),
-          ~options={status: code->Option.getOr(403)},
-        )
+      let reg = targetFormActionHandler->Option.getOrThrow
+      let csrfEnabled = reg.csrfCheckOpt->Option.getOr(t->isCsrfEnabledFor(request->Request.method))
+      let csrfOk = switch csrfEnabled {
+      | true => await CSRF.verifyRequest(request)
+      | false => true
+      }
+      let response = if !csrfOk {
+        Response.make("Invalid CSRF token.", ~options={status: 403})
+      } else {
+        switch await reg.securityPolicyHandler({request, context: ctx}) {
+        | Allow => await reg.handler({context: ctx, request})
+        | Block({message, code}) =>
+          Response.make(
+            message->Option.getOr("Not Allowed."),
+            ~options={status: code->Option.getOr(403)},
+          )
+        }
       }
       switch onBeforeSendResponse {
       | Some(onBeforeSendResponse) =>
@@ -330,9 +387,14 @@ let handleRequest = async (
   })
 }
 
-let formAction = (t: t<_>, path, ~securityPolicy, ~handler) => {
+let formAction = (t: t<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) => {
   let path = t.formActionHandlerApiPrefix ++ path
-  t.formActionHandlers->Array.push((path, securityPolicy, handler))
+  t.formActionHandlers->Array.push({
+    path,
+    securityPolicyHandler: securityPolicy,
+    csrfCheckOpt: csrfCheck,
+    handler,
+  })
   path
 }
 
@@ -340,71 +402,132 @@ let getHtmxPath = (t: t<_>, path) => {
   t.htmxApiPrefix ++ path
 }
 
-let hxGet = (t: t<_>, path, ~securityPolicy, ~handler) => {
+let hxGet = (t: t<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) => {
   let path = t.htmxApiPrefix ++ path
-  t.htmxHandlers->Array.push((GET, path, securityPolicy, handler))
+  t.htmxHandlers->Array.push({
+    method: GET,
+    path,
+    securityPolicyHandler: securityPolicy,
+    csrfCheckOpt: csrfCheck,
+    handler,
+  })
   path
 }
 let hxGetRef = (t: t<_>, path) => {
   t->getHtmxPath(path)
 }
-let hxGetDefine = (t, path, ~securityPolicy, ~handler) => {
-  t.htmxHandlers->Array.push((GET, path, securityPolicy, handler))
+let hxGetDefine = (t: t<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) => {
+  t.htmxHandlers->Array.push({
+    method: GET,
+    path,
+    securityPolicyHandler: securityPolicy,
+    csrfCheckOpt: csrfCheck,
+    handler,
+  })
 }
 let hxGetToEndpointURL = s => s
 
-let hxPost = (t: t<_>, path, ~securityPolicy, ~handler) => {
+let hxPost = (t: t<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) => {
   let path = t->getHtmxPath(path)
-  t.htmxHandlers->Array.push((POST, path, securityPolicy, handler))
+  t.htmxHandlers->Array.push({
+    method: POST,
+    path,
+    securityPolicyHandler: securityPolicy,
+    csrfCheckOpt: csrfCheck,
+    handler,
+  })
   path
 }
 let hxPostRef = (t: t<_>, path) => {
   t->getHtmxPath(path)
 }
-let hxPostDefine = (t, path, ~securityPolicy, ~handler) => {
-  t.htmxHandlers->Array.push((POST, path, securityPolicy, handler))
+let hxPostDefine = (t: t<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) => {
+  t.htmxHandlers->Array.push({
+    method: POST,
+    path,
+    securityPolicyHandler: securityPolicy,
+    csrfCheckOpt: csrfCheck,
+    handler,
+  })
 }
 let hxPostToEndpointURL = s => s
 
-let hxPut = (t: t<_>, path, ~securityPolicy, ~handler) => {
+let hxPut = (t: t<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) => {
   let path = t->getHtmxPath(path)
-  t.htmxHandlers->Array.push((PUT, path, securityPolicy, handler))
+  t.htmxHandlers->Array.push({
+    method: PUT,
+    path,
+    securityPolicyHandler: securityPolicy,
+    csrfCheckOpt: csrfCheck,
+    handler,
+  })
   path
 }
 let hxPutRef = (t: t<_>, path) => {
   t->getHtmxPath(path)
 }
-let hxPutDefine = (t, path, ~securityPolicy, ~handler) => {
-  t.htmxHandlers->Array.push((PUT, path, securityPolicy, handler))
+let hxPutDefine = (t: t<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) => {
+  t.htmxHandlers->Array.push({
+    method: PUT,
+    path,
+    securityPolicyHandler: securityPolicy,
+    csrfCheckOpt: csrfCheck,
+    handler,
+  })
 }
 let hxPutToEndpointURL = s => s
 
-let hxDelete = (t: t<_>, path, ~securityPolicy, ~handler) => {
+let hxDelete = (t: t<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) => {
   let path = t->getHtmxPath(path)
-  t.htmxHandlers->Array.push((DELETE, path, securityPolicy, handler))
+  t.htmxHandlers->Array.push({
+    method: DELETE,
+    path,
+    securityPolicyHandler: securityPolicy,
+    csrfCheckOpt: csrfCheck,
+    handler,
+  })
   path
 }
 let hxDeleteRef = (t: t<_>, path) => {
   t->getHtmxPath(path)
 }
-let hxDeleteDefine = (t, path, ~securityPolicy, ~handler) => {
-  t.htmxHandlers->Array.push((DELETE, path, securityPolicy, handler))
+let hxDeleteDefine = (t: t<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) => {
+  t.htmxHandlers->Array.push({
+    method: DELETE,
+    path,
+    securityPolicyHandler: securityPolicy,
+    csrfCheckOpt: csrfCheck,
+    handler,
+  })
 }
 let hxDeleteToEndpointURL = s => s
 
-let hxPatch = (t: t<_>, path, ~securityPolicy, ~handler) => {
+let hxPatch = (t: t<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) => {
   let path = t->getHtmxPath(path)
-  t.htmxHandlers->Array.push((PATCH, path, securityPolicy, handler))
+  t.htmxHandlers->Array.push({
+    method: PATCH,
+    path,
+    securityPolicyHandler: securityPolicy,
+    csrfCheckOpt: csrfCheck,
+    handler,
+  })
   path
 }
 let hxPatchRef = (t: t<_>, path) => {
   t->getHtmxPath(path)
 }
-let hxPatchDefine = (t, path, ~securityPolicy, ~handler) => {
-  t.htmxHandlers->Array.push((PATCH, path, securityPolicy, handler))
+let hxPatchDefine = (t: t<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) => {
+  t.htmxHandlers->Array.push({
+    method: PATCH,
+    path,
+    securityPolicyHandler: securityPolicy,
+    csrfCheckOpt: csrfCheck,
+    handler,
+  })
 }
 let hxPatchToEndpointURL = s => s
 
 module Internal = {
+  type htmxRegistration<'ctx> = htmxRegistration<'ctx>
   let getHandlers = t => t.htmxHandlers
 }

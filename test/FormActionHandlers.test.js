@@ -8,7 +8,7 @@ let SecurityPolicy$ResX = require("../src/SecurityPolicy.js");
 
 Buntest.describe("Form action handlers", () => {
   Buntest.test("prefixing of form action handler routes work", async () => {
-    Handlers$ResX.formAction(TestUtils$ResX.Handler.testHandler, "/test", SecurityPolicy$ResX.allow, async param => new Response("Test!"));
+    Handlers$ResX.formAction(TestUtils$ResX.Handler.testHandler, "/test", SecurityPolicy$ResX.allow, async param => new Response("Test!"), undefined);
     let response = await TestUtils$ResX.getResponse(undefined, param => "nope", undefined, undefined, undefined, "/_form/test");
     let text = await response.text();
     Buntest.expect(text).toBe(`Test!`);

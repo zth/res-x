@@ -28,6 +28,16 @@ type hxPut
 type hxPatch
 type hxDelete
 
+type defaultCsrfCheck =
+  | ForAllMethods(bool)
+  | PerMethod({
+      get: option<bool>,
+      post: option<bool>,
+      put: option<bool>,
+      patch: option<bool>,
+      delete: option<bool>,
+    })
+
 type options = {
   /** 
    Prefix for the API routes of any HTMX handlers. 
@@ -40,9 +50,16 @@ type options = {
    Prefix for the API routes of any form action handlers. 
    This is opaque to your code, and serves as a guard against accidentally overwriting other routes with your handlers.
 
-   @default "/_form"
+  @default "/_form"
    */
   formActionHandlerApiPrefix?: string,
+  /**
+   Default CSRF checking for handlers. Either one boolean for all methods
+   or per-method configuration. Can be overridden per handler via `~csrfCheck`.
+
+   @default ForAllMethods(false)
+   */
+  defaultCsrfCheck?: defaultCsrfCheck,
 }
 
 let make: (~requestToContext: Request.t => promise<'ctx>, ~options: options=?) => t<'ctx>
@@ -65,6 +82,7 @@ let formAction: (
   string,
   ~securityPolicy: SecurityPolicy.handler<'ctx>,
   ~handler: formActionHandler<'ctx>,
+  ~csrfCheck: bool=?,
 ) => FormAction.t
 
 let hxGet: (
@@ -72,6 +90,7 @@ let hxGet: (
   string,
   ~securityPolicy: SecurityPolicy.handler<'ctx>,
   ~handler: htmxHandler<'ctx>,
+  ~csrfCheck: bool=?,
 ) => hxGet
 let hxGetRef: (t<_>, string) => hxGet
 let hxGetDefine: (
@@ -79,6 +98,7 @@ let hxGetDefine: (
   hxGet,
   ~securityPolicy: SecurityPolicy.handler<'ctx>,
   ~handler: htmxHandler<'ctx>,
+  ~csrfCheck: bool=?,
 ) => unit
 /** Returns the actual endpoint URL string for this hxGet handler. Most of the time you should pass the hxGet directly to HTMX attributes instead of using this. */
 let hxGetToEndpointURL: hxGet => string
@@ -88,6 +108,7 @@ let hxPost: (
   string,
   ~securityPolicy: SecurityPolicy.handler<'ctx>,
   ~handler: htmxHandler<'ctx>,
+  ~csrfCheck: bool=?,
 ) => hxPost
 let hxPostRef: (t<_>, string) => hxPost
 let hxPostDefine: (
@@ -95,6 +116,7 @@ let hxPostDefine: (
   hxPost,
   ~securityPolicy: SecurityPolicy.handler<'ctx>,
   ~handler: htmxHandler<'ctx>,
+  ~csrfCheck: bool=?,
 ) => unit
 /** Returns the actual endpoint URL string for this hxPost handler. Most of the time you should pass the hxPost directly to HTMX attributes instead of using this. */
 let hxPostToEndpointURL: hxPost => string
@@ -104,6 +126,7 @@ let hxPut: (
   string,
   ~securityPolicy: SecurityPolicy.handler<'ctx>,
   ~handler: htmxHandler<'ctx>,
+  ~csrfCheck: bool=?,
 ) => hxPut
 let hxPutRef: (t<_>, string) => hxPut
 let hxPutDefine: (
@@ -111,6 +134,7 @@ let hxPutDefine: (
   hxPut,
   ~securityPolicy: SecurityPolicy.handler<'ctx>,
   ~handler: htmxHandler<'ctx>,
+  ~csrfCheck: bool=?,
 ) => unit
 /** Returns the actual endpoint URL string for this hxPut handler. Most of the time you should pass the hxPut directly to HTMX attributes instead of using this. */
 let hxPutToEndpointURL: hxPut => string
@@ -120,6 +144,7 @@ let hxDelete: (
   string,
   ~securityPolicy: SecurityPolicy.handler<'ctx>,
   ~handler: htmxHandler<'ctx>,
+  ~csrfCheck: bool=?,
 ) => hxDelete
 let hxDeleteRef: (t<_>, string) => hxDelete
 let hxDeleteDefine: (
@@ -127,6 +152,7 @@ let hxDeleteDefine: (
   hxDelete,
   ~securityPolicy: SecurityPolicy.handler<'ctx>,
   ~handler: htmxHandler<'ctx>,
+  ~csrfCheck: bool=?,
 ) => unit
 /** Returns the actual endpoint URL string for this hxDelete handler. Most of the time you should pass the hxDelete directly to HTMX attributes instead of using this. */
 let hxDeleteToEndpointURL: hxDelete => string
@@ -136,6 +162,7 @@ let hxPatch: (
   string,
   ~securityPolicy: SecurityPolicy.handler<'ctx>,
   ~handler: htmxHandler<'ctx>,
+  ~csrfCheck: bool=?,
 ) => hxPatch
 let hxPatchRef: (t<_>, string) => hxPatch
 let hxPatchDefine: (
@@ -143,6 +170,7 @@ let hxPatchDefine: (
   hxPatch,
   ~securityPolicy: SecurityPolicy.handler<'ctx>,
   ~handler: htmxHandler<'ctx>,
+  ~csrfCheck: bool=?,
 ) => unit
 /** Returns the actual endpoint URL string for this hxPatch handler. Most of the time you should pass the hxPatch directly to HTMX attributes instead of using this. */
 let hxPatchToEndpointURL: hxPatch => string
@@ -195,10 +223,6 @@ type handleRequestConfig<'ctx> = {
 let handleRequest: (t<'ctx>, handleRequestConfig<'ctx>) => promise<Response.t>
 
 module Internal: {
-  let getHandlers: t<'ctx> => array<(
-    method,
-    string,
-    SecurityPolicy.handler<'ctx>,
-    htmxHandler<'ctx>,
-  )>
+  type htmxRegistration<'ctx>
+  let getHandlers: t<'ctx> => array<htmxRegistration<'ctx>>
 }

@@ -123,6 +123,54 @@ async function getContentInBody(getContent) {
   return await content.text();
 }
 
+async function getResponseWithInit(urlOpt, init) {
+  let url = urlOpt !== undefined ? urlOpt : "/";
+  let match = getPort();
+  let port = match[0];
+  let server = Bun.serve({
+    development: true,
+    port: port,
+    fetch: async (request, _server) => await Handlers$ResX.handleRequest(testHandler, {
+      request: request,
+      render: async _renderConfig => null,
+      setupHeaders: () => new Headers([[
+          "Content-Type",
+          "text/html"
+        ]])
+    })
+  });
+  let res;
+  let exit = 0;
+  let res$1;
+  try {
+    res$1 = await fetch(`http://localhost:` + port.toString() + url, init);
+    exit = 1;
+  } catch (raw_exn) {
+    let exn = Primitive_exceptions.internalToException(raw_exn);
+    if (exn.RE_EXN_ID === Stdlib_Exn.$$Error) {
+      res = {
+        TAG: "Error",
+        _0: "Failed to fetch."
+      };
+    } else {
+      throw exn;
+    }
+  }
+  if (exit === 1) {
+    res = {
+      TAG: "Ok",
+      _0: res$1
+    };
+  }
+  server.stop(true);
+  match[1]();
+  if (res.TAG === "Ok") {
+    return res._0;
+  } else {
+    return Stdlib.panic(res._0);
+  }
+}
+
 let portsBase = 40000;
 
 exports.Handler = Handler;
@@ -132,4 +180,5 @@ exports.getPort = getPort;
 exports.Html = Html;
 exports.getResponse = getResponse;
 exports.getContentInBody = getContentInBody;
+exports.getResponseWithInit = getResponseWithInit;
 /* testHandler Not a pure module */

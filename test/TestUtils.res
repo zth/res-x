@@ -98,3 +98,34 @@ let getContentInBody = async getContent => {
   let content = await getResponse(~getContent)
   await content->Response.text
 }
+
+let getResponseWithInit = async (~url="/", ~init) => {
+  let (port, unsubPort) = getPort()
+
+  let server = Bun.serve({
+    port,
+    development: true,
+    fetch: async (request, _server) => {
+      await Handler.testHandler->ResX.Handlers.handleRequest({
+        request,
+        setupHeaders: () => {
+          Headers.make(~init=FromArray([("Content-Type", "text/html")]))
+        },
+        render: async _renderConfig => Hjsx.null,
+      })
+    },
+  })
+
+  let res = switch await fetch(`http://localhost:${port->Int.toString}${url}`, ~init) {
+  | res => Ok(res)
+  | exception Exn.Error(_) => Error("Failed to fetch.")
+  }
+
+  server->Bun.Server.stop(~closeActiveConnections=true)
+  unsubPort()
+
+  switch res {
+  | Ok(res) => res
+  | Error(err) => panic(err)
+  }
+}
