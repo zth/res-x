@@ -145,7 +145,7 @@ module Elements = {
     id?: string,
     lang?: string,
     role?: string /* ARIA role */,
-    style?: string,
+    style?: JsxDOMStyle.t,
     spellCheck?: bool,
     tabIndex?: int,
     title?: string,

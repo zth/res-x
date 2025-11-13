@@ -1,6 +1,7 @@
 # master
 
 - First class CSRF protection with `Bun.CSRF` tokens.
+- BREAKING: Fix `style` prop on DOM elements to be of the correct record type.
 
 # 1.0.0
 
