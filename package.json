@@ -1,11 +1,11 @@
 {
   "name": "rescript-x",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "scripts": {
     "res:build": "rescript",
     "res:clean": "rescript clean",
     "res:dev": "rescript build -w",
-    "test": "bun test ./test/*.test.js",
+    "test": "bun test ./test/*.test.js ./test/*.test.ts ./test/*.test.tsx",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [
@@ -16,7 +16,8 @@
     "CHANGELOG.md",
     "rescript.json",
     "src/**/*",
-    "res-x-vite-plugin.mjs"
+    "res-x-vite-plugin.mjs",
+    "res-x-vite-plugin.d.ts"
   ],
   "exports": {
     "./jsx-runtime": {
@@ -61,6 +62,7 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "fast-glob": "^3.3.1"
+    "fast-glob": "^3.3.1",
+    "chokidar": "^3.6.0"
   }
 }

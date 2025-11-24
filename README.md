@@ -1011,3 +1011,7 @@ This section will be expanded as we go along.
 - Relay for ResX
 - Static and semi-static generation
 - Suspense and (out of order) streaming
+
+## Future
+
+- Use branded types where ReScript uses abstract types, to get more type safety

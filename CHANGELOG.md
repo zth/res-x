@@ -1,5 +1,15 @@
 # master
 
+# 1.2.0
+
+- TypeScript: Add first-class support and typings for TS/TSX usage.
+  - Ship `.d.ts` for JSX runtime (`Hjsx`) and SSR (`H`).
+  - Add `.d.ts` for `Handlers` and `RequestController` (server APIs).
+  - Add `.d.ts` for `Client` (actions + validity messages) and `FormDataHelpers`.
+  - Add stub `.d.ts` for `ResXClient` (browser script with no exports).
+- Docs: Update TypeScript guide to use `jsxImportSource: "rescript-x"`.
+- Tests: Add TypeScript tests for TSX rendering, fragments, handlers, client actions, validity messages, and form data helpers.
+
 # 1.1.0
 
 - First class CSRF protection with `Bun.CSRF` tokens.

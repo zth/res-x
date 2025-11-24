@@ -9,6 +9,7 @@ export type PropsOf<T> = T extends ComponentType<infer P>
   : Record<string, unknown>;
 
 export const jsxFragment: symbol;
+export const Fragment: symbol;
 
 /** Output literal HTML. Use with care; content is not escaped. */
 export function dangerouslyOutputUnescapedContent(html: string): ResxElement;

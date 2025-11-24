@@ -17,12 +17,12 @@ ResX ships `.d.ts` for its JSX runtime (`Hjsx`) and SSR (`H`). To author TSX:
    ```json
    {
      "compilerOptions": {
-       "jsx": "react-jsx",
-       "jsxImportSource": "rescript-x/src/Hjsx.js",
-       "module": "ESNext",
-       "moduleResolution": "Bundler",
-       "target": "ES2022",
-       "lib": ["ES2022", "DOM"]
+     "jsx": "react-jsx",
+     "jsxImportSource": "rescript-x",
+     "module": "ESNext",
+     "moduleResolution": "Bundler",
+     "target": "ES2022",
+     "lib": ["ES2022", "DOM"]
      }
    }
    ```
@@ -31,7 +31,7 @@ ResX ships `.d.ts` for its JSX runtime (`Hjsx`) and SSR (`H`). To author TSX:
 
    ```tsx
    // example.tsx
-   import * as H from "rescript-x/src/H.js";
+   import * as H from "rescript-x/src/H";
 
    function Page() {
      return <div class="p-4">Hello from TSX + ResX!</div>;
@@ -49,8 +49,8 @@ ResX ships `.d.ts` for its JSX runtime (`Hjsx`) and SSR (`H`). To author TSX:
    import {
      make as makeHandlers,
      handleRequest,
-   } from "rescript-x/src/Handlers.js";
-   import * as H from "rescript-x/src/H.js";
+   } from "rescript-x/src/Handlers";
+   import * as H from "rescript-x/src/H";
 
    const handlers = makeHandlers(async (_req) => ({}));
 
@@ -67,5 +67,5 @@ ResX ships `.d.ts` for its JSX runtime (`Hjsx`) and SSR (`H`). To author TSX:
 
 Notes:
 
-- The JSX runtime is provided by `rescript-x/src/Hjsx.js` which is compatible with TS’s `react-jsx` transform via `jsxImportSource`.
+- The JSX runtime is provided by the package export `rescript-x/jsx-runtime`, so set `jsxImportSource` to `"rescript-x"`.
 - Elements and props are intentionally permissive for flexibility; you can layer your own prop typing per component as desired.
