@@ -1,9 +1,9 @@
-import * as H from "rescript-x/src/H";
-import { make as makeHandlers, handleRequest, hxGet, hxGetRef, hxGetDefine } from "rescript-x/src/Handlers";
-import { make as RenderInHead } from "rescript-x/src/RenderInHead";
-import { make as RenderBeforeBodyEnd } from "rescript-x/src/RenderBeforeBodyEnd";
-import { allow } from "rescript-x/src/SecurityPolicy";
-import * as BunUtils from "rescript-x/src/BunUtils";
+import * as H from "rescript-x/H";
+import { make as makeHandlers, handleRequest, hxGet, hxGetRef, hxGetDefine } from "rescript-x/Handlers";
+import { make as RenderInHead } from "rescript-x/RenderInHead";
+import { make as RenderBeforeBodyEnd } from "rescript-x/RenderBeforeBodyEnd";
+import { allow } from "rescript-x/SecurityPolicy";
+import * as BunUtils from "rescript-x/BunUtils";
 import { Html } from "./Html.js";
 import { Home } from "./pages/Home.js";
 

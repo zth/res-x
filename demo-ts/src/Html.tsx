@@ -1,4 +1,4 @@
-import type { ResxElement } from "rescript-x/src/H";
+import type { ResxElement } from "rescript-x/H";
 // This file renders the outer HTML shell for every page.
 // Vite plugin generates __generated__/res-x-assets.js during dev/build.
 // We use that for including the ResX client in dev.

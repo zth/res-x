@@ -31,7 +31,7 @@ ResX ships `.d.ts` for its JSX runtime (`Hjsx`) and SSR (`H`). To author TSX:
 
    ```tsx
    // example.tsx
-   import * as H from "rescript-x/src/H";
+   import * as H from "rescript-x/H";
 
    function Page() {
      return <div class="p-4">Hello from TSX + ResX!</div>;
@@ -49,8 +49,8 @@ ResX ships `.d.ts` for its JSX runtime (`Hjsx`) and SSR (`H`). To author TSX:
    import {
      make as makeHandlers,
      handleRequest,
-   } from "rescript-x/src/Handlers";
-   import * as H from "rescript-x/src/H";
+   } from "rescript-x/Handlers";
+   import * as H from "rescript-x/H";
 
    const handlers = makeHandlers(async (_req) => ({}));
 
@@ -67,5 +67,6 @@ ResX ships `.d.ts` for its JSX runtime (`Hjsx`) and SSR (`H`). To author TSX:
 
 Notes:
 
+- You can import ResX modules directly, e.g. `rescript-x/Handlers` (no `/src` prefix needed).
 - The JSX runtime is provided by the package export `rescript-x/jsx-runtime`, so set `jsxImportSource` to `"rescript-x"`.
 - Elements and props are intentionally permissive for flexibility; you can layer your own prop typing per component as desired.

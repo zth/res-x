@@ -1,6 +1,6 @@
-import * as H from "rescript-x/src/H";
-import * as Htmx from "rescript-x/src/Htmx";
-import { Actions } from "rescript-x/src/Client";
+import * as H from "rescript-x/H";
+import * as Htmx from "rescript-x/Htmx";
+import { Actions } from "rescript-x/Client";
 
 export function Home({ helloUrl, timeUrl }: { helloUrl: string; timeUrl: string }) {
   const swap = Htmx.Swap.make("innerHTML", "Transition");

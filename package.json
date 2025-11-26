@@ -36,6 +36,10 @@
       "types": "./src/Hjsx.d.ts",
       "import": "./src/Hjsx/jsx-dev-runtime.js"
     },
+    "./*": {
+      "types": "./src/*.d.ts",
+      "import": "./src/*.js"
+    },
     "./src/*": {
       "types": "./src/*.d.ts",
       "import": "./src/*.js"
