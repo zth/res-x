@@ -1,0 +1,7 @@
+/* Demo styles */
+body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+.wrap { padding: 2rem; }
+.box { padding: 1rem; border: 1px solid #ccc; border-radius: 8px; background: #fafafa; }
+.btn { padding: 0.5rem 0.75rem; border: 1px solid #222; border-radius: 6px; }
+.mt-2 { margin-top: 0.5rem; }
+

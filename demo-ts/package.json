@@ -1,0 +1,18 @@
+{
+  "name": "resx-demo-ts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:server": "bun src/server.tsx",
+    "dev:vite": "vite",
+    "build": "vite build"
+  },
+  "devDependencies": {
+    "bun-types": "^1.2.23",
+    "typescript": "^5.9.3",
+    "vite": ">=4.4.11"
+  },
+  "dependencies": {
+    "rescript-x": "file:.."
+  }
+}
