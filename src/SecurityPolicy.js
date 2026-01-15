@@ -3,7 +3,10 @@
 
 
 async function allow(param) {
-  return "Allow";
+  return {
+    TAG: "Allow",
+    _0: undefined
+  };
 }
 
 exports.allow = allow;

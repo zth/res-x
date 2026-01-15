@@ -2,7 +2,6 @@
   "jsx": {
     "module": "Hjsx"
   },
-  "uncurried": true,
   "name": "res-x-demo",
   "sources": {
     "dir": "src",

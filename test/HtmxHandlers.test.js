@@ -24,6 +24,15 @@ Buntest.describe("HTMX handlers", () => {
     Buntest.expect(text).toBe(`<!DOCTYPE html>Forbidden`);
     Buntest.expect(response.status).toBe(403);
   });
+  Buntest.test("security policy metadata is forwarded to handler", async () => {
+    Handlers$ResX.hxGet(TestUtils$ResX.Handler.testHandler, "/test-meta", async param => ({
+      TAG: "Allow",
+      _0: "meta"
+    }), async param => param.securityPolicyData, undefined);
+    let response = await TestUtils$ResX.getResponse(undefined, undefined, undefined, undefined, undefined, "/_api/test-meta");
+    let text = await response.text();
+    Buntest.expect(text).toBe(`<!DOCTYPE html>meta`);
+  });
   Buntest.test("delaying GET handler implementation works", async () => {
     let getHandler = Handlers$ResX.hxGetRef(TestUtils$ResX.Handler.testHandler, "/test-delay");
     Handlers$ResX.hxGetDefine(TestUtils$ResX.Handler.testHandler, getHandler, SecurityPolicy$ResX.allow, async param => "Test!", undefined);

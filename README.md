@@ -410,22 +410,35 @@ Notice how `hxSwap` and `hxTarget` are passed things from `Htmx.Something.make`?
 
 All HTMX handlers and form actions require a `securityPolicy` parameter. This allows you to control access to your endpoints by evaluating each request before the handler is executed, and forces you to consider security for each endpoint you expose.
 
-A security policy is a function that takes the request and context, and returns either `Allow` or `Block` with optional error details:
+A security policy is a function that takes the request and context, and returns either `Allow(meta)` or `Block` with optional error details:
 
 ```rescript
 // Allow all requests
 ~securityPolicy=ResX.SecurityPolicy.allow
+// This passes unit `()` as the handler's `securityPolicyData` value.
 
 // Custom security policy
 ~securityPolicy=async ({request, context}) => {
   switch context.userId {
-  | Some(_userId) => ResX.SecurityPolicy.Allow
+  | Some(userId) => ResX.SecurityPolicy.Allow(userId)
   | None => ResX.SecurityPolicy.Block({
       code: Some(401),
       message: Some("Authentication required"),
     })
   }
 }
+```
+
+If you return `Allow(meta)`, the handler receives that metadata on the `securityPolicyData` field:
+
+```rescript
+let onForm = Handler.handler->ResX.Handlers.hxPost(
+  "/submit",
+  ~securityPolicy=async _ => ResX.SecurityPolicy.Allow("admin"),
+  ~handler=async ({securityPolicyData}) => {
+    Hjsx.string(securityPolicyData)
+  },
+)
 ```
 
 When a request is blocked by a security policy, a response is returned with (optionally) the status code and message provided by the security policy function.

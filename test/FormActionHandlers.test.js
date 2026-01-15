@@ -13,6 +13,15 @@ Buntest.describe("Form action handlers", () => {
     let text = await response.text();
     Buntest.expect(text).toBe(`Test!`);
   });
+  Buntest.test("security policy metadata is forwarded to handler", async () => {
+    Handlers$ResX.formAction(TestUtils$ResX.Handler.testHandler, "/test-meta", async param => ({
+      TAG: "Allow",
+      _0: 42
+    }), async param => new Response(param.securityPolicyData.toString()), undefined);
+    let response = await TestUtils$ResX.getResponse(undefined, param => "nope", undefined, undefined, undefined, "/_form/test-meta");
+    let text = await response.text();
+    Buntest.expect(text).toBe(`42`);
+  });
 });
 
 /*  Not a pure module */

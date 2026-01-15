@@ -146,21 +146,12 @@ async function handleRequest(t, config) {
       let csrfEnabled = Stdlib_Option.getOr(targetHtmxHandler.csrfCheckOpt, isCsrfEnabledFor(t, targetHtmxHandler.method));
       let csrfOk = csrfEnabled ? await CSRF$ResX.verifyRequest(request) : true;
       if (csrfOk) {
-        let securityPolicy = await targetHtmxHandler.securityPolicyHandler({
+        content = await targetHtmxHandler.run({
           request: request,
-          context: ctx
+          context: ctx,
+          headers: headers,
+          requestController: requestController
         });
-        if (typeof securityPolicy !== "object") {
-          content = await targetHtmxHandler.handler({
-            request: request,
-            context: ctx,
-            headers: headers,
-            requestController: requestController
-          });
-        } else {
-          RequestController$ResX.setStatus(requestController, Stdlib_Option.getOr(securityPolicy.code, 403));
-          content = Stdlib_Option.getOr(securityPolicy.message, "Not Allowed.");
-        }
       } else {
         RequestController$ResX.setStatus(requestController, 403);
         content = "Invalid CSRF token.";
@@ -183,23 +174,12 @@ async function handleRequest(t, config) {
       let reg = Stdlib_Option.getOrThrow(targetFormActionHandler, undefined);
       let csrfEnabled$1 = Stdlib_Option.getOr(reg.csrfCheckOpt, isCsrfEnabledFor(t, request.method));
       let csrfOk$1 = csrfEnabled$1 ? await CSRF$ResX.verifyRequest(request) : true;
-      let response;
-      if (csrfOk$1) {
-        let match = await reg.securityPolicyHandler({
+      let response = csrfOk$1 ? await reg.run({
           request: request,
           context: ctx
-        });
-        response = typeof match !== "object" ? await reg.handler({
-            request: request,
-            context: ctx
-          }) : new Response(Stdlib_Option.getOr(match.message, "Not Allowed."), {
-            status: Stdlib_Option.getOr(match.code, 403)
-          });
-      } else {
-        response = new Response("Invalid CSRF token.", {
+        }) : new Response("Invalid CSRF token.", {
           status: 403
         });
-      }
       if (onBeforeSendResponse !== undefined) {
         return await onBeforeSendResponse({
           request: request,
@@ -212,18 +192,18 @@ async function handleRequest(t, config) {
       }
     }
     if (stream) {
-      let match$1 = new TransformStream({
+      let match = new TransformStream({
         transform: (chunk, controller) => {
           controller.enqueue(chunk);
         }
       });
-      let writer = match$1.writable.getWriter();
+      let writer = match.writable.getWriter();
       let textEncoder = new TextEncoder();
       H$ResX.renderToStream(content, chunk => {
         let encoded = textEncoder.encode(chunk);
         writer.write(encoded);
       }).then(() => writer.close());
-      let response$1 = new Response(match$1.readable, {
+      let response$1 = new Response(match.readable, {
         status: 200,
         headers: [[
             "Content-Type",
@@ -248,10 +228,10 @@ async function handleRequest(t, config) {
         requestController: requestController
       }) : undefined;
     let content$1 = await renderWithDocType(content, requestController, config.renderTitle, onAfterRender);
-    let match$2 = RequestController$ResX.getCurrentRedirect(requestController);
-    let match$3 = RequestController$ResX.getCurrentStatus(requestController);
-    let response$2 = match$2 !== undefined ? Response.redirect(match$2[0], Primitive_option.toUndefined(match$2[1])) : new Response(content$1, {
-        status: match$3,
+    let match$1 = RequestController$ResX.getCurrentRedirect(requestController);
+    let match$2 = RequestController$ResX.getCurrentStatus(requestController);
+    let response$2 = match$1 !== undefined ? Response.redirect(match$1[0], Primitive_option.toUndefined(match$1[1])) : new Response(content$1, {
+        status: match$2,
         headers: Primitive_option.some(headers)
       });
     if (onBeforeSendResponse !== undefined) {
@@ -267,25 +247,70 @@ async function handleRequest(t, config) {
   });
 }
 
+function makeHtmxRunner(securityPolicy, handler) {
+  return async param => {
+    let requestController = param.requestController;
+    let context = param.context;
+    let request = param.request;
+    let meta = await securityPolicy({
+      request: request,
+      context: context
+    });
+    if (meta.TAG === "Allow") {
+      return await handler({
+        request: request,
+        context: context,
+        headers: param.headers,
+        requestController: requestController,
+        securityPolicyData: meta._0
+      });
+    }
+    RequestController$ResX.setStatus(requestController, Stdlib_Option.getOr(meta.code, 403));
+    return Stdlib_Option.getOr(meta.message, "Not Allowed.");
+  };
+}
+
+function makeFormActionRunner(securityPolicy, handler) {
+  return async param => {
+    let context = param.context;
+    let request = param.request;
+    let meta = await securityPolicy({
+      request: request,
+      context: context
+    });
+    if (meta.TAG === "Allow") {
+      return await handler({
+        request: request,
+        context: context,
+        securityPolicyData: meta._0
+      });
+    } else {
+      return new Response(Stdlib_Option.getOr(meta.message, "Not Allowed."), {
+        status: Stdlib_Option.getOr(meta.code, 403)
+      });
+    }
+  };
+}
+
 function formAction(t, path, securityPolicy, handler, csrfCheck) {
   let path$1 = t.formActionHandlerApiPrefix + path;
+  let run = makeFormActionRunner(securityPolicy, handler);
   t.formActionHandlers.push({
     path: path$1,
-    securityPolicyHandler: securityPolicy,
     csrfCheckOpt: csrfCheck,
-    handler: handler
+    run: run
   });
   return path$1;
 }
 
 function hxGet(t, path, securityPolicy, handler, csrfCheck) {
   let path$1 = t.htmxApiPrefix + path;
+  let run = makeHtmxRunner(securityPolicy, handler);
   t.htmxHandlers.push({
     method: "GET",
     path: path$1,
-    securityPolicyHandler: securityPolicy,
     csrfCheckOpt: csrfCheck,
-    handler: handler
+    run: run
   });
   return path$1;
 }
@@ -295,12 +320,12 @@ function hxGetRef(t, path) {
 }
 
 function hxGetDefine(t, path, securityPolicy, handler, csrfCheck) {
+  let run = makeHtmxRunner(securityPolicy, handler);
   t.htmxHandlers.push({
     method: "GET",
     path: path,
-    securityPolicyHandler: securityPolicy,
     csrfCheckOpt: csrfCheck,
-    handler: handler
+    run: run
   });
 }
 
@@ -310,12 +335,12 @@ function hxGetToEndpointURL(s) {
 
 function hxPost(t, path, securityPolicy, handler, csrfCheck) {
   let path$1 = t.htmxApiPrefix + path;
+  let run = makeHtmxRunner(securityPolicy, handler);
   t.htmxHandlers.push({
     method: "POST",
     path: path$1,
-    securityPolicyHandler: securityPolicy,
     csrfCheckOpt: csrfCheck,
-    handler: handler
+    run: run
   });
   return path$1;
 }
@@ -325,12 +350,12 @@ function hxPostRef(t, path) {
 }
 
 function hxPostDefine(t, path, securityPolicy, handler, csrfCheck) {
+  let run = makeHtmxRunner(securityPolicy, handler);
   t.htmxHandlers.push({
     method: "POST",
     path: path,
-    securityPolicyHandler: securityPolicy,
     csrfCheckOpt: csrfCheck,
-    handler: handler
+    run: run
   });
 }
 
@@ -340,12 +365,12 @@ function hxPostToEndpointURL(s) {
 
 function hxPut(t, path, securityPolicy, handler, csrfCheck) {
   let path$1 = t.htmxApiPrefix + path;
+  let run = makeHtmxRunner(securityPolicy, handler);
   t.htmxHandlers.push({
     method: "PUT",
     path: path$1,
-    securityPolicyHandler: securityPolicy,
     csrfCheckOpt: csrfCheck,
-    handler: handler
+    run: run
   });
   return path$1;
 }
@@ -355,12 +380,12 @@ function hxPutRef(t, path) {
 }
 
 function hxPutDefine(t, path, securityPolicy, handler, csrfCheck) {
+  let run = makeHtmxRunner(securityPolicy, handler);
   t.htmxHandlers.push({
     method: "PUT",
     path: path,
-    securityPolicyHandler: securityPolicy,
     csrfCheckOpt: csrfCheck,
-    handler: handler
+    run: run
   });
 }
 
@@ -370,12 +395,12 @@ function hxPutToEndpointURL(s) {
 
 function hxDelete(t, path, securityPolicy, handler, csrfCheck) {
   let path$1 = t.htmxApiPrefix + path;
+  let run = makeHtmxRunner(securityPolicy, handler);
   t.htmxHandlers.push({
     method: "DELETE",
     path: path$1,
-    securityPolicyHandler: securityPolicy,
     csrfCheckOpt: csrfCheck,
-    handler: handler
+    run: run
   });
   return path$1;
 }
@@ -385,12 +410,12 @@ function hxDeleteRef(t, path) {
 }
 
 function hxDeleteDefine(t, path, securityPolicy, handler, csrfCheck) {
+  let run = makeHtmxRunner(securityPolicy, handler);
   t.htmxHandlers.push({
     method: "DELETE",
     path: path,
-    securityPolicyHandler: securityPolicy,
     csrfCheckOpt: csrfCheck,
-    handler: handler
+    run: run
   });
 }
 
@@ -400,12 +425,12 @@ function hxDeleteToEndpointURL(s) {
 
 function hxPatch(t, path, securityPolicy, handler, csrfCheck) {
   let path$1 = t.htmxApiPrefix + path;
+  let run = makeHtmxRunner(securityPolicy, handler);
   t.htmxHandlers.push({
     method: "PATCH",
     path: path$1,
-    securityPolicyHandler: securityPolicy,
     csrfCheckOpt: csrfCheck,
-    handler: handler
+    run: run
   });
   return path$1;
 }
@@ -415,12 +440,12 @@ function hxPatchRef(t, path) {
 }
 
 function hxPatchDefine(t, path, securityPolicy, handler, csrfCheck) {
+  let run = makeHtmxRunner(securityPolicy, handler);
   t.htmxHandlers.push({
     method: "PATCH",
     path: path,
-    securityPolicyHandler: securityPolicy,
     csrfCheckOpt: csrfCheck,
-    handler: handler
+    run: run
   });
 }
 

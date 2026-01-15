@@ -36,6 +36,21 @@ describe("HTMX handlers", () => {
     expect(response->Response.status)->Expect.toBe(403)
   })
 
+  testAsync("security policy metadata is forwarded to handler", async () => {
+    let _getHandler = Handler.testHandler->Handlers.hxGet(
+      "/test-meta",
+      ~securityPolicy=async _ => SecurityPolicy.Allow("meta"),
+      ~handler=async ({securityPolicyData}) => {
+        Hjsx.string(securityPolicyData)
+      },
+    )
+    let response = await getResponse(~url="/_api/test-meta")
+
+    let text = await response->Response.text
+
+    expect(text)->Expect.toBe(`<!DOCTYPE html>meta`)
+  })
+
   testAsync("delaying GET handler implementation works", async () => {
     let getHandler = Handler.testHandler->Handlers.hxGetRef("/test-delay")
     Handler.testHandler->Handlers.hxGetDefine(

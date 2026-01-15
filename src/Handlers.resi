@@ -5,20 +5,28 @@ module FormAction: {
   let toEndpointURL: t => string
 }
 
-type htmxHandlerConfig<'ctx> = {
+type htmxHandlerConfig<'ctx, 'securityPolicyData> = {
   request: Request.t,
   context: 'ctx,
   headers: Headers.t,
   requestController: RequestController.t,
+  securityPolicyData: 'securityPolicyData,
 }
 
-type formActionConfig<'ctx> = {
+type formActionConfig<'ctx, 'securityPolicyData> = {
   request: Request.t,
   context: 'ctx,
+  securityPolicyData: 'securityPolicyData,
 }
 
-type htmxHandler<'ctx> = htmxHandlerConfig<'ctx> => promise<Jsx.element>
-type formActionHandler<'ctx> = formActionConfig<'ctx> => promise<Response.t>
+type htmxHandler<'ctx, 'securityPolicyData> = htmxHandlerConfig<
+  'ctx,
+  'securityPolicyData,
+> => promise<Jsx.element>
+type formActionHandler<'ctx, 'securityPolicyData> = formActionConfig<
+  'ctx,
+  'securityPolicyData,
+> => promise<Response.t>
 
 type t<'ctx>
 
@@ -80,24 +88,24 @@ let make: (~requestToContext: Request.t => promise<'ctx>, ~options: options=?) =
 let formAction: (
   t<'ctx>,
   string,
-  ~securityPolicy: SecurityPolicy.handler<'ctx>,
-  ~handler: formActionHandler<'ctx>,
+  ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+  ~handler: formActionHandler<'ctx, 'securityPolicyData>,
   ~csrfCheck: bool=?,
 ) => FormAction.t
 
 let hxGet: (
   t<'ctx>,
   string,
-  ~securityPolicy: SecurityPolicy.handler<'ctx>,
-  ~handler: htmxHandler<'ctx>,
+  ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+  ~handler: htmxHandler<'ctx, 'securityPolicyData>,
   ~csrfCheck: bool=?,
 ) => hxGet
 let hxGetRef: (t<_>, string) => hxGet
 let hxGetDefine: (
   t<'ctx>,
   hxGet,
-  ~securityPolicy: SecurityPolicy.handler<'ctx>,
-  ~handler: htmxHandler<'ctx>,
+  ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+  ~handler: htmxHandler<'ctx, 'securityPolicyData>,
   ~csrfCheck: bool=?,
 ) => unit
 /** Returns the actual endpoint URL string for this hxGet handler. Most of the time you should pass the hxGet directly to HTMX attributes instead of using this. */
@@ -106,16 +114,16 @@ let hxGetToEndpointURL: hxGet => string
 let hxPost: (
   t<'ctx>,
   string,
-  ~securityPolicy: SecurityPolicy.handler<'ctx>,
-  ~handler: htmxHandler<'ctx>,
+  ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+  ~handler: htmxHandler<'ctx, 'securityPolicyData>,
   ~csrfCheck: bool=?,
 ) => hxPost
 let hxPostRef: (t<_>, string) => hxPost
 let hxPostDefine: (
   t<'ctx>,
   hxPost,
-  ~securityPolicy: SecurityPolicy.handler<'ctx>,
-  ~handler: htmxHandler<'ctx>,
+  ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+  ~handler: htmxHandler<'ctx, 'securityPolicyData>,
   ~csrfCheck: bool=?,
 ) => unit
 /** Returns the actual endpoint URL string for this hxPost handler. Most of the time you should pass the hxPost directly to HTMX attributes instead of using this. */
@@ -124,16 +132,16 @@ let hxPostToEndpointURL: hxPost => string
 let hxPut: (
   t<'ctx>,
   string,
-  ~securityPolicy: SecurityPolicy.handler<'ctx>,
-  ~handler: htmxHandler<'ctx>,
+  ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+  ~handler: htmxHandler<'ctx, 'securityPolicyData>,
   ~csrfCheck: bool=?,
 ) => hxPut
 let hxPutRef: (t<_>, string) => hxPut
 let hxPutDefine: (
   t<'ctx>,
   hxPut,
-  ~securityPolicy: SecurityPolicy.handler<'ctx>,
-  ~handler: htmxHandler<'ctx>,
+  ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+  ~handler: htmxHandler<'ctx, 'securityPolicyData>,
   ~csrfCheck: bool=?,
 ) => unit
 /** Returns the actual endpoint URL string for this hxPut handler. Most of the time you should pass the hxPut directly to HTMX attributes instead of using this. */
@@ -142,16 +150,16 @@ let hxPutToEndpointURL: hxPut => string
 let hxDelete: (
   t<'ctx>,
   string,
-  ~securityPolicy: SecurityPolicy.handler<'ctx>,
-  ~handler: htmxHandler<'ctx>,
+  ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+  ~handler: htmxHandler<'ctx, 'securityPolicyData>,
   ~csrfCheck: bool=?,
 ) => hxDelete
 let hxDeleteRef: (t<_>, string) => hxDelete
 let hxDeleteDefine: (
   t<'ctx>,
   hxDelete,
-  ~securityPolicy: SecurityPolicy.handler<'ctx>,
-  ~handler: htmxHandler<'ctx>,
+  ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+  ~handler: htmxHandler<'ctx, 'securityPolicyData>,
   ~csrfCheck: bool=?,
 ) => unit
 /** Returns the actual endpoint URL string for this hxDelete handler. Most of the time you should pass the hxDelete directly to HTMX attributes instead of using this. */
@@ -160,16 +168,16 @@ let hxDeleteToEndpointURL: hxDelete => string
 let hxPatch: (
   t<'ctx>,
   string,
-  ~securityPolicy: SecurityPolicy.handler<'ctx>,
-  ~handler: htmxHandler<'ctx>,
+  ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+  ~handler: htmxHandler<'ctx, 'securityPolicyData>,
   ~csrfCheck: bool=?,
 ) => hxPatch
 let hxPatchRef: (t<_>, string) => hxPatch
 let hxPatchDefine: (
   t<'ctx>,
   hxPatch,
-  ~securityPolicy: SecurityPolicy.handler<'ctx>,
-  ~handler: htmxHandler<'ctx>,
+  ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+  ~handler: htmxHandler<'ctx, 'securityPolicyData>,
   ~csrfCheck: bool=?,
 ) => unit
 /** Returns the actual endpoint URL string for this hxPatch handler. Most of the time you should pass the hxPatch directly to HTMX attributes instead of using this. */

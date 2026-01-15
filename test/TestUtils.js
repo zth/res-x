@@ -3,7 +3,6 @@
 
 let Stdlib = require("@rescript/runtime/lib/js/Stdlib.js");
 let Hjsx$ResX = require("../src/Hjsx.js");
-let Stdlib_Exn = require("@rescript/runtime/lib/js/Stdlib_Exn.js");
 let Stdlib_Math = require("@rescript/runtime/lib/js/Stdlib_Math.js");
 let Handlers$ResX = require("../src/Handlers.js");
 let Primitive_exceptions = require("@rescript/runtime/lib/js/Primitive_exceptions.js");
@@ -94,7 +93,7 @@ async function getResponse(methodOpt, getContent, onBeforeSendResponse, onBefore
     exit = 1;
   } catch (raw_exn) {
     let exn = Primitive_exceptions.internalToException(raw_exn);
-    if (exn.RE_EXN_ID === Stdlib_Exn.$$Error) {
+    if (exn.RE_EXN_ID === "JsExn") {
       res = {
         TAG: "Error",
         _0: "Failed to fetch."
@@ -147,7 +146,7 @@ async function getResponseWithInit(urlOpt, init) {
     exit = 1;
   } catch (raw_exn) {
     let exn = Primitive_exceptions.internalToException(raw_exn);
-    if (exn.RE_EXN_ID === Stdlib_Exn.$$Error) {
+    if (exn.RE_EXN_ID === "JsExn") {
       res = {
         TAG: "Error",
         _0: "Failed to fetch."

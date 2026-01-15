@@ -82,7 +82,7 @@ let getResponse = async (
     ~init={method: (method :> string)},
   ) {
   | res => Ok(res)
-  | exception Exn.Error(_) => Error("Failed to fetch.")
+  | exception JsExn(_) => Error("Failed to fetch.")
   }
 
   server->Bun.Server.stop(~closeActiveConnections=true)
@@ -118,7 +118,7 @@ let getResponseWithInit = async (~url="/", ~init) => {
 
   let res = switch await fetch(`http://localhost:${port->Int.toString}${url}`, ~init) {
   | res => Ok(res)
-  | exception Exn.Error(_) => Error("Failed to fetch.")
+  | exception JsExn(_) => Error("Failed to fetch.")
   }
 
   server->Bun.Server.stop(~closeActiveConnections=true)
