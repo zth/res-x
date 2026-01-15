@@ -1,5 +1,7 @@
 # master
 
+# 1.2.0
+
 - Add `securityPolicyData` on handlers so security policies can pass derived data into the handler on `Allow`.
 - BREAKING: `SecurityPolicy.Allow` now carries metadata (`Allow(meta)`). Use `SecurityPolicy.allow` for no data or pass `Allow(yourMeta)`.
 
