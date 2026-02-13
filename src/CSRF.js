@@ -24,7 +24,7 @@ async function getTokenFromRequest(request) {
   if (!(ct.includes("application/x-www-form-urlencoded") || ct.includes("multipart/form-data"))) {
     return;
   }
-  let fd = await request.formData();
+  let fd = await request.clone().formData();
   let v$1 = fd.get(tokenInputName);
   if (typeof v$1 !== "string") {
     return;

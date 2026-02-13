@@ -14,7 +14,7 @@ let getTokenFromRequest = async (request: Request.t) => {
     | Some(ct)
       if ct->String.includes("application/x-www-form-urlencoded") ||
         ct->String.includes("multipart/form-data") =>
-      let fd = await request->Request.formData
+      let fd = await request->Request.clone->Request.formData
       switch fd->FormData.get(tokenInputName) {
       | String(v) => Some(v)
       | _ => None

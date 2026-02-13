@@ -59,6 +59,55 @@ describe("CSRF", () => {
     expect(text)->Expect.toBe(`<!DOCTYPE html>ok`)
   })
 
+  testAsync("hxPost passes with token from CSRFToken form field", async () => {
+    let _handler =
+      Handler.testHandler->Handlers.hxPost(
+        "/csrf-hx-post-component-token",
+        ~securityPolicy=SecurityPolicy.allow,
+        ~csrfCheck=true,
+        ~handler=async ({request}) => {
+          let fd = await request->Request.formData
+          switch fd->FormData.get("name") {
+          | String(v) => Hjsx.string(v)
+          | _ => Hjsx.string("name-missing")
+          }
+        },
+      )
+
+    let html = await getContentInBody(
+      _ => {
+        <Html>
+          <form>
+            <CSRFToken />
+          </form>
+        </Html>
+      },
+    )
+
+    let token =
+      /name="resx_csrf_token" type="hidden" value="(.+)"/
+      ->RegExp.exec(html)
+      ->Option.getOrThrow
+      ->Array.getUnsafe(1)
+      ->Option.getOr("")
+
+    let formBody = URLSearchParams.make()
+    formBody->URLSearchParams.append("resx_csrf_token", token)
+    formBody->URLSearchParams.append("name", "Ada")
+
+    let response = await getResponseWithInit(
+      ~url="/_api/csrf-hx-post-component-token",
+      ~init={
+        method: "POST",
+        body: Null.fromOption(Some(BodyInit.makeFromURLSearchParams(formBody))),
+      },
+    )
+
+    let text = await response->Response.text
+    expect(response->Response.status)->Expect.toBe(200)
+    expect(text)->Expect.toBe(`<!DOCTYPE html>Ada`)
+  })
+
   testAsync("formAction blocks without token when csrfCheck is true", async () => {
     let _fa =
       Handler.testHandler->Handlers.formAction(
@@ -98,6 +147,54 @@ describe("CSRF", () => {
     let text = await response->Response.text
     expect(response->Response.status)->Expect.toBe(200)
     expect(text)->Expect.toBe("ok")
+  })
+
+  testAsync("formAction passes with token from CSRFToken form field", async () => {
+    let _fa =
+      Handler.testHandler->Handlers.formAction(
+        "/csrf-form-component-token",
+        ~securityPolicy=SecurityPolicy.allow,
+        ~csrfCheck=true,
+        ~handler=async ({request}) => {
+          let fd = await request->Request.formData
+          switch fd->FormData.get("name") {
+          | String(v) => Response.make(v)
+          | _ => Response.make("name-missing", ~options={status: 400})
+          }
+        },
+      )
+
+    let html = await getContentInBody(
+      _ => {
+        <Html>
+          <form>
+            <CSRFToken />
+          </form>
+        </Html>
+      },
+    )
+
+    let token =
+      /name="resx_csrf_token" type="hidden" value="(.+)"/
+      ->RegExp.exec(html)
+      ->Option.getOrThrow
+      ->Array.getUnsafe(1)
+      ->Option.getOr("")
+
+    let formBody = URLSearchParams.make()
+    formBody->URLSearchParams.append("resx_csrf_token", token)
+    formBody->URLSearchParams.append("name", "Ada")
+
+    let response = await getResponseWithInit(
+      ~url="/_form/csrf-form-component-token",
+      ~init={
+        method: "POST",
+        body: Null.fromOption(Some(BodyInit.makeFromURLSearchParams(formBody))),
+      },
+    )
+    let text = await response->Response.text
+    expect(response->Response.status)->Expect.toBe(200)
+    expect(text)->Expect.toBe("Ada")
   })
 
   testAsync("defaultCsrfCheck enforces CSRF when enabled on handler make", async () => {

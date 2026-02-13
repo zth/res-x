@@ -4,6 +4,7 @@
 let $$Bun = require("bun");
 let Buntest = require("bun:test");
 let Hjsx$ResX = require("../src/Hjsx.js");
+let Stdlib_Null = require("@rescript/runtime/lib/js/Stdlib_Null.js");
 let Handlers$ResX = require("../src/Handlers.js");
 let Stdlib_Option = require("@rescript/runtime/lib/js/Stdlib_Option.js");
 let CSRFToken$ResX = require("../src/CSRFToken.js");
@@ -45,6 +46,33 @@ Buntest.describe("CSRF", () => {
     Buntest.expect(response.status).toBe(200);
     Buntest.expect(text).toBe(`<!DOCTYPE html>ok`);
   });
+  Buntest.test("hxPost passes with token from CSRFToken form field", async () => {
+    Handlers$ResX.hxPost(TestUtils$ResX.Handler.testHandler, "/csrf-hx-post-component-token", SecurityPolicy$ResX.allow, async param => {
+      let fd = await param.request.formData();
+      let v = fd.get("name");
+      if (typeof v !== "string") {
+        return "name-missing";
+      } else {
+        return v;
+      }
+    }, true);
+    let html = await TestUtils$ResX.getContentInBody(param => Hjsx$ResX.jsx(TestUtils$ResX.Html.make, {
+      children: Hjsx$ResX.Elements.jsx("form", {
+        children: Hjsx$ResX.jsx(CSRFToken$ResX.make, {})
+      })
+    }));
+    let token = Stdlib_Option.getOr(Stdlib_Option.getOrThrow(Primitive_option.fromNullable(/name="resx_csrf_token" type="hidden" value="(.+)"/.exec(html)), undefined)[1], "");
+    let formBody = new URLSearchParams();
+    formBody.append("resx_csrf_token", token);
+    formBody.append("name", "Ada");
+    let response = await TestUtils$ResX.getResponseWithInit("/_api/csrf-hx-post-component-token", {
+      body: Primitive_option.some(Stdlib_Null.fromOption(Primitive_option.some(formBody))),
+      method: "POST"
+    });
+    let text = await response.text();
+    Buntest.expect(response.status).toBe(200);
+    Buntest.expect(text).toBe(`<!DOCTYPE html>Ada`);
+  });
   Buntest.test("formAction blocks without token when csrfCheck is true", async () => {
     Handlers$ResX.formAction(TestUtils$ResX.Handler.testHandler, "/csrf-form", SecurityPolicy$ResX.allow, async param => new Response("ok"), true);
     let headers = [[
@@ -73,6 +101,39 @@ Buntest.describe("CSRF", () => {
     let text = await response.text();
     Buntest.expect(response.status).toBe(200);
     Buntest.expect(text).toBe("ok");
+  });
+  Buntest.test("formAction passes with token from CSRFToken form field", async () => {
+    Handlers$ResX.formAction(TestUtils$ResX.Handler.testHandler, "/csrf-form-component-token", SecurityPolicy$ResX.allow, async param => {
+      let fd = await param.request.formData();
+      let v = fd.get("name");
+      if (v === null) {
+        return new Response("name-missing", {
+          status: 400
+        });
+      } else if (typeof v === "string") {
+        return new Response(v);
+      } else {
+        return new Response("name-missing", {
+          status: 400
+        });
+      }
+    }, true);
+    let html = await TestUtils$ResX.getContentInBody(param => Hjsx$ResX.jsx(TestUtils$ResX.Html.make, {
+      children: Hjsx$ResX.Elements.jsx("form", {
+        children: Hjsx$ResX.jsx(CSRFToken$ResX.make, {})
+      })
+    }));
+    let token = Stdlib_Option.getOr(Stdlib_Option.getOrThrow(Primitive_option.fromNullable(/name="resx_csrf_token" type="hidden" value="(.+)"/.exec(html)), undefined)[1], "");
+    let formBody = new URLSearchParams();
+    formBody.append("resx_csrf_token", token);
+    formBody.append("name", "Ada");
+    let response = await TestUtils$ResX.getResponseWithInit("/_form/csrf-form-component-token", {
+      body: Primitive_option.some(Stdlib_Null.fromOption(Primitive_option.some(formBody))),
+      method: "POST"
+    });
+    let text = await response.text();
+    Buntest.expect(response.status).toBe(200);
+    Buntest.expect(text).toBe("Ada");
   });
   Buntest.test("defaultCsrfCheck enforces CSRF when enabled on handler make", async () => {
     let customHandler = Handlers$ResX.make(async param => ({

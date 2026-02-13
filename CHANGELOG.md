@@ -1,5 +1,8 @@
 # master
 
+- Fix CSRF verification for form submissions so handlers can still read `request.formData()` after CSRF checks by reading the token from a cloned request.
+- Add CSRF tests covering `<CSRFToken />` token submission via form data for both `hxPost` and `formAction`.
+
 # 1.2.0
 
 - Add `securityPolicyData` on handlers so security policies can pass derived data into the handler on `Allow`.
