@@ -1,0 +1,4 @@
+#!/usr/bin/env bun
+'use strict';
+
+require('../src/Cli.js').runFromArgv();
