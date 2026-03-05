@@ -34,6 +34,7 @@ function createElement(type, props, ...children) {
 const Fragment = Symbol("Fragment");
 const UPPERCASE = /([A-Z])/g;
 const MS = /^ms-/;
+const VALID_RAW_ATTR_NAME = /^[A-Za-z_:][A-Za-z0-9:._-]*$/;
 const UNITLESS_PROPS = /* @__PURE__ */ new Set([
   "animationIterationCount",
   "columns",
@@ -78,6 +79,26 @@ function stringifyStyles(styles) {
     }
   }
   return out;
+}
+function normalizeRawAttributeName(key) {
+  const name = String(key).trim();
+  if (name === "" || !VALID_RAW_ATTR_NAME.test(name)) {
+    return undefined;
+  }
+  return name;
+}
+function stringifyAttributeValue(value) {
+  if (value === null) {
+    return "null";
+  }
+  switch (typeof value) {
+    case "string":
+    case "number":
+    case "boolean":
+      return String(value);
+    default:
+      return JSON.stringify(value);
+  }
 }
 const escapeString = Bun.escapeHTML;
 const dispatcher = {};
@@ -201,11 +222,16 @@ function renderToString(element, context = {}, controller) {
     if (typeof type === "string") {
       let html = `<${type}`;
       let innerHTML;
+      let rawProps;
       for (const prop in props) {
         const value = props[prop];
         if (prop === "children" || prop === "key" || prop === "ref");
-        else if (prop === "class" || prop === "className") {
-          html += value ? ` class="${escapeString(value)}"` : "";
+        else if (prop === "__rawProps") {
+          rawProps = value;
+        } else if (prop === "class" || prop === "className") {
+          if (value) {
+            html += ` class="${escapeString(value)}"`;
+          }
         } else if (prop === "style") {
           html += ` style="${stringifyStyles(value)}"`;
         } else if (prop.startsWith("resx-")) {
@@ -215,7 +241,9 @@ function renderToString(element, context = {}, controller) {
         } else {
           const name = ATTR_ALIASES[prop] || prop;
           if (BOOLEAN_ATTRS.has(name)) {
-            html += value ? ` ${name}` : "";
+            if (value) {
+              html += ` ${name}`;
+            }
           } else if (typeof value === "string") {
             html += ` ${name}="${escapeString(value)}"`;
           } else if (typeof value === "number") {
@@ -223,6 +251,16 @@ function renderToString(element, context = {}, controller) {
           } else if (typeof value === "boolean") {
             html += ` ${name}="${value}"`;
           }
+        }
+      }
+      if (rawProps != null) {
+        for (const [key, value] of Object.entries(rawProps)) {
+          const name = normalizeRawAttributeName(key);
+          if (name == null) {
+            continue;
+          }
+          const serialized = stringifyAttributeValue(value);
+          html += ` ${name}="${escapeString(serialized)}"`;
         }
       }
       if (VOID_ELEMENTS.has(type)) {

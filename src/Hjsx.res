@@ -179,6 +179,8 @@ module Elements = {
     controls?: bool,
     coords?: string /* set of values specifying the coordinates of a region */,
     data?: string /* uri */,
+    /** Emits arbitrary attributes when not already set by regular typed props. */
+    __rawProps?: Dict.t<JSON.t>,
     dateTime?: string /* "valid date string with optional time" */,
     default?: bool,
     defer?: bool,

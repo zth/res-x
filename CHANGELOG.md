@@ -1,5 +1,7 @@
 # master
 
+- Add `__rawProps?: Dict.t<JSON.t>` on JSX DOM props as a low-level escape hatch for arbitrary attributes (escaped values, invalid/non-serializable entries ignored, may emit duplicates after typed props), with accompanying tests and README docs.
+
 # 1.2.1
 
 - Fix CSRF verification for form submissions so handlers can still read `request.formData()` after CSRF checks by reading the token from a cloned request.

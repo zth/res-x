@@ -671,6 +671,32 @@ let make = (~userName) => {
 }
 ```
 
+### Dynamic attributes with `__rawProps`
+
+Most attributes should be set through the typed JSX props directly (`id`, `className`, `dataTestId`, `hxGet`, etc).  
+When you need an attribute that is not modeled as a typed prop, use `__rawProps`:
+
+```rescript
+<div
+  __rawProps={dict{
+    "hx-get": JSON.String("/search"),
+    "aria-description": JSON.String("Search input"),
+    "x-feature-flag": JSON.Boolean(true),
+  }}
+/>
+```
+
+`__rawProps` behavior:
+
+- Values are HTML-escaped when rendered.
+- Invalid attribute names are ignored.
+- Values are serialized from `JSON.t` (`string/number/bool/null` directly, arrays/objects via `JSON.stringify`).
+- Attributes are emitted even if the same attribute was already emitted by typed props (or another raw prop key with a different case).
+- `__rawProps` is emitted after typed props, but duplicate-attribute behavior is browser/parser territory and not strongly guaranteed.
+
+`__rawProps` is intentionally a low-level escape hatch with few guarantees. You're on your own when using it.  
+Prefer typed props whenever possible for stronger safety and predictability.
+
 ### Rendering unescaped content
 
 By default, all content in ResX is properly HTML-escaped for security. However, there are legitimate cases where you need to output raw content (like content from a CMS, CSV files or similar "non HTML content", markdown processors, or trusted HTML strings). For these cases, ResX provides `Hjsx.dangerouslyOutputUnescapedContent`:
