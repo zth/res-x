@@ -1,11 +1,15 @@
 {
   "name": "rescript-x",
   "version": "1.2.1",
+  "bin": {
+    "resx": "bin/resx"
+  },
   "scripts": {
     "res:build": "rescript",
     "res:clean": "rescript clean",
     "res:dev": "rescript build -w",
-    "test": "bun test ./test/*.test.js"
+    "test": "bun test ./test/*.test.js",
+    "verify:bun-assets-plan": "RESX_CMD='bun run ./bin/resx' bun run test/fixtures/bun-assets-smoke/scripts/verify.mjs"
   },
   "keywords": [
     "rescript"
@@ -15,21 +19,17 @@
     "CHANGELOG.md",
     "rescript.json",
     "src/**/*",
-    "res-x-vite-plugin.mjs"
+    "bin/**/*"
   ],
   "author": "Gabriel Nordeborn",
   "license": "MIT",
   "peerDependencies": {
     "rescript": ">=12.0.0-0 <13.0.0",
-    "vite": ">=4.4.11",
     "rescript-bun": ">=2.1.0"
   },
   "devDependencies": {
-    "fast-glob": "^3.3.1",
     "rescript": "12.0.0-rc.3",
     "rescript-bun": "2.1.0"
   },
-  "dependencies": {
-    "fast-glob": "^3.3.1"
-  }
+  "dependencies": {}
 }

@@ -1,0 +1,21 @@
+{
+  "jsx": {
+    "module": "Hjsx",
+    "version": 4
+  },
+  "namespace": "bun-assets-smoke",
+  "name": "bun-assets-smoke",
+  "sources": [
+    {
+      "dir": "src",
+      "subdirs": true
+    }
+  ],
+  "package-specs": {
+    "module": "commonjs",
+    "in-source": true
+  },
+  "suffix": ".js",
+  "dependencies": ["rescript-bun", "rescript-x"],
+  "compiler-flags": ["-open RescriptBun", "-open RescriptBun.Globals"]
+}

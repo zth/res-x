@@ -1,0 +1,7 @@
+dist/
+.resx/
+node_modules/
+lib/
+src/AppView.js
+src/Hjsx.js
+src/__generated__/ResXAssets.js

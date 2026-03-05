@@ -1,0 +1,25 @@
+{
+  "name": "bun-assets-smoke",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "bun --watch run src/App.js",
+    "start": "NODE_ENV=production bun run src/App.js",
+    "res:build": "node ./scripts/setup-local-rescript-deps.mjs && ../../../node_modules/.bin/rescript",
+    "res:clean": "node ./scripts/setup-local-rescript-deps.mjs && ../../../node_modules/.bin/rescript clean",
+    "assets:dev": "resx assets build --dev --root . --clean",
+    "assets:build": "resx assets build --root . --clean",
+    "verify": "bun run scripts/verify.mjs"
+  },
+  "dependencies": {
+    "@rescript/core": "1.6.0",
+    "rescript-bun": "2.1.0",
+    "rescript-x": "../../../"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.31",
+    "rescript": "12.0.0-rc.3",
+    "tailwindcss": "^3.3.3"
+  }
+}

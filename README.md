@@ -1,6 +1,6 @@
 # ResX
 
-A ReScript framework for building server-driven web sites and applications. Use familiar tech like JSX and the component model from React, combined with simple server driven client side technologies like HTMX. Built on Bun and Vite.
+A ReScript framework for building server-driven web sites and applications. Use familiar tech like JSX and the component model from React, combined with simple server driven client side technologies like HTMX. Built on Bun with a Bun-only asset pipeline.
 
 ResX is suitable for building everything from blogs to complex web applications.
 
@@ -20,7 +20,7 @@ The `demo/` will contain a comprehensive example of using ResX.
 First, make sure you have [`Bun`](https://bun.sh) installed and setup. Then, install `rescript-x` and the dependencies needed:
 
 ```bash
-npm i rescript-x vite @rescript/core rescript-bun
+npm i rescript-x @rescript/core rescript-bun
 ```
 
 Note that ResX requires these versions:
@@ -52,21 +52,7 @@ Go ahead and install the dependencies for Tailwind as well if you want to use it
 npm i autoprefixer postcss tailwindcss
 ```
 
-Let's set everything up. Start by setting up `vite.config.js`:
-
-```javascript
-import { defineConfig } from "vite";
-import { resXVitePlugin } from "rescript-x";
-
-export default defineConfig({
-  plugins: [resXVitePlugin()],
-  server: {
-    port: 9000,
-  },
-});
-```
-
-Make sure you have both folders for static assets set up: `assets` and `public` in the root, next to `vite.config.js`. More on static assets later.
+Make sure you have both folders for static assets set up: `assets` and `public` in the project root. More on static assets later.
 
 If you're using Tailwind, add `tailwind.config.js` and `postcss.config.js` as well:
 
@@ -95,13 +81,12 @@ There! If you want, you can also set up a bunch of scripts in `package.json` tha
 {
   "scripts": {
     "start": "NODE_ENV=production bun run src/App.js",
-    "build": "NODE_ENV=production && bun run build:vite && bun run build:res",
-    "build:vite": "vite build",
+    "build": "NODE_ENV=production resx assets build --root . --clean && bun run build:res",
     "build:res": "rescript",
     "clean:res": "rescript clean",
     "dev:res": "rescript build -w",
     "dev:server": "bun --watch run src/App.js",
-    "dev:vite": "vite",
+    "dev:assets": "resx assets build --dev --watch --root . --clean",
     "dev": "concurrently 'bun:dev:*'"
   }
 }
@@ -215,7 +200,7 @@ switch path {
 
 ## Static assets
 
-ResX comes with full static asset (fonts, images, etc) handling via Vite, that you can use if you want. In order to actually serve the static assets, make sure you use `ResX.BunUtils.serveStaticFile` before trying to handle your request in another way:
+ResX comes with full static asset (fonts, images, etc) handling via Bun tooling. In order to actually serve the static assets, make sure you use `ResX.BunUtils.serveStaticFile` before trying to handle your request in another way:
 
 ```rescript
 fetch: async (request, server) => {
@@ -234,7 +219,7 @@ As for the assets themselves, there are two ways of handling them in ResX:
 
 ### `public` for assets that don't need transformation
 
-Putting assets in the `public` directory. Any assets you put in the top level `public` directory next to `vite.config.js` will be copied as-is to your production environment. It's then available to you via the top level:
+Putting assets in the `public` directory. Any assets you put in the top level `public` directory will be copied as-is to your production environment. It's then available to you via the top level:
 
 ```
 // public/robots.txt exists
@@ -243,7 +228,7 @@ GET /robots.txt
 
 ### `assets` for assets that do need transformation
 
-If you have assets you'd like transformed by Vite before using, put them in the top level `assets` folder. This could be CSS, images, additional JavaScript, and so on. Anything you might want Vite to transform.
+If you have assets you'd like transformed before using, put them in the top level `assets` folder. This could be CSS, images, additional JavaScript, and so on.
 
 Here's an example of how you wire up Tailwind:
 
@@ -262,13 +247,13 @@ Then, include it in your ReScript:
 </head>
 ```
 
-There! It's now available to you, and Vite will both transform and hot module reload the asset if it's possible.
+There! It's now available to you through the managed asset pipeline.
 
 #### Referring to transformed `assets`
 
 Notice how we're not using a `"/assets/styles.css"` string to refer to `styles.css`, but rather `ResXAssets.assets.styles_css`? This is because ResX comes with a "type safe" asset layer - anything you put in `assets/` will be available via `ResXAssets.assets`.
 
-**Always use this to refer to assets**. One for the type safety of course, but also because this is how Vite keeps track of all asset files, so you get the transformed asset in production, and so on.
+**Always use this to refer to assets**. This keeps references type-safe and ensures you get the correct transformed file in production.
 
 > Bonus: Since the asset map is a regular ReScript record, you'll automatically get dead code analysis via the ReScript code analyzer. Dead code analysis for your assets! Makes it really easy to keep your assets folder clean.
 
@@ -1025,14 +1010,13 @@ render: async ({path}) => {
 - `FormDataHelpers`
 - `FormData`
 
-### Vite plugin
+### Asset CLI
 
-ResX comes with its own Vite plugin that takes care of all configuration for you. It will:
+ResX ships a Bun CLI for assets:
 
-- Ensure all ResX assets are handled and included properly
-- Ensure that Hot Module Reloading works for all assets and that Vite dev mode is properly wired up to your local ResX dev server
-
-> Note: Right now, using ResX with more elaborate Vite config than what's preconfigured for you might be problematic. This will change in the future though so that ResX is just another part of your Vite config. Open issues please when you find use cases you'd like supported but that doesn't work now.
+- `resx assets build --dev` builds to `.resx/dev` with stable URLs
+- `resx assets build` builds to `dist` with hashed filenames
+- `resx assets build --dev --watch` watches `assets/`, `public/`, and `src/ResXClient.*`
 
 ## Static site generation
 
