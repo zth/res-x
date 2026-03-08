@@ -23,7 +23,7 @@ Buntest.describe("CSRF", () => {
     Buntest.expect(text).toBe(`<!DOCTYPE html><html><head></head><body><form><input name="resx_csrf_token" type="hidden" value="` + token + `"/></form></body></html>`);
   });
   Buntest.test("hxPost blocks without token when csrfCheck is true", async () => {
-    Handlers$ResX.hxPost(TestUtils$ResX.Handler.testHandler, "/csrf-hx-post", SecurityPolicy$ResX.allow, async param => "ok", true);
+    TestUtils$ResX.Handler.testHandler.hxPost("/csrf-hx-post", SecurityPolicy$ResX.allow, async param => "ok", true);
     let response = await TestUtils$ResX.getResponseWithInit("/_api/csrf-hx-post", {
       method: "POST"
     });
@@ -32,7 +32,7 @@ Buntest.describe("CSRF", () => {
     Buntest.expect(text).toBe(`<!DOCTYPE html>Invalid CSRF token.`);
   });
   Buntest.test("hxPost passes with valid token when csrfCheck is true", async () => {
-    Handlers$ResX.hxPost(TestUtils$ResX.Handler.testHandler, "/csrf-hx-post-valid", SecurityPolicy$ResX.allow, async param => "ok", true);
+    TestUtils$ResX.Handler.testHandler.hxPost("/csrf-hx-post-valid", SecurityPolicy$ResX.allow, async param => "ok", true);
     let token = $$Bun.CSRF.generate();
     let headers = [[
         "X-CSRF-Token",
@@ -47,7 +47,7 @@ Buntest.describe("CSRF", () => {
     Buntest.expect(text).toBe(`<!DOCTYPE html>ok`);
   });
   Buntest.test("hxPost passes with token from CSRFToken form field", async () => {
-    Handlers$ResX.hxPost(TestUtils$ResX.Handler.testHandler, "/csrf-hx-post-component-token", SecurityPolicy$ResX.allow, async param => {
+    TestUtils$ResX.Handler.testHandler.hxPost("/csrf-hx-post-component-token", SecurityPolicy$ResX.allow, async param => {
       let fd = await param.request.formData();
       let v = fd.get("name");
       if (typeof v !== "string") {
@@ -74,7 +74,7 @@ Buntest.describe("CSRF", () => {
     Buntest.expect(text).toBe(`<!DOCTYPE html>Ada`);
   });
   Buntest.test("formAction blocks without token when csrfCheck is true", async () => {
-    Handlers$ResX.formAction(TestUtils$ResX.Handler.testHandler, "/csrf-form", SecurityPolicy$ResX.allow, async param => new Response("ok"), true);
+    TestUtils$ResX.Handler.testHandler.formAction("/csrf-form", SecurityPolicy$ResX.allow, async param => new Response("ok"), true);
     let headers = [[
         "Content-Type",
         "application/x-www-form-urlencoded"
@@ -88,7 +88,7 @@ Buntest.describe("CSRF", () => {
     Buntest.expect(text).toBe("Invalid CSRF token.");
   });
   Buntest.test("formAction passes with valid token when csrfCheck is true", async () => {
-    Handlers$ResX.formAction(TestUtils$ResX.Handler.testHandler, "/csrf-form-valid", SecurityPolicy$ResX.allow, async param => new Response("ok"), true);
+    TestUtils$ResX.Handler.testHandler.formAction("/csrf-form-valid", SecurityPolicy$ResX.allow, async param => new Response("ok"), true);
     let token = $$Bun.CSRF.generate();
     let headers = [[
         "X-CSRF-Token",
@@ -103,7 +103,7 @@ Buntest.describe("CSRF", () => {
     Buntest.expect(text).toBe("ok");
   });
   Buntest.test("formAction passes with token from CSRFToken form field", async () => {
-    Handlers$ResX.formAction(TestUtils$ResX.Handler.testHandler, "/csrf-form-component-token", SecurityPolicy$ResX.allow, async param => {
+    TestUtils$ResX.Handler.testHandler.formAction("/csrf-form-component-token", SecurityPolicy$ResX.allow, async param => {
       let fd = await param.request.formData();
       let v = fd.get("name");
       if (v === null) {
@@ -144,13 +144,13 @@ Buntest.describe("CSRF", () => {
         _0: true
       }
     });
-    Handlers$ResX.hxPost(customHandler, "/csrf-default", SecurityPolicy$ResX.allow, async param => "ok", undefined);
+    customHandler.hxPost("/csrf-default", SecurityPolicy$ResX.allow, async param => "ok", undefined);
     let match = TestUtils$ResX.getPort();
     let port = match[0];
     let server = Bun.serve({
       development: true,
       port: port,
-      fetch: async (request, _server) => await Handlers$ResX.handleRequest(customHandler, {
+      fetch: async (request, _server) => await customHandler.handleRequest({
         request: request,
         render: async param => null,
         setupHeaders: () => new Headers([[
@@ -191,14 +191,14 @@ Buntest.describe("CSRF", () => {
         delete: undefined
       }
     });
-    Handlers$ResX.hxGet(customHandler, "/pm", SecurityPolicy$ResX.allow, async param => "ok", undefined);
-    Handlers$ResX.hxPost(customHandler, "/pm", SecurityPolicy$ResX.allow, async param => "ok", undefined);
+    customHandler.hxGet("/pm", SecurityPolicy$ResX.allow, async param => "ok", undefined);
+    customHandler.hxPost("/pm", SecurityPolicy$ResX.allow, async param => "ok", undefined);
     let match = TestUtils$ResX.getPort();
     let port = match[0];
     let server = Bun.serve({
       development: true,
       port: port,
-      fetch: async (request, _server) => await Handlers$ResX.handleRequest(customHandler, {
+      fetch: async (request, _server) => await customHandler.handleRequest({
         request: request,
         render: async param => null,
         setupHeaders: () => new Headers([[

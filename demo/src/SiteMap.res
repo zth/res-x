@@ -2,7 +2,7 @@
 let make = () => {
   let context = HtmxHandler.useContext()
 
-  context.requestController->ResX.RequestController.setDocHeader(
+  context.requestController.setDocHeader(
     Some(`<?xml version="1.0" encoding="UTF-8"?>`),
   )
 

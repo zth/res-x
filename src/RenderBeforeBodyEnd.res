@@ -1,5 +1,5 @@
 @jsx.component
-let make = (~children, ~requestController) => {
-  requestController->RequestController.appendBeforeBodyEnd(children)
+let make = (~children, ~requestController: RequestController.t) => {
+  requestController.appendBeforeBodyEnd(children)
   Hjsx.null
 }

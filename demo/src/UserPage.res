@@ -4,7 +4,7 @@ type inputValue = | @as("on") On | @as("off") Off
 @unboxed
 type inputValueDecode = | ...inputValue | Other(string)
 
-let onForm = HtmxHandler.handler->ResX.Handlers.hxPost(
+let onForm = HtmxHandler.handler.hxPost(
   "/user-single",
   ~securityPolicy=ResX.SecurityPolicy.allow,
   ~handler=async ({request}) => {

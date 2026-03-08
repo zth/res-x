@@ -3,7 +3,7 @@ open TestUtils
 
 describe("Form action handlers", () => {
   testAsync("prefixing of form action handler routes work", async () => {
-    let _getHandler = Handler.testHandler->Handlers.formAction(
+    let _getHandler = Handler.testHandler.formAction(
       "/test",
       ~securityPolicy=SecurityPolicy.allow,
       ~handler=async _ => {
@@ -23,7 +23,7 @@ describe("Form action handlers", () => {
   })
 
   testAsync("security policy metadata is forwarded to handler", async () => {
-    let _getHandler = Handler.testHandler->Handlers.formAction(
+    let _getHandler = Handler.testHandler.formAction(
       "/test-meta",
       ~securityPolicy=async _ => SecurityPolicy.Allow(42),
       ~handler=async ({securityPolicyData}) => {

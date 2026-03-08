@@ -123,7 +123,7 @@ let handler = ResX.Handlers.make(~requestToContext=async _request => {
 })
 
 // This isn't required but is a shorthand to pull out the context a bit more conveniently from your handler.
-let useContext = () => ResX.Handlers.useContext(handler)
+let useContext = () => handler.useContext()
 ```
 
 Next, let's set up our webserver via Bun:
@@ -144,7 +144,7 @@ let server = Bun.serve({
     | None =>
       // Handle the request using the ResX handler if this wasn't a static file request.
       // Note: By default, all HTMX handler routes are prefixed with "_api", and all form action routes are prefixed with "_form".
-      await Handler.handler->ResX.Handlers.handleRequest({
+      await Handler.handler.handleRequest({
         request,
         setupHeaders: () => {
           // You can do any basic headers setup here that you want. These can be overwritten easily by your main application regardless of what you set here.
@@ -155,16 +155,16 @@ let server = Bun.serve({
           switch path {
           | list{"sitemap.xml"} => <SiteMap />
           | appRoutes =>
-            requestController->ResX.RequestController.appendTitleSegment("Test App")
+            requestController.appendTitleSegment("Test App")
             <Html>
               <div>
                 {switch appRoutes {
                 | list{} =>
                   <div> {Hjsx.string("Start page!")} </div>
                 | list{"moved"} =>
-                  requestController->ResX.RequestController.redirect("/start", ~status=302)
+                  requestController.redirect("/start", ~status=302)
                 | _ =>
-                  requestController->ResX.RequestController.setStatus(404)
+                  requestController.setStatus(404)
                   <div>{Hjsx.string("404")}</div>
                 }}
               </div>
@@ -205,10 +205,10 @@ switch path {
   <div> {Hjsx.string("Start page!")} </div>
 | list{"moved"} =>
   // Path: /moved
-  requestController->ResX.RequestController.redirect("/start", ~status=302)
+  requestController.redirect("/start", ~status=302)
 | _ =>
   // Any other path
-  requestController->ResX.RequestController.setStatus(404)
+  requestController.setStatus(404)
   <div>{Hjsx.string("404")}</div>
 }
 ```
@@ -224,7 +224,7 @@ fetch: async (request, server) => {
     switch await ResX.BunUtils.serveStaticFile(request) {
     | Some(staticResponse) => staticResponse
     | None =>
-      await Handler.handler->ResX.Handlers.handleRequest({
+      await Handler.handler.handleRequest({
         ...
 ```
 
@@ -307,14 +307,14 @@ let handler = ResX.Handlers.make(~requestToContext=async request => {
 })
 
 // Short hand for retrieving the context
-let useContext = () => handler->ResX.Handlers.useContext
+let useContext = () => handler.useContext()
 ```
 
 Now, we can attach and use actions via this handler:
 
 ```rescript
 // User.res
-let onForm = Handler.handler->ResX.Handlers.hxPost("/user-single", ~securityPolicy=ResX.SecurityPolicy.allow, ~handler=async ({request}) => {
+let onForm = Handler.handler.hxPost("/user-single", ~securityPolicy=ResX.SecurityPolicy.allow, ~handler=async ({request}) => {
   let formData = await request->Request.formData
   try {
     let name = formData->ResX.FormDataHelpers.expectString("name")
@@ -341,19 +341,19 @@ let make = () => {
 }
 ```
 
-This is all wired up automatically via `ResX.Handlers.handleRequest`. Also notice that as all of this is server side, you don't need to worry about accidentally leaking things to the client.
+This is all wired up automatically via `handler.handleRequest`. Also notice that as all of this is server side, you don't need to worry about accidentally leaking things to the client.
 
 ##### Handling cyclic dependencies
 
-Sometimes you end up in a situation where you want to refer to the `hxGet` (or any other `hx` handler) you're implementing inside of the implementation itself. For example, a component that can "refresh" itself. This can't be done with the regular `ResX.Handlers.get` etc because that'd create a situation of cyclic dependencies where the definition of the handler refers to itself. In order to handle these specific scenarios, you can leverage `ResX.Handlers.makeGet` + `ResX.Handlers.implementGet` to first get a `hxGet` identifier you can attach to your DOM nodes, and _then_ implement it in a place where you won't get cyclic dependencies.
+Sometimes you end up in a situation where you want to refer to the `hxGet` (or any other `hx` handler) you're implementing inside of the implementation itself. For example, a component that can "refresh" itself. This can't be done with the regular `handler.hxGet` etc because that'd create a situation of cyclic dependencies where the definition of the handler refers to itself. In order to handle these specific scenarios, you can leverage `handler.hxGetRef` + `handler.hxGetDefine` to first get a `hxGet` identifier you can attach to your DOM nodes, and _then_ implement it in a place where you won't get cyclic dependencies.
 
 Let's look at the example above and adjust it to work that way instead:
 
 ```rescript
 // User.res
-let onForm = Handler.handler->ResX.Handlers.makeHxPostIdentifier("/user-single")
+let onForm = Handler.handler.hxPostRef("/user-single")
 
-Handler.handler->ResX.Handlers.implementHxPostIdentifier(onForm, ~securityPolicy=ResX.SecurityPolicy.allow, ~handler=async ({request}) => {
+Handler.handler.hxPostDefine(onForm, ~securityPolicy=ResX.SecurityPolicy.allow, ~handler=async ({request}) => {
   let formData = await request->Request.formData
   try {
     let name = formData->ResX.FormDataHelpers.expectString("name")
@@ -432,7 +432,7 @@ A security policy is a function that takes the request and context, and returns 
 If you return `Allow(meta)`, the handler receives that metadata on the `securityPolicyData` field:
 
 ```rescript
-let onForm = Handler.handler->ResX.Handlers.hxPost(
+let onForm = Handler.handler.hxPost(
   "/submit",
   ~securityPolicy=async _ => ResX.SecurityPolicy.Allow("admin"),
   ~handler=async ({securityPolicyData}) => {
@@ -473,7 +473,7 @@ Enable CSRF per route:
 
 ```rescript
 // HTMX handler with CSRF enabled
-let onForm = Handler.handler->ResX.Handlers.hxPost(
+let onForm = Handler.handler.hxPost(
   "/submit",
   ~securityPolicy=ResX.SecurityPolicy.allow,
   ~csrfCheck=true,
@@ -484,7 +484,7 @@ let onForm = Handler.handler->ResX.Handlers.hxPost(
 )
 
 // Form action with CSRF enabled
-let onSubmit = Handler.handler->ResX.Handlers.formAction(
+let onSubmit = Handler.handler.formAction(
   "/submit-form",
   ~securityPolicy=ResX.SecurityPolicy.allow,
   ~csrfCheck=true,
@@ -545,7 +545,7 @@ This is easy to do in `ResX` using a `formAction`. It's similar to a HTMX handle
 
 ```rescript
 // User.res
-let onSubmit = Handler.handler->ResX.Handlers.formAction("/some-url", ~securityPolicy=ResX.SecurityPolicy.allow, ~handler=async ({request, context}) => {
+let onSubmit = Handler.handler.formAction("/some-url", ~securityPolicy=ResX.SecurityPolicy.allow, ~handler=async ({request, context}) => {
   Response.makeRedirect("/some-other-page")
 })
 
@@ -569,7 +569,7 @@ In rare cases where you need programmatic access to the actual URL string for yo
 
 ```rescript
 // For HTMX handlers
-let getHandler = Handler.handler->ResX.Handlers.hxGet("/api/users", ~securityPolicy=ResX.SecurityPolicy.allow, ~handler=async _ => {
+let getHandler = Handler.handler.hxGet("/api/users", ~securityPolicy=ResX.SecurityPolicy.allow, ~handler=async _ => {
   // handler implementation
 })
 
@@ -581,7 +581,7 @@ let endpointUrl = getHandler->ResX.Handlers.hxGetToEndpointURL
 // hxPostToEndpointURL, hxPutToEndpointURL, hxDeleteToEndpointURL, hxPatchToEndpointURL
 
 // For form actions
-let submitAction = Handler.handler->ResX.Handlers.formAction("/submit-form", ~securityPolicy=ResX.SecurityPolicy.allow, ~handler=async _ => {
+let submitAction = Handler.handler.formAction("/submit-form", ~securityPolicy=ResX.SecurityPolicy.allow, ~handler=async _ => {
   // handler implementation
 })
 
@@ -805,12 +805,12 @@ ResX ships with a number of conveniences for handling common things when buildin
 `onBeforeBuildResponse` lets you manipulate your request specific context before ResX starts generating HTML. Let's look at an example of adding a script tag to the head if a certain criteria has been met:
 
 ```rescript
-await Handler.handler->ResX.Handlers.handleRequest({
+await Handler.handler.handleRequest({
   request,
   onBeforeBuildResponse: ({context, request}) => {
     // Imagine `shouldLoadHtmx` can be set to true by the code that has executed for this particular route. A component could for example mark itself as needing HTMX.
     if context.shouldLoadHtmx {
-      response->ResX.RequestController.appendToHead(<script src="https://unpkg.com/htmx.org@1.9.5" async=true />)
+      response.appendToHead(<script src="https://unpkg.com/htmx.org@1.9.5" async=true />)
     }
   },
   render: async ({path, requestController, headers}) => {
@@ -823,7 +823,7 @@ await Handler.handler->ResX.Handlers.handleRequest({
 `onBeforeSendResponse` lets you manipulate the response you're producing one last time before sending it to the client. Let's look at an example of overriding any cache header set when the user is logged in:
 
 ```rescript
-await Handler.handler->ResX.Handlers.handleRequest({
+await Handler.handler.handleRequest({
   request,
   onBeforeSendResponse: ({context, response, request}) => {
     // Change (or replace) the final response here.
@@ -848,20 +848,20 @@ Therefore, ResX ships with a helper for handling the title using `ResX.RequestCo
 
 ```rescript
 // App.res
-let context = ResX.Handlers.useContext(HtmxHandler.handler)
-context.requestController->ResX.RequestController.prependTitleSegment("My App")
+let context = HtmxHandler.handler.useContext()
+context.requestController.prependTitleSegment("My App")
 
 // Users.res
 // Title is now "Users | MyApp"
-context.requestController->ResX.RequestController.prependTitleSegment("Users")
+context.requestController.prependTitleSegment("Users")
 
 // SingleUser.res
 // Title is now "Someuser Name | Users | MyApp"
-context.requestController->ResX.RequestController.prepentTitleSegment(user.name)
+context.requestController.prependTitleSegment(user.name)
 
 // There's also an `appendTitleSegment` for appending to the title
 // Title is now "Someuser Name | Users | MyApp | Appeneded Content"
-context.requestController->ResX.RequestController.appendTitleSegment("Appeneded Content")
+context.requestController.appendTitleSegment("Appeneded Content")
 
 ```
 
@@ -870,18 +870,18 @@ It's also easy to set the title to something else entirely with `setFullTitle`:
 ```rescript
 // SingleUser.res
 // Title is now "Failed!"
-context.requestController->ResX.RequestController.setFullTitle("Failed!")
+context.requestController.setFullTitle("Failed!")
 ```
 
 > Note: You control how the title is rendered by passing a `renderTitle` function to `handleRequest`.
 
 ### Generic append to head
 
-It's not just `<title>` that might be inconvenient to have to produce as you're rendering `<head>`. You might have styles or other things that you might want to load depending on what you're rendering, and that belongs in `<head>`. `ResX.RequestController` comes with a generic `appendToHead` function for that:
+It's not just `<title>` that might be inconvenient to have to produce as you're rendering `<head>`. You might have styles or other things that you might want to load depending on what you're rendering, and that belongs in `<head>`. `ResX.RequestController` comes with a generic `appendToHead` method for that:
 
 ```rescript
 // SingleUser.res
-context.requestController->ResX.RequestController.appendToHead(<link href={ResXAssets.assets.single_user_page_styles_css} rel="text/stylesheet" />)
+context.requestController.appendToHead(<link href={ResXAssets.assets.single_user_page_styles_css} rel="text/stylesheet" />)
 ```
 
 There's also a component you can use to render things into head. This component can be rendered anywhere in the component tree and the content will still be rendered in `<head>`:
@@ -897,10 +897,10 @@ There's also a component you can use to render things into head. This component 
 
 ### Redirects
 
-You can redirect easily using `ResX.RequestController.redirect`:
+You can redirect easily using `requestController.redirect`:
 
 ```rescript
-requestController->ResX.RequestController.redirect("/start", ~status=302)
+requestController.redirect("/start", ~status=302)
 ```
 
 This returns a JSX element, so you can easily integrate it wherever you want to set the redirect:
@@ -908,7 +908,7 @@ This returns a JSX element, so you can easily integrate it wherever you want to 
 ```rescript
 switch path {
 | list{"moved"} =>
-  requestController->ResX.RequestController.redirect("/start", ~status=302)
+  requestController.redirect("/start", ~status=302)
 ```
 
 ### Cache control
@@ -933,8 +933,8 @@ You can set the response status anywhere when rendering:
 // FourOhFour.res
 @jsx.component
 let make = () => {
-  let context = ResX.Handlers.useContext(HtmxHandler.handler)
-  context.requestController->ResX.RequestController.setStatus(404)
+  let context = HtmxHandler.handler.useContext()
+  context.requestController.setStatus(404)
 
   <div> {Hjsx.string("404")} </div>
 }
@@ -945,13 +945,13 @@ let make = () => {
 Setting any other header anywhere when rendering is also easy:
 
 ```rescript
-let context = ResX.Handlers.useContext(HtmxHandler.handler)
+let context = HtmxHandler.handler.useContext()
 context.headers->Headers.set("Content-Type", "text/html")
 ```
 
 ### Advanced: Doc header
 
-By default, any returned content from your handlers is prefixed with `<!DOCTYPE html>` because you're expected to return HTML. However, there are cases where you might want to return other things than HTML but still use JSX. Examples include returning XML to produce a site map, CSV files for data export, or other structured data formats. For that, you can leverage `ResX.RequestController.setDocHeader`:
+By default, any returned content from your handlers is prefixed with `<!DOCTYPE html>` because you're expected to return HTML. However, there are cases where you might want to return other things than HTML but still use JSX. Examples include returning XML to produce a site map, CSV files for data export, or other structured data formats. For that, you can leverage `requestController.setDocHeader`:
 
 #### XML sitemap example
 
@@ -959,9 +959,9 @@ By default, any returned content from your handlers is prefixed with `<!DOCTYPE 
 // SiteMap.res
 @jsx.component
 let make = () => {
-  let {requestController, headers} = HtmxHandler.handler->ResX.Handlers.useContext
+  let {requestController, headers} = HtmxHandler.handler.useContext()
 
-  requestController->ResX.RequestController.setDocHeader(
+  requestController.setDocHeader(
     Some(`<?xml version="1.0" encoding="UTF-8"?>`),
   )
 
@@ -988,10 +988,10 @@ let make = () => {
 // UserCsvExport.res
 @jsx.component
 let make = async (~users: array<user>) => {
-  let {requestController, headers} = HtmxHandler.handler->ResX.Handlers.useContext
+  let {requestController, headers} = HtmxHandler.handler.useContext()
 
   // Remove the HTML doctype since we're returning CSV
-  requestController->ResX.RequestController.setDocHeader(None)
+  requestController.setDocHeader(None)
 
   headers->Headers.set("Content-Type", "text/csv; charset=UTF-8")
   headers->Headers.set("Content-Disposition", "attachment; filename=\"users.csv\"")

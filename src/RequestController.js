@@ -5,7 +5,7 @@ let H$ResX = require("./H.js");
 let Stdlib_Option = require("@rescript/runtime/lib/js/Stdlib_Option.js");
 
 function make() {
-  return {
+  let state = {
     status: 200,
     redirect: undefined,
     docHeader: "<!DOCTYPE html>",
@@ -13,72 +13,108 @@ function make() {
     bodyEndContent: [],
     titleSegments: []
   };
+  return {
+    setStatus: status => {
+      state.status = status;
+    },
+    redirect: (url, status) => {
+      state.redirect = [
+        url,
+        status
+      ];
+      return null;
+    },
+    getCurrentStatus: () => state.status,
+    getCurrentRedirect: () => state.redirect,
+    getTitleSegments: () => state.titleSegments.slice(),
+    getDocHeader: () => Stdlib_Option.getOr(state.docHeader, ""),
+    setDocHeader: docHeader => {
+      state.docHeader = docHeader;
+    },
+    appendToHead: content => {
+      state.headContent.push(content);
+    },
+    getAppendedHeadContent: async () => {
+      let headContent = state.headContent;
+      if (headContent.length !== 0) {
+        return await H$ResX.renderToString(headContent);
+      }
+    },
+    appendBeforeBodyEnd: content => {
+      state.bodyEndContent.push(content);
+    },
+    getAppendedBeforeBodyEndContent: async () => {
+      let bodyEndContent = state.bodyEndContent;
+      if (bodyEndContent.length !== 0) {
+        return await H$ResX.renderToString(bodyEndContent);
+      }
+    },
+    appendTitleSegment: segment => {
+      state.titleSegments.push(segment);
+    },
+    prependTitleSegment: segment => {
+      state.titleSegments.unshift(segment);
+    },
+    setFullTitle: title => {
+      state.titleSegments.splice(0, state.titleSegments.length, title);
+    }
+  };
 }
 
 function setStatus(t, status) {
-  t.status = status;
+  t.setStatus(status);
 }
 
 function redirect(t, url, status) {
-  t.redirect = [
-    url,
-    status
-  ];
-  return null;
+  return t.redirect(url, status);
 }
 
 function getCurrentStatus(t) {
-  return t.status;
+  return t.getCurrentStatus();
 }
 
 function getCurrentRedirect(t) {
-  return t.redirect;
+  return t.getCurrentRedirect();
 }
 
 function getTitleSegments(t) {
-  return t.titleSegments.slice();
+  return t.getTitleSegments();
 }
 
 function getDocHeader(t) {
-  return Stdlib_Option.getOr(t.docHeader, "");
+  return t.getDocHeader();
 }
 
 function setDocHeader(t, docHeader) {
-  t.docHeader = docHeader;
+  t.setDocHeader(docHeader);
 }
 
 function appendToHead(t, content) {
-  t.headContent.push(content);
+  t.appendToHead(content);
+}
+
+function getAppendedHeadContent(t) {
+  return t.getAppendedHeadContent();
 }
 
 function appendBeforeBodyEnd(t, content) {
-  t.bodyEndContent.push(content);
+  t.appendBeforeBodyEnd(content);
+}
+
+function getAppendedBeforeBodyEndContent(t) {
+  return t.getAppendedBeforeBodyEndContent();
 }
 
 function appendTitleSegment(t, segment) {
-  t.titleSegments.push(segment);
+  t.appendTitleSegment(segment);
 }
 
 function prependTitleSegment(t, segment) {
-  t.titleSegments.unshift(segment);
+  t.prependTitleSegment(segment);
 }
 
 function setFullTitle(t, title) {
-  t.titleSegments.splice(0, t.titleSegments.length, title);
-}
-
-async function getAppendedHeadContent(t) {
-  let headContent = t.headContent;
-  if (headContent.length !== 0) {
-    return await H$ResX.renderToString(headContent);
-  }
-}
-
-async function getAppendedBeforeBodyEndContent(t) {
-  let bodyEndContent = t.bodyEndContent;
-  if (bodyEndContent.length !== 0) {
-    return await H$ResX.renderToString(bodyEndContent);
-  }
+  t.setFullTitle(title);
 }
 
 exports.make = make;

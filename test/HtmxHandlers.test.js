@@ -8,13 +8,13 @@ let SecurityPolicy$ResX = require("../src/SecurityPolicy.js");
 
 Buntest.describe("HTMX handlers", () => {
   Buntest.test("prefixing of HTMX handler routes work", async () => {
-    Handlers$ResX.hxGet(TestUtils$ResX.Handler.testHandler, "/test", SecurityPolicy$ResX.allow, async param => "Test!", undefined);
+    TestUtils$ResX.Handler.testHandler.hxGet("/test", SecurityPolicy$ResX.allow, async param => "Test!", undefined);
     let response = await TestUtils$ResX.getResponse(undefined, undefined, undefined, undefined, undefined, "/_api/test");
     let text = await response.text();
     Buntest.expect(text).toBe(`<!DOCTYPE html>Test!`);
   });
   Buntest.test("security policy can block content", async () => {
-    Handlers$ResX.hxGet(TestUtils$ResX.Handler.testHandler, "/test-block", async param => ({
+    TestUtils$ResX.Handler.testHandler.hxGet("/test-block", async param => ({
       TAG: "Block",
       code: 403,
       message: "Forbidden"
@@ -25,7 +25,7 @@ Buntest.describe("HTMX handlers", () => {
     Buntest.expect(response.status).toBe(403);
   });
   Buntest.test("security policy metadata is forwarded to handler", async () => {
-    Handlers$ResX.hxGet(TestUtils$ResX.Handler.testHandler, "/test-meta", async param => ({
+    TestUtils$ResX.Handler.testHandler.hxGet("/test-meta", async param => ({
       TAG: "Allow",
       _0: "meta"
     }), async param => param.securityPolicyData, undefined);
@@ -34,47 +34,47 @@ Buntest.describe("HTMX handlers", () => {
     Buntest.expect(text).toBe(`<!DOCTYPE html>meta`);
   });
   Buntest.test("delaying GET handler implementation works", async () => {
-    let getHandler = Handlers$ResX.hxGetRef(TestUtils$ResX.Handler.testHandler, "/test-delay");
-    Handlers$ResX.hxGetDefine(TestUtils$ResX.Handler.testHandler, getHandler, SecurityPolicy$ResX.allow, async param => "Test!", undefined);
+    let getHandler = TestUtils$ResX.Handler.testHandler.hxGetRef("/test-delay");
+    TestUtils$ResX.Handler.testHandler.hxGetDefine(getHandler, SecurityPolicy$ResX.allow, async param => "Test!", undefined);
     let response = await TestUtils$ResX.getResponse(undefined, undefined, undefined, undefined, undefined, "/_api/test-delay");
     let text = await response.text();
     Buntest.expect(text).toBe(`<!DOCTYPE html>Test!`);
   });
   Buntest.test("delaying POST handler implementation works", async () => {
-    let postHandler = Handlers$ResX.hxPostRef(TestUtils$ResX.Handler.testHandler, "/test-delay");
-    Handlers$ResX.hxPostDefine(TestUtils$ResX.Handler.testHandler, postHandler, SecurityPolicy$ResX.allow, async param => "Test!", undefined);
+    let postHandler = TestUtils$ResX.Handler.testHandler.hxPostRef("/test-delay");
+    TestUtils$ResX.Handler.testHandler.hxPostDefine(postHandler, SecurityPolicy$ResX.allow, async param => "Test!", undefined);
     let response = await TestUtils$ResX.getResponse("POST", undefined, undefined, undefined, undefined, "/_api/test-delay");
     let text = await response.text();
     Buntest.expect(text).toBe(`<!DOCTYPE html>Test!`);
   });
   Buntest.test("delaying PUT handler implementation works", async () => {
-    let putHandler = Handlers$ResX.hxPutRef(TestUtils$ResX.Handler.testHandler, "/test-delay");
-    Handlers$ResX.hxPutDefine(TestUtils$ResX.Handler.testHandler, putHandler, SecurityPolicy$ResX.allow, async param => "Test!", undefined);
+    let putHandler = TestUtils$ResX.Handler.testHandler.hxPutRef("/test-delay");
+    TestUtils$ResX.Handler.testHandler.hxPutDefine(putHandler, SecurityPolicy$ResX.allow, async param => "Test!", undefined);
     let response = await TestUtils$ResX.getResponse("PUT", undefined, undefined, undefined, undefined, "/_api/test-delay");
     let text = await response.text();
     Buntest.expect(text).toBe(`<!DOCTYPE html>Test!`);
   });
   Buntest.test("delaying DELETE handler implementation works", async () => {
-    let deleteHandler = Handlers$ResX.hxDeleteRef(TestUtils$ResX.Handler.testHandler, "/test-delay");
-    Handlers$ResX.hxDeleteDefine(TestUtils$ResX.Handler.testHandler, deleteHandler, SecurityPolicy$ResX.allow, async param => "Test!", undefined);
+    let deleteHandler = TestUtils$ResX.Handler.testHandler.hxDeleteRef("/test-delay");
+    TestUtils$ResX.Handler.testHandler.hxDeleteDefine(deleteHandler, SecurityPolicy$ResX.allow, async param => "Test!", undefined);
     let response = await TestUtils$ResX.getResponse("DELETE", undefined, undefined, undefined, undefined, "/_api/test-delay");
     let text = await response.text();
     Buntest.expect(text).toBe(`<!DOCTYPE html>Test!`);
   });
   Buntest.test("delaying PATCH handler implementation works", async () => {
-    let patchHandler = Handlers$ResX.hxPatchRef(TestUtils$ResX.Handler.testHandler, "/test-delay");
-    Handlers$ResX.hxPatchDefine(TestUtils$ResX.Handler.testHandler, patchHandler, SecurityPolicy$ResX.allow, async param => "Test!", undefined);
+    let patchHandler = TestUtils$ResX.Handler.testHandler.hxPatchRef("/test-delay");
+    TestUtils$ResX.Handler.testHandler.hxPatchDefine(patchHandler, SecurityPolicy$ResX.allow, async param => "Test!", undefined);
     let response = await TestUtils$ResX.getResponse("PATCH", undefined, undefined, undefined, undefined, "/_api/test-delay");
     let text = await response.text();
     Buntest.expect(text).toBe(`<!DOCTYPE html>Test!`);
   });
   Buntest.test("endpoint URL helpers return the correct URLs", async () => {
-    let getHandler = Handlers$ResX.hxGet(TestUtils$ResX.Handler.testHandler, "/test-url-get", SecurityPolicy$ResX.allow, async param => "Test!", undefined);
-    let postHandler = Handlers$ResX.hxPost(TestUtils$ResX.Handler.testHandler, "/test-url-post", SecurityPolicy$ResX.allow, async param => "Test!", undefined);
-    let putHandler = Handlers$ResX.hxPut(TestUtils$ResX.Handler.testHandler, "/test-url-put", SecurityPolicy$ResX.allow, async param => "Test!", undefined);
-    let deleteHandler = Handlers$ResX.hxDelete(TestUtils$ResX.Handler.testHandler, "/test-url-delete", SecurityPolicy$ResX.allow, async param => "Test!", undefined);
-    let patchHandler = Handlers$ResX.hxPatch(TestUtils$ResX.Handler.testHandler, "/test-url-patch", SecurityPolicy$ResX.allow, async param => "Test!", undefined);
-    let formActionHandler = Handlers$ResX.formAction(TestUtils$ResX.Handler.testHandler, "/test-form", SecurityPolicy$ResX.allow, async param => Response.redirect("/test"), undefined);
+    let getHandler = TestUtils$ResX.Handler.testHandler.hxGet("/test-url-get", SecurityPolicy$ResX.allow, async param => "Test!", undefined);
+    let postHandler = TestUtils$ResX.Handler.testHandler.hxPost("/test-url-post", SecurityPolicy$ResX.allow, async param => "Test!", undefined);
+    let putHandler = TestUtils$ResX.Handler.testHandler.hxPut("/test-url-put", SecurityPolicy$ResX.allow, async param => "Test!", undefined);
+    let deleteHandler = TestUtils$ResX.Handler.testHandler.hxDelete("/test-url-delete", SecurityPolicy$ResX.allow, async param => "Test!", undefined);
+    let patchHandler = TestUtils$ResX.Handler.testHandler.hxPatch("/test-url-patch", SecurityPolicy$ResX.allow, async param => "Test!", undefined);
+    let formActionHandler = TestUtils$ResX.Handler.testHandler.formAction("/test-form", SecurityPolicy$ResX.allow, async param => Response.redirect("/test"), undefined);
     Buntest.expect(Handlers$ResX.hxGetToEndpointURL(getHandler)).toBe("/_api/test-url-get");
     Buntest.expect(Handlers$ResX.hxPostToEndpointURL(postHandler)).toBe("/_api/test-url-post");
     Buntest.expect(Handlers$ResX.hxPutToEndpointURL(putHandler)).toBe("/_api/test-url-put");

@@ -1,9 +1,9 @@
-let match = (userRoutes, ~headers, ~requestController) => {
-  requestController->ResX.RequestController.appendTitleSegment("Users")
+let match = (userRoutes, ~headers, ~requestController: ResX.RequestController.t) => {
+  requestController.appendTitleSegment("Users")
 
   switch userRoutes {
   | list{userId, ...userRoutes} =>
-    requestController->ResX.RequestController.appendTitleSegment(userId)
+    requestController.appendTitleSegment(userId)
     headers->Headers.set("Cache-Control", "private")
     <UserPage
       userId
@@ -13,7 +13,7 @@ let match = (userRoutes, ~headers, ~requestController) => {
       }}
     />
   | _ =>
-    requestController->ResX.RequestController.appendTitleSegment("Not found")
+    requestController.appendTitleSegment("Not found")
     <FourOhFour />
   }
 }

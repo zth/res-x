@@ -2,19 +2,18 @@
 'use strict';
 
 let Buntest = require("bun:test");
-let Handlers$ResX = require("../src/Handlers.js");
 let TestUtils$ResX = require("./TestUtils.js");
 let SecurityPolicy$ResX = require("../src/SecurityPolicy.js");
 
 Buntest.describe("Form action handlers", () => {
   Buntest.test("prefixing of form action handler routes work", async () => {
-    Handlers$ResX.formAction(TestUtils$ResX.Handler.testHandler, "/test", SecurityPolicy$ResX.allow, async param => new Response("Test!"), undefined);
+    TestUtils$ResX.Handler.testHandler.formAction("/test", SecurityPolicy$ResX.allow, async param => new Response("Test!"), undefined);
     let response = await TestUtils$ResX.getResponse(undefined, param => "nope", undefined, undefined, undefined, "/_form/test");
     let text = await response.text();
     Buntest.expect(text).toBe(`Test!`);
   });
   Buntest.test("security policy metadata is forwarded to handler", async () => {
-    Handlers$ResX.formAction(TestUtils$ResX.Handler.testHandler, "/test-meta", async param => ({
+    TestUtils$ResX.Handler.testHandler.formAction("/test-meta", async param => ({
       TAG: "Allow",
       _0: 42
     }), async param => new Response(param.securityPolicyData.toString()), undefined);

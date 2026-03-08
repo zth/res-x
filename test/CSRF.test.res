@@ -26,7 +26,7 @@ describe("CSRF", () => {
   })
   testAsync("hxPost blocks without token when csrfCheck is true", async () => {
     let _handler =
-      Handler.testHandler->Handlers.hxPost(
+      Handler.testHandler.hxPost(
         "/csrf-hx-post",
         ~securityPolicy=SecurityPolicy.allow,
         ~csrfCheck=true,
@@ -41,7 +41,7 @@ describe("CSRF", () => {
 
   testAsync("hxPost passes with valid token when csrfCheck is true", async () => {
     let _handler =
-      Handler.testHandler->Handlers.hxPost(
+      Handler.testHandler.hxPost(
         "/csrf-hx-post-valid",
         ~securityPolicy=SecurityPolicy.allow,
         ~csrfCheck=true,
@@ -61,7 +61,7 @@ describe("CSRF", () => {
 
   testAsync("hxPost passes with token from CSRFToken form field", async () => {
     let _handler =
-      Handler.testHandler->Handlers.hxPost(
+      Handler.testHandler.hxPost(
         "/csrf-hx-post-component-token",
         ~securityPolicy=SecurityPolicy.allow,
         ~csrfCheck=true,
@@ -110,7 +110,7 @@ describe("CSRF", () => {
 
   testAsync("formAction blocks without token when csrfCheck is true", async () => {
     let _fa =
-      Handler.testHandler->Handlers.formAction(
+      Handler.testHandler.formAction(
         "/csrf-form",
         ~securityPolicy=SecurityPolicy.allow,
         ~csrfCheck=true,
@@ -131,7 +131,7 @@ describe("CSRF", () => {
 
   testAsync("formAction passes with valid token when csrfCheck is true", async () => {
     let _fa =
-      Handler.testHandler->Handlers.formAction(
+      Handler.testHandler.formAction(
         "/csrf-form-valid",
         ~securityPolicy=SecurityPolicy.allow,
         ~csrfCheck=true,
@@ -151,7 +151,7 @@ describe("CSRF", () => {
 
   testAsync("formAction passes with token from CSRFToken form field", async () => {
     let _fa =
-      Handler.testHandler->Handlers.formAction(
+      Handler.testHandler.formAction(
         "/csrf-form-component-token",
         ~securityPolicy=SecurityPolicy.allow,
         ~csrfCheck=true,
@@ -204,7 +204,7 @@ describe("CSRF", () => {
     )
 
     let _hx =
-      customHandler->Handlers.hxPost(
+      customHandler.hxPost(
         "/csrf-default",
         ~securityPolicy=SecurityPolicy.allow,
         ~handler=async _ => Hjsx.string("ok"),
@@ -216,14 +216,11 @@ describe("CSRF", () => {
       port,
       development: true,
       fetch: async (request, _server) =>
-        await Handlers.handleRequest(
-          customHandler,
-          {
-            request,
-            render: async _ => Hjsx.null,
-            setupHeaders: () => Headers.make(~init=FromArray([("Content-Type", "text/html")])),
-          },
-        ),
+        await customHandler.handleRequest({
+          request,
+          render: async _ => Hjsx.null,
+          setupHeaders: () => Headers.make(~init=FromArray([("Content-Type", "text/html")])),
+        }),
     })
 
     // Missing token should 403
@@ -263,13 +260,13 @@ describe("CSRF", () => {
     )
 
     let _hxGet =
-      customHandler->Handlers.hxGet(
+      customHandler.hxGet(
         "/pm",
         ~securityPolicy=SecurityPolicy.allow,
         ~handler=async _ => Hjsx.string("ok"),
       )
     let _hxPost =
-      customHandler->Handlers.hxPost(
+      customHandler.hxPost(
         "/pm",
         ~securityPolicy=SecurityPolicy.allow,
         ~handler=async _ => Hjsx.string("ok"),
@@ -280,14 +277,11 @@ describe("CSRF", () => {
       port,
       development: true,
       fetch: async (request, _server) =>
-        await Handlers.handleRequest(
-          customHandler,
-          {
-            request,
-            render: async _ => Hjsx.null,
-            setupHeaders: () => Headers.make(~init=FromArray([("Content-Type", "text/html")])),
-          },
-        ),
+        await customHandler.handleRequest({
+          request,
+          render: async _ => Hjsx.null,
+          setupHeaders: () => Headers.make(~init=FromArray([("Content-Type", "text/html")])),
+        }),
     })
 
     // GET should be allowed without token

@@ -3,7 +3,7 @@ open TestUtils
 
 describe("HTMX handlers", () => {
   testAsync("prefixing of HTMX handler routes work", async () => {
-    let _getHandler = Handler.testHandler->Handlers.hxGet(
+    let _getHandler = Handler.testHandler.hxGet(
       "/test",
       ~securityPolicy=SecurityPolicy.allow,
       ~handler=async _ => {
@@ -18,7 +18,7 @@ describe("HTMX handlers", () => {
   })
 
   testAsync("security policy can block content", async () => {
-    let _getHandler = Handler.testHandler->Handlers.hxGet(
+    let _getHandler = Handler.testHandler.hxGet(
       "/test-block",
       ~securityPolicy=async _ => SecurityPolicy.Block({
         code: Some(403),
@@ -37,7 +37,7 @@ describe("HTMX handlers", () => {
   })
 
   testAsync("security policy metadata is forwarded to handler", async () => {
-    let _getHandler = Handler.testHandler->Handlers.hxGet(
+    let _getHandler = Handler.testHandler.hxGet(
       "/test-meta",
       ~securityPolicy=async _ => SecurityPolicy.Allow("meta"),
       ~handler=async ({securityPolicyData}) => {
@@ -52,8 +52,8 @@ describe("HTMX handlers", () => {
   })
 
   testAsync("delaying GET handler implementation works", async () => {
-    let getHandler = Handler.testHandler->Handlers.hxGetRef("/test-delay")
-    Handler.testHandler->Handlers.hxGetDefine(
+    let getHandler = Handler.testHandler.hxGetRef("/test-delay")
+    Handler.testHandler.hxGetDefine(
       getHandler,
       ~securityPolicy=SecurityPolicy.allow,
       ~handler=async _ => {
@@ -68,8 +68,8 @@ describe("HTMX handlers", () => {
   })
 
   testAsync("delaying POST handler implementation works", async () => {
-    let postHandler = Handler.testHandler->Handlers.hxPostRef("/test-delay")
-    Handler.testHandler->Handlers.hxPostDefine(
+    let postHandler = Handler.testHandler.hxPostRef("/test-delay")
+    Handler.testHandler.hxPostDefine(
       postHandler,
       ~securityPolicy=SecurityPolicy.allow,
       ~handler=async _ => {
@@ -84,8 +84,8 @@ describe("HTMX handlers", () => {
   })
 
   testAsync("delaying PUT handler implementation works", async () => {
-    let putHandler = Handler.testHandler->Handlers.hxPutRef("/test-delay")
-    Handler.testHandler->Handlers.hxPutDefine(
+    let putHandler = Handler.testHandler.hxPutRef("/test-delay")
+    Handler.testHandler.hxPutDefine(
       putHandler,
       ~securityPolicy=SecurityPolicy.allow,
       ~handler=async _ => {
@@ -100,8 +100,8 @@ describe("HTMX handlers", () => {
   })
 
   testAsync("delaying DELETE handler implementation works", async () => {
-    let deleteHandler = Handler.testHandler->Handlers.hxDeleteRef("/test-delay")
-    Handler.testHandler->Handlers.hxDeleteDefine(
+    let deleteHandler = Handler.testHandler.hxDeleteRef("/test-delay")
+    Handler.testHandler.hxDeleteDefine(
       deleteHandler,
       ~securityPolicy=SecurityPolicy.allow,
       ~handler=async _ => {
@@ -116,8 +116,8 @@ describe("HTMX handlers", () => {
   })
 
   testAsync("delaying PATCH handler implementation works", async () => {
-    let patchHandler = Handler.testHandler->Handlers.hxPatchRef("/test-delay")
-    Handler.testHandler->Handlers.hxPatchDefine(
+    let patchHandler = Handler.testHandler.hxPatchRef("/test-delay")
+    Handler.testHandler.hxPatchDefine(
       patchHandler,
       ~securityPolicy=SecurityPolicy.allow,
       ~handler=async _ => {
@@ -132,42 +132,42 @@ describe("HTMX handlers", () => {
   })
 
   testAsync("endpoint URL helpers return the correct URLs", async () => {
-    let getHandler = Handler.testHandler->Handlers.hxGet(
+    let getHandler = Handler.testHandler.hxGet(
       "/test-url-get",
       ~securityPolicy=SecurityPolicy.allow,
       ~handler=async _ => {
         Hjsx.string("Test!")
       },
     )
-    let postHandler = Handler.testHandler->Handlers.hxPost(
+    let postHandler = Handler.testHandler.hxPost(
       "/test-url-post",
       ~securityPolicy=SecurityPolicy.allow,
       ~handler=async _ => {
         Hjsx.string("Test!")
       },
     )
-    let putHandler = Handler.testHandler->Handlers.hxPut(
+    let putHandler = Handler.testHandler.hxPut(
       "/test-url-put",
       ~securityPolicy=SecurityPolicy.allow,
       ~handler=async _ => {
         Hjsx.string("Test!")
       },
     )
-    let deleteHandler = Handler.testHandler->Handlers.hxDelete(
+    let deleteHandler = Handler.testHandler.hxDelete(
       "/test-url-delete",
       ~securityPolicy=SecurityPolicy.allow,
       ~handler=async _ => {
         Hjsx.string("Test!")
       },
     )
-    let patchHandler = Handler.testHandler->Handlers.hxPatch(
+    let patchHandler = Handler.testHandler.hxPatch(
       "/test-url-patch",
       ~securityPolicy=SecurityPolicy.allow,
       ~handler=async _ => {
         Hjsx.string("Test!")
       },
     )
-    let formActionHandler = Handler.testHandler->Handlers.formAction(
+    let formActionHandler = Handler.testHandler.formAction(
       "/test-form",
       ~securityPolicy=SecurityPolicy.allow,
       ~handler=async _ => {

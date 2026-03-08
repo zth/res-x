@@ -59,7 +59,7 @@ let getResponse = async (
     port,
     development: true,
     fetch: async (request, _server) => {
-      await Handler.testHandler->ResX.Handlers.handleRequest({
+      await Handler.testHandler.handleRequest({
         request,
         setupHeaders: () => {
           Headers.make(~init=FromArray([("Content-Type", "text/html")]))
@@ -106,7 +106,7 @@ let getResponseWithInit = async (~url="/", ~init) => {
     port,
     development: true,
     fetch: async (request, _server) => {
-      await Handler.testHandler->ResX.Handlers.handleRequest({
+      await Handler.testHandler.handleRequest({
         request,
         setupHeaders: () => {
           Headers.make(~init=FromArray([("Content-Type", "text/html")]))
