@@ -1,5 +1,6 @@
 # master
 
+- Expose `RequestController` and `Handlers` as record-of-functions APIs so user code can migrate from `requestController->RequestController.setStatus(404)` to `requestController.setStatus(404)` and from `handler->ResX.Handlers.handleRequest({...})` to `handler.handleRequest({...})`; the old free-function surface is still available but deprecated.
 - Add `__rawProps?: Dict.t<JSON.t>` on JSX DOM props as a low-level escape hatch for arbitrary attributes (escaped values, invalid/non-serializable entries ignored, may emit duplicates after typed props), with accompanying tests and README docs.
 
 # 1.2.1

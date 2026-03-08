@@ -65,7 +65,7 @@ async function getResponse(methodOpt, getContent, onBeforeSendResponse, onBefore
   let server = Bun.serve({
     development: true,
     port: port,
-    fetch: async (request, _server) => await Handlers$ResX.handleRequest(testHandler, {
+    fetch: async (request, _server) => await testHandler.handleRequest({
       request: request,
       render: async renderConfig => {
         if (getContent !== undefined) {
@@ -129,7 +129,7 @@ async function getResponseWithInit(urlOpt, init) {
   let server = Bun.serve({
     development: true,
     port: port,
-    fetch: async (request, _server) => await Handlers$ResX.handleRequest(testHandler, {
+    fetch: async (request, _server) => await testHandler.handleRequest({
       request: request,
       render: async _renderConfig => null,
       setupHeaders: () => new Headers([[

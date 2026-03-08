@@ -5,9 +5,9 @@ let make = (~children) => {
 
 module RenderInHead = {
   @jsx.component
-  let make = (~handler, ~children) => {
-    let ctx = handler->ResX.Handlers.useContext
-    ctx.requestController->ResX.RequestController.appendToHead(children)
+  let make = (~handler: ResX.Handlers.t<_>, ~children) => {
+    let ctx = handler.useContext()
+    ctx.requestController.appendToHead(children)
 
     Hjsx.null
   }

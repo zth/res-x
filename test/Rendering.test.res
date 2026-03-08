@@ -28,7 +28,7 @@ describe("rendering", () => {
     module AsyncComponent = {
       @jsx.component
       let make = async () => {
-        let context = Handler.testHandler->Handlers.useContext
+        let context = Handler.testHandler.useContext()
 
         <RenderInHead requestController=context.requestController>
           <meta name="test" content="test" />
@@ -79,7 +79,7 @@ describe("rendering", () => {
       async () => {
         let text = await getContentInBody(
           renderConfig => {
-            renderConfig.requestController->RequestController.setDocHeader(
+            renderConfig.requestController.setDocHeader(
               Some(`<?xml version="1.0" encoding="UTF-8"?>`),
             )
             Hjsx.null
@@ -95,7 +95,7 @@ describe("rendering", () => {
       async () => {
         let text = await getContentInBody(
           renderConfig => {
-            renderConfig.requestController->RequestController.setDocHeader(None)
+            renderConfig.requestController.setDocHeader(None)
             <Html>
               <div />
             </Html>
@@ -113,7 +113,7 @@ describe("rendering", () => {
       async () => {
         let text = await getContentInBody(
           renderConfig => {
-            renderConfig.requestController->RequestController.appendTitleSegment("</title></head>")
+            renderConfig.requestController.appendTitleSegment("</title></head>")
             <Html>
               <div />
             </Html>
@@ -138,7 +138,7 @@ describe("rendering", () => {
             </Html>
           },
           ~onAfterBuildResponse=async config => {
-            config.requestController->RequestController.appendBeforeBodyEnd(
+            config.requestController.appendBeforeBodyEnd(
               <script src="/after.js" />,
             )
           },
@@ -163,7 +163,7 @@ describe("rendering", () => {
             },
             ~onBeforeBuildResponse=async config => {
               if config.context.shouldAppendToHead {
-                config.requestController->RequestController.appendToHead(
+                config.requestController.appendToHead(
                   <meta name="test" content="test" />,
                 )
               }
@@ -266,7 +266,7 @@ describe("rendering", () => {
       async () => {
         let response = await getResponse(
           ~getContent=renderConfig => {
-            renderConfig.requestController->RequestController.setDocHeader(None)
+            renderConfig.requestController.setDocHeader(None)
 
             renderConfig.headers->Headers.set("Content-Type", "text/csv; charset=UTF-8")
             renderConfig.headers->Headers.set(

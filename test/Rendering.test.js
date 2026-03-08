@@ -4,12 +4,10 @@
 let Stdlib = require("@rescript/runtime/lib/js/Stdlib.js");
 let Buntest = require("bun:test");
 let Hjsx$ResX = require("../src/Hjsx.js");
-let Handlers$ResX = require("../src/Handlers.js");
 let TestUtils$ResX = require("./TestUtils.js");
 let Primitive_option = require("@rescript/runtime/lib/js/Primitive_option.js");
 let RenderInHead$ResX = require("../src/RenderInHead.js");
 let ErrorBoundary$ResX = require("../src/ErrorBoundary.js");
-let RequestController$ResX = require("../src/RequestController.js");
 let RenderBeforeBodyEnd$ResX = require("../src/RenderBeforeBodyEnd.js");
 
 Buntest.describe("rendering", () => {
@@ -28,7 +26,7 @@ Buntest.describe("rendering", () => {
   });
   Buntest.describe("render in head", () => {
     let make = async param => {
-      let context = Handlers$ResX.useContext(TestUtils$ResX.Handler.testHandler);
+      let context = TestUtils$ResX.Handler.testHandler.useContext();
       return Hjsx$ResX.jsx(RenderInHead$ResX.make, {
         children: Hjsx$ResX.Elements.jsx("meta", {
           content: "test",
@@ -60,14 +58,14 @@ Buntest.describe("rendering", () => {
   Buntest.describe("DOCTYPE", () => {
     Buntest.test("change DOCTYPE", async () => {
       let text = await TestUtils$ResX.getContentInBody(renderConfig => {
-        RequestController$ResX.setDocHeader(renderConfig.requestController, `<?xml version="1.0" encoding="UTF-8"?>`);
+        renderConfig.requestController.setDocHeader(`<?xml version="1.0" encoding="UTF-8"?>`);
         return null;
       });
       Buntest.expect(text).toBe(`<?xml version="1.0" encoding="UTF-8"?>`);
     });
     Buntest.test("remove DOCTYPE", async () => {
       let text = await TestUtils$ResX.getContentInBody(renderConfig => {
-        RequestController$ResX.setDocHeader(renderConfig.requestController, undefined);
+        renderConfig.requestController.setDocHeader(undefined);
         return Hjsx$ResX.jsx(TestUtils$ResX.Html.make, {
           children: Hjsx$ResX.Elements.jsx("div", {})
         });
@@ -78,7 +76,7 @@ Buntest.describe("rendering", () => {
   Buntest.describe("Security", () => {
     Buntest.test("title segments are escaped", async () => {
       let text = await TestUtils$ResX.getContentInBody(renderConfig => {
-        RequestController$ResX.appendTitleSegment(renderConfig.requestController, "</title></head>");
+        renderConfig.requestController.appendTitleSegment("</title></head>");
         return Hjsx$ResX.jsx(TestUtils$ResX.Html.make, {
           children: Hjsx$ResX.Elements.jsx("div", {})
         });
@@ -92,7 +90,7 @@ Buntest.describe("rendering", () => {
         children: Hjsx$ResX.Elements.jsx("div", {
           children: "Hi!"
         })
-      }), undefined, undefined, async config => RequestController$ResX.appendBeforeBodyEnd(config.requestController, Hjsx$ResX.Elements.jsx("script", {
+      }), undefined, undefined, async config => config.requestController.appendBeforeBodyEnd(Hjsx$ResX.Elements.jsx("script", {
         src: "/after.js"
       })), undefined);
       let text = await response.text();
@@ -108,7 +106,7 @@ Buntest.describe("rendering", () => {
         });
       }, undefined, async config => {
         if (config.context.shouldAppendToHead) {
-          return RequestController$ResX.appendToHead(config.requestController, Hjsx$ResX.Elements.jsx("meta", {
+          return config.requestController.appendToHead(Hjsx$ResX.Elements.jsx("meta", {
             content: "test",
             name: "test"
           }));
@@ -164,7 +162,7 @@ Buntest.describe("rendering", () => {
   Buntest.describe("CSV export", () => {
     Buntest.test("CSV with content that would be HTML escaped", async () => {
       let response = await TestUtils$ResX.getResponse(undefined, renderConfig => {
-        RequestController$ResX.setDocHeader(renderConfig.requestController, undefined);
+        renderConfig.requestController.setDocHeader(undefined);
         renderConfig.headers.set("Content-Type", "text/csv; charset=UTF-8");
         renderConfig.headers.set("Content-Disposition", "attachment; filename=\"test.csv\"");
         return Hjsx$ResX.dangerouslyOutputUnescapedContent(`Name,Description,Tags

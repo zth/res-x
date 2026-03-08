@@ -7,7 +7,7 @@ let myVariantFromString = (a: FormData.formDataValueResult) => {
   | other => Error(`Unknown value: "${String.make(other)}"`)
   }
 }
-let onButtonBlick = HtmxHandler.handler->ResX.Handlers.hxPost(
+let onButtonBlick = HtmxHandler.handler.hxPost(
   "/button-click",
   ~securityPolicy=ResX.SecurityPolicy.allow,
   ~handler=async ({request}) => {

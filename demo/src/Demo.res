@@ -7,7 +7,7 @@ let server = Bun.serve({
     switch await ResX.BunUtils.serveStaticFile(request) {
     | Some(staticResponse) => staticResponse
     | None =>
-      await HtmxHandler.handler->ResX.Handlers.handleRequest({
+      await HtmxHandler.handler.handleRequest({
         request,
         setupHeaders: () => {
           Headers.make(~init=FromArray([("Content-Type", "text/html")]))
@@ -16,7 +16,7 @@ let server = Bun.serve({
           switch path {
           | list{"sitemap.xml"} => <SiteMap />
           | appRoutes =>
-            requestController->ResX.RequestController.appendTitleSegment("Test App")
+            requestController.appendTitleSegment("Test App")
             <Html>
               <Navigation />
               <div>
@@ -25,7 +25,7 @@ let server = Bun.serve({
                   headers->Headers.set("Cache-Control", "public, immutable, max-age=900")
                   <div> {Hjsx.string("Start page!")} </div>
                 | list{"moved"} =>
-                  requestController->ResX.RequestController.redirect("/start", ~status=302)
+                  requestController.redirect("/start", ~status=302)
                 | list{"user", ...userRoutes} =>
                   userRoutes->UserRoutes.match(~headers, ~requestController)
                 | _ => <FourOhFour setGenericTitle=true />
