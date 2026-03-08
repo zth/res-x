@@ -4,8 +4,8 @@
 let H$ResX = require("./H.js");
 let CSRF$ResX = require("./CSRF.js");
 let Stdlib_List = require("@rescript/runtime/lib/js/Stdlib_List.js");
-let Stdlib_Array = require("@rescript/runtime/lib/js/Stdlib_Array.js");
 let Stdlib_Option = require("@rescript/runtime/lib/js/Stdlib_Option.js");
+let Belt_MapString = require("@rescript/runtime/lib/js/Belt_MapString.js");
 let Primitive_option = require("@rescript/runtime/lib/js/Primitive_option.js");
 let Nodeasync_hooks = require("node:async_hooks");
 let HyperonsJs = require("./vendor/hyperons.js");
@@ -23,6 +23,63 @@ let FormAction = {
   string: string,
   toEndpointURL: toEndpointURL
 };
+
+function getHtmxRouteKey(method, path) {
+  return method + `:` + path;
+}
+
+function warnFormActionShadowsHtmxHandler(method, path) {
+  console.warn(`[ResX.Handlers] Form action registration for ` + path + ` shadows an existing HTMX handler for ` + method + ` ` + path + `.`);
+}
+
+function warnIfFormActionShadowsHtmxHandler(state, path) {
+  if (Belt_MapString.has(state.htmxHandlersByRoute, getHtmxRouteKey("GET", path))) {
+    warnFormActionShadowsHtmxHandler("GET", path);
+  }
+  if (Belt_MapString.has(state.htmxHandlersByRoute, getHtmxRouteKey("POST", path))) {
+    return warnFormActionShadowsHtmxHandler("POST", path);
+  }
+}
+
+function warnIfHtmxHandlerIsShadowedByFormAction(state, method, path) {
+  switch (method) {
+    case "GET" :
+    case "POST" :
+      break;
+    default:
+      return;
+  }
+  if (Belt_MapString.has(state.formActionHandlersByPath, path)) {
+    console.warn(`[ResX.Handlers] HTMX handler registration for ` + method + ` ` + path + ` is shadowed by an existing form action route on the same path.`);
+    return;
+  }
+}
+
+function registerFormActionHandler(state, registration) {
+  if (Belt_MapString.has(state.formActionHandlersByPath, registration.path)) {
+    let path = registration.path;
+    console.warn(`[ResX.Handlers] Duplicate form action registration ignored for ` + path + `.`);
+    return;
+  } else {
+    warnIfFormActionShadowsHtmxHandler(state, registration.path);
+    state.formActionHandlersByPath = Belt_MapString.set(state.formActionHandlersByPath, registration.path, registration);
+    return;
+  }
+}
+
+function getTargetFormActionHandler(state, requestMethod, pathname) {
+  switch (requestMethod) {
+    case "GET" :
+    case "POST" :
+      return Belt_MapString.get(state.formActionHandlersByPath, pathname);
+    default:
+      return;
+  }
+}
+
+function getTargetHtmxHandler(state, requestMethod, pathname) {
+  return Belt_MapString.get(state.htmxHandlersByRoute, getHtmxRouteKey(requestMethod, pathname));
+}
 
 function isCsrfEnabledFor(state, m) {
   let v = state.defaultCsrfCheck;
@@ -78,6 +135,140 @@ let defaultHeaders = [[
     "text/html"
   ]];
 
+async function handleRequestWithState(t, config) {
+  let onAfterBuildResponse = config.onAfterBuildResponse;
+  let onBeforeBuildResponse = config.onBeforeBuildResponse;
+  let onBeforeSendResponse = config.onBeforeSendResponse;
+  let render = config.render;
+  let request = config.request;
+  let stream = Stdlib_Option.getOr(config.experimental_stream, false);
+  let url = new URL(request.url);
+  let pathname = url.pathname;
+  let targetFormActionHandler = getTargetFormActionHandler(t, request.method, pathname);
+  let targetHtmxHandler = getTargetHtmxHandler(t, request.method, pathname);
+  let ctx = await t.requestToContext(request);
+  let requestController = RequestController$ResX.make();
+  let setupHeaders = config.setupHeaders;
+  let headers = setupHeaders !== undefined ? setupHeaders() : new Headers(defaultHeaders);
+  let renderConfig_path = Stdlib_List.fromArray(pathname.split("/").filter(s => s.trim() !== ""));
+  let renderConfig = {
+    request: request,
+    headers: headers,
+    context: ctx,
+    path: renderConfig_path,
+    url: url,
+    requestController: requestController
+  };
+  return await t.asyncLocalStorage.run(renderConfig, async _token => {
+    let isFormAction = Stdlib_Option.isSome(targetFormActionHandler);
+    let content;
+    if (targetFormActionHandler !== undefined) {
+      content = null;
+    } else if (targetHtmxHandler !== undefined) {
+      let csrfEnabled = Stdlib_Option.getOr(targetHtmxHandler.csrfCheckOpt, isCsrfEnabledFor(t, targetHtmxHandler.method));
+      let csrfOk = csrfEnabled ? await CSRF$ResX.verifyRequest(request) : true;
+      if (csrfOk) {
+        content = await targetHtmxHandler.run({
+          request: request,
+          context: ctx,
+          headers: headers,
+          requestController: requestController
+        });
+      } else {
+        requestController.setStatus(403);
+        content = "Invalid CSRF token.";
+      }
+    } else {
+      content = await render(renderConfig);
+    }
+    let responseType = targetFormActionHandler !== undefined ? "FormActionHandler" : (
+        targetHtmxHandler !== undefined ? "HtmxHandler" : "Default"
+      );
+    if (onBeforeBuildResponse !== undefined) {
+      await onBeforeBuildResponse({
+        request: request,
+        context: ctx,
+        responseType: responseType,
+        requestController: requestController
+      });
+    }
+    if (isFormAction) {
+      let reg = Stdlib_Option.getOrThrow(targetFormActionHandler, undefined);
+      let csrfEnabled$1 = Stdlib_Option.getOr(reg.csrfCheckOpt, isCsrfEnabledFor(t, request.method));
+      let csrfOk$1 = csrfEnabled$1 ? await CSRF$ResX.verifyRequest(request) : true;
+      let response = csrfOk$1 ? await reg.run({
+          request: request,
+          context: ctx
+        }) : new Response("Invalid CSRF token.", {
+          status: 403
+        });
+      if (onBeforeSendResponse !== undefined) {
+        return await onBeforeSendResponse({
+          request: request,
+          response: response,
+          context: ctx,
+          responseType: responseType
+        });
+      } else {
+        return response;
+      }
+    }
+    if (stream) {
+      let match = new TransformStream({
+        transform: (chunk, controller) => {
+          controller.enqueue(chunk);
+        }
+      });
+      let writer = match.writable.getWriter();
+      let textEncoder = new TextEncoder();
+      H$ResX.renderToStream(content, chunk => {
+        let encoded = textEncoder.encode(chunk);
+        writer.write(encoded);
+      }).then(() => writer.close());
+      let response$1 = new Response(match.readable, {
+        status: 200,
+        headers: [[
+            "Content-Type",
+            "text/html"
+          ]]
+      });
+      if (onBeforeSendResponse !== undefined) {
+        return await onBeforeSendResponse({
+          request: request,
+          response: response$1,
+          context: ctx,
+          responseType: responseType
+        });
+      } else {
+        return response$1;
+      }
+    }
+    let onAfterRender = onAfterBuildResponse !== undefined ? async () => await onAfterBuildResponse({
+        request: request,
+        context: ctx,
+        responseType: responseType,
+        requestController: requestController
+      }) : undefined;
+    let content$1 = await renderWithDocType(content, requestController, config.renderTitle, onAfterRender);
+    let match$1 = requestController.getCurrentRedirect();
+    let match$2 = requestController.getCurrentStatus();
+    let response$2 = match$1 !== undefined ? Response.redirect(match$1[0], Primitive_option.toUndefined(match$1[1])) : new Response(content$1, {
+        status: match$2,
+        headers: Primitive_option.some(headers)
+      });
+    if (onBeforeSendResponse !== undefined) {
+      return await onBeforeSendResponse({
+        request: request,
+        response: response$2,
+        context: ctx,
+        responseType: responseType
+      });
+    } else {
+      return response$2;
+    }
+  });
+}
+
 function makeHtmxRunner(securityPolicy, handler) {
   return async param => {
     let requestController = param.requestController;
@@ -123,6 +314,35 @@ function makeFormActionRunner(securityPolicy, handler) {
   };
 }
 
+function registerHtmxPath(state, httpMethod, path, securityPolicy, handler, csrfCheck) {
+  let run = makeHtmxRunner(securityPolicy, handler);
+  let registration = {
+    method: httpMethod,
+    path: path,
+    csrfCheckOpt: csrfCheck,
+    run: run
+  };
+  let routeKey = getHtmxRouteKey(registration.method, registration.path);
+  if (Belt_MapString.has(state.htmxHandlersByRoute, routeKey)) {
+    let method = registration.method;
+    let path$1 = registration.path;
+    console.warn(`[ResX.Handlers] Duplicate HTMX handler registration ignored for ` + method + ` ` + path$1 + `.`);
+    return;
+  } else {
+    warnIfHtmxHandlerIsShadowedByFormAction(state, registration.method, registration.path);
+    state.htmxHandlersByRoute = Belt_MapString.set(state.htmxHandlersByRoute, routeKey, registration);
+    return;
+  }
+}
+
+function createHtmxRoute(state, httpMethod, path, securityPolicy, handler, csrfCheck) {
+  let routePath = state.htmxApiPrefix + path;
+  registerHtmxPath(state, httpMethod, routePath, securityPolicy, handler, csrfCheck);
+  return routePath;
+}
+
+let defineHtmxRoute = registerHtmxPath;
+
 function hxGetToEndpointURL(s) {
   return s;
 }
@@ -144,293 +364,48 @@ function hxPatchToEndpointURL(s) {
 }
 
 function make(requestToContext, options) {
-  let state_htmxHandlers = [];
-  let state_formActionHandlers = [];
-  let state_asyncLocalStorage = new Nodeasync_hooks.AsyncLocalStorage();
-  let state_htmxApiPrefix = Stdlib_Option.getOr(Stdlib_Option.flatMap(options, options => options.htmxApiPrefix), "/_api");
-  let state_formActionHandlerApiPrefix = Stdlib_Option.getOr(Stdlib_Option.flatMap(options, options => options.formActionHandlerApiPrefix), "/_form");
-  let state_defaultCsrfCheck = Stdlib_Option.getOr(Stdlib_Option.flatMap(options, options => options.defaultCsrfCheck), {
-    TAG: "ForAllMethods",
-    _0: false
-  });
   let state = {
-    htmxHandlers: state_htmxHandlers,
-    formActionHandlers: state_formActionHandlers,
+    htmxHandlersByRoute: undefined,
+    formActionHandlersByPath: undefined,
     requestToContext: requestToContext,
-    asyncLocalStorage: state_asyncLocalStorage,
-    htmxApiPrefix: state_htmxApiPrefix,
-    formActionHandlerApiPrefix: state_formActionHandlerApiPrefix,
-    defaultCsrfCheck: state_defaultCsrfCheck
+    asyncLocalStorage: new Nodeasync_hooks.AsyncLocalStorage(),
+    htmxApiPrefix: Stdlib_Option.getOr(Stdlib_Option.flatMap(options, options => options.htmxApiPrefix), "/_api"),
+    formActionHandlerApiPrefix: Stdlib_Option.getOr(Stdlib_Option.flatMap(options, options => options.formActionHandlerApiPrefix), "/_form"),
+    defaultCsrfCheck: Stdlib_Option.getOr(Stdlib_Option.flatMap(options, options => options.defaultCsrfCheck), {
+      TAG: "ForAllMethods",
+      _0: false
+    })
   };
-  let useContext = () => state_asyncLocalStorage.getStore();
-  let handleRequest = async config => {
-    let onAfterBuildResponse = config.onAfterBuildResponse;
-    let onBeforeBuildResponse = config.onBeforeBuildResponse;
-    let onBeforeSendResponse = config.onBeforeSendResponse;
-    let render = config.render;
-    let request = config.request;
-    let stream = Stdlib_Option.getOr(config.experimental_stream, false);
-    let url = new URL(request.url);
-    let pathname = url.pathname;
-    let targetFormActionHandler = Stdlib_Array.findMap(state_formActionHandlers, reg => {
-      let match = request.method;
-      switch (match) {
-        case "GET" :
-        case "POST" :
-          break;
-        default:
-          return;
-      }
-      if (reg.path === pathname) {
-        return reg;
-      }
-    });
-    let targetHtmxHandler = Stdlib_Array.findMap(state_htmxHandlers, reg => {
-      if (reg.method === request.method && reg.path === pathname) {
-        return reg;
-      }
-    });
-    let ctx = await requestToContext(request);
-    let requestController = RequestController$ResX.make();
-    let setupHeaders = config.setupHeaders;
-    let headers = setupHeaders !== undefined ? setupHeaders() : new Headers(defaultHeaders);
-    let renderConfig_path = Stdlib_List.fromArray(pathname.split("/").filter(s => s.trim() !== ""));
-    let renderConfig = {
-      request: request,
-      headers: headers,
-      context: ctx,
-      path: renderConfig_path,
-      url: url,
-      requestController: requestController
-    };
-    return await state_asyncLocalStorage.run(renderConfig, async _token => {
-      let isFormAction = Stdlib_Option.isSome(targetFormActionHandler);
-      let content;
-      if (targetFormActionHandler !== undefined) {
-        content = null;
-      } else if (targetHtmxHandler !== undefined) {
-        let csrfEnabled = Stdlib_Option.getOr(targetHtmxHandler.csrfCheckOpt, isCsrfEnabledFor(state, targetHtmxHandler.method));
-        let csrfOk = csrfEnabled ? await CSRF$ResX.verifyRequest(request) : true;
-        if (csrfOk) {
-          content = await targetHtmxHandler.run({
-            request: request,
-            context: ctx,
-            headers: headers,
-            requestController: requestController
-          });
-        } else {
-          requestController.setStatus(403);
-          content = "Invalid CSRF token.";
-        }
-      } else {
-        content = await render(renderConfig);
-      }
-      let responseType = targetFormActionHandler !== undefined ? "FormActionHandler" : (
-          targetHtmxHandler !== undefined ? "HtmxHandler" : "Default"
-        );
-      if (onBeforeBuildResponse !== undefined) {
-        await onBeforeBuildResponse({
-          request: request,
-          context: ctx,
-          responseType: responseType,
-          requestController: requestController
-        });
-      }
-      if (isFormAction) {
-        let reg = Stdlib_Option.getOrThrow(targetFormActionHandler, undefined);
-        let csrfEnabled$1 = Stdlib_Option.getOr(reg.csrfCheckOpt, isCsrfEnabledFor(state, request.method));
-        let csrfOk$1 = csrfEnabled$1 ? await CSRF$ResX.verifyRequest(request) : true;
-        let response = csrfOk$1 ? await reg.run({
-            request: request,
-            context: ctx
-          }) : new Response("Invalid CSRF token.", {
-            status: 403
-          });
-        if (onBeforeSendResponse !== undefined) {
-          return await onBeforeSendResponse({
-            request: request,
-            response: response,
-            context: ctx,
-            responseType: responseType
-          });
-        } else {
-          return response;
-        }
-      }
-      if (stream) {
-        let match = new TransformStream({
-          transform: (chunk, controller) => {
-            controller.enqueue(chunk);
-          }
-        });
-        let writer = match.writable.getWriter();
-        let textEncoder = new TextEncoder();
-        H$ResX.renderToStream(content, chunk => {
-          let encoded = textEncoder.encode(chunk);
-          writer.write(encoded);
-        }).then(() => writer.close());
-        let response$1 = new Response(match.readable, {
-          status: 200,
-          headers: [[
-              "Content-Type",
-              "text/html"
-            ]]
-        });
-        if (onBeforeSendResponse !== undefined) {
-          return await onBeforeSendResponse({
-            request: request,
-            response: response$1,
-            context: ctx,
-            responseType: responseType
-          });
-        } else {
-          return response$1;
-        }
-      }
-      let onAfterRender = onAfterBuildResponse !== undefined ? async () => await onAfterBuildResponse({
-          request: request,
-          context: ctx,
-          responseType: responseType,
-          requestController: requestController
-        }) : undefined;
-      let content$1 = await renderWithDocType(content, requestController, config.renderTitle, onAfterRender);
-      let match$1 = requestController.getCurrentRedirect();
-      let match$2 = requestController.getCurrentStatus();
-      let response$2 = match$1 !== undefined ? Response.redirect(match$1[0], Primitive_option.toUndefined(match$1[1])) : new Response(content$1, {
-          status: match$2,
-          headers: Primitive_option.some(headers)
-        });
-      if (onBeforeSendResponse !== undefined) {
-        return await onBeforeSendResponse({
-          request: request,
-          response: response$2,
-          context: ctx,
-          responseType: responseType
-        });
-      } else {
-        return response$2;
-      }
-    });
-  };
+  let useContext = () => state.asyncLocalStorage.getStore();
+  let handleRequest = config => handleRequestWithState(state, config);
   return {
     useContext: useContext,
     handleRequest: handleRequest,
     formAction: (path, securityPolicy, handler, csrfCheck) => {
-      let path$1 = state_formActionHandlerApiPrefix + path;
+      let path$1 = state.formActionHandlerApiPrefix + path;
       let run = makeFormActionRunner(securityPolicy, handler);
-      state_formActionHandlers.push({
+      registerFormActionHandler(state, {
         path: path$1,
         csrfCheckOpt: csrfCheck,
         run: run
       });
       return path$1;
     },
-    hxGet: (path, securityPolicy, handler, csrfCheck) => {
-      let path$1 = state_htmxApiPrefix + path;
-      let run = makeHtmxRunner(securityPolicy, handler);
-      state_htmxHandlers.push({
-        method: "GET",
-        path: path$1,
-        csrfCheckOpt: csrfCheck,
-        run: run
-      });
-      return path$1;
-    },
-    hxGetRef: path => state_htmxApiPrefix + path,
-    hxGetDefine: (path, securityPolicy, handler, csrfCheck) => {
-      let run = makeHtmxRunner(securityPolicy, handler);
-      state_htmxHandlers.push({
-        method: "GET",
-        path: path,
-        csrfCheckOpt: csrfCheck,
-        run: run
-      });
-    },
-    hxPost: (path, securityPolicy, handler, csrfCheck) => {
-      let path$1 = state_htmxApiPrefix + path;
-      let run = makeHtmxRunner(securityPolicy, handler);
-      state_htmxHandlers.push({
-        method: "POST",
-        path: path$1,
-        csrfCheckOpt: csrfCheck,
-        run: run
-      });
-      return path$1;
-    },
-    hxPostRef: path => state_htmxApiPrefix + path,
-    hxPostDefine: (path, securityPolicy, handler, csrfCheck) => {
-      let run = makeHtmxRunner(securityPolicy, handler);
-      state_htmxHandlers.push({
-        method: "POST",
-        path: path,
-        csrfCheckOpt: csrfCheck,
-        run: run
-      });
-    },
-    hxPut: (path, securityPolicy, handler, csrfCheck) => {
-      let path$1 = state_htmxApiPrefix + path;
-      let run = makeHtmxRunner(securityPolicy, handler);
-      state_htmxHandlers.push({
-        method: "PUT",
-        path: path$1,
-        csrfCheckOpt: csrfCheck,
-        run: run
-      });
-      return path$1;
-    },
-    hxPutRef: path => state_htmxApiPrefix + path,
-    hxPutDefine: (path, securityPolicy, handler, csrfCheck) => {
-      let run = makeHtmxRunner(securityPolicy, handler);
-      state_htmxHandlers.push({
-        method: "PUT",
-        path: path,
-        csrfCheckOpt: csrfCheck,
-        run: run
-      });
-    },
-    hxDelete: (path, securityPolicy, handler, csrfCheck) => {
-      let path$1 = state_htmxApiPrefix + path;
-      let run = makeHtmxRunner(securityPolicy, handler);
-      state_htmxHandlers.push({
-        method: "DELETE",
-        path: path$1,
-        csrfCheckOpt: csrfCheck,
-        run: run
-      });
-      return path$1;
-    },
-    hxDeleteRef: path => state_htmxApiPrefix + path,
-    hxDeleteDefine: (path, securityPolicy, handler, csrfCheck) => {
-      let run = makeHtmxRunner(securityPolicy, handler);
-      state_htmxHandlers.push({
-        method: "DELETE",
-        path: path,
-        csrfCheckOpt: csrfCheck,
-        run: run
-      });
-    },
-    hxPatch: (path, securityPolicy, handler, csrfCheck) => {
-      let path$1 = state_htmxApiPrefix + path;
-      let run = makeHtmxRunner(securityPolicy, handler);
-      state_htmxHandlers.push({
-        method: "PATCH",
-        path: path$1,
-        csrfCheckOpt: csrfCheck,
-        run: run
-      });
-      return path$1;
-    },
-    hxPatchRef: path => state_htmxApiPrefix + path,
-    hxPatchDefine: (path, securityPolicy, handler, csrfCheck) => {
-      let run = makeHtmxRunner(securityPolicy, handler);
-      state_htmxHandlers.push({
-        method: "PATCH",
-        path: path,
-        csrfCheckOpt: csrfCheck,
-        run: run
-      });
-    },
-    internalGetHandlers: () => state_htmxHandlers
+    hxGet: (path, securityPolicy, handler, csrfCheck) => createHtmxRoute(state, "GET", path, securityPolicy, handler, csrfCheck),
+    hxGetRef: path => state.htmxApiPrefix + path,
+    hxGetDefine: (path, securityPolicy, handler, csrfCheck) => defineHtmxRoute(state, "GET", path, securityPolicy, handler, csrfCheck),
+    hxPost: (path, securityPolicy, handler, csrfCheck) => createHtmxRoute(state, "POST", path, securityPolicy, handler, csrfCheck),
+    hxPostRef: path => state.htmxApiPrefix + path,
+    hxPostDefine: (path, securityPolicy, handler, csrfCheck) => defineHtmxRoute(state, "POST", path, securityPolicy, handler, csrfCheck),
+    hxPut: (path, securityPolicy, handler, csrfCheck) => createHtmxRoute(state, "PUT", path, securityPolicy, handler, csrfCheck),
+    hxPutRef: path => state.htmxApiPrefix + path,
+    hxPutDefine: (path, securityPolicy, handler, csrfCheck) => defineHtmxRoute(state, "PUT", path, securityPolicy, handler, csrfCheck),
+    hxDelete: (path, securityPolicy, handler, csrfCheck) => createHtmxRoute(state, "DELETE", path, securityPolicy, handler, csrfCheck),
+    hxDeleteRef: path => state.htmxApiPrefix + path,
+    hxDeleteDefine: (path, securityPolicy, handler, csrfCheck) => defineHtmxRoute(state, "DELETE", path, securityPolicy, handler, csrfCheck),
+    hxPatch: (path, securityPolicy, handler, csrfCheck) => createHtmxRoute(state, "PATCH", path, securityPolicy, handler, csrfCheck),
+    hxPatchRef: path => state.htmxApiPrefix + path,
+    hxPatchDefine: (path, securityPolicy, handler, csrfCheck) => defineHtmxRoute(state, "PATCH", path, securityPolicy, handler, csrfCheck)
   };
 }
 
@@ -506,14 +481,6 @@ function hxPatchDefine(t, path, securityPolicy, handler, csrfCheck) {
   t.hxPatchDefine(path, securityPolicy, handler, csrfCheck);
 }
 
-function getHandlers(t) {
-  return t.internalGetHandlers();
-}
-
-let Internal = {
-  getHandlers: getHandlers
-};
-
 exports.FormAction = FormAction;
 exports.make = make;
 exports.formAction = formAction;
@@ -539,5 +506,4 @@ exports.hxPatchDefine = hxPatchDefine;
 exports.hxPatchToEndpointURL = hxPatchToEndpointURL;
 exports.useContext = useContext;
 exports.handleRequest = handleRequest;
-exports.Internal = Internal;
 /* H-ResX Not a pure module */

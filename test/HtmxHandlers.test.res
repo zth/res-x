@@ -51,6 +51,64 @@ describe("HTMX handlers", () => {
     expect(text)->Expect.toBe(`<!DOCTYPE html>meta`)
   })
 
+  testAsync("duplicate HTMX registrations keep the first handler", async () => {
+    let _firstHandler = Handler.testHandler.hxGet(
+      "/test-duplicate-first-wins",
+      ~securityPolicy=SecurityPolicy.allow,
+      ~handler=async _ => {
+        Hjsx.string("First")
+      },
+    )
+    let _secondHandler = Handler.testHandler.hxGet(
+      "/test-duplicate-first-wins",
+      ~securityPolicy=SecurityPolicy.allow,
+      ~handler=async _ => {
+        Hjsx.string("Second")
+      },
+    )
+    let response = await getResponse(~url="/_api/test-duplicate-first-wins")
+
+    let text = await response->Response.text
+
+    expect(text)->Expect.toBe(`<!DOCTYPE html>First`)
+  })
+
+  testAsync("direct PUT, DELETE, and PATCH handler registration works", async () => {
+    let _putHandler = Handler.testHandler.hxPut(
+      "/test-put-direct",
+      ~securityPolicy=SecurityPolicy.allow,
+      ~handler=async _ => {
+        Hjsx.string("PUT direct")
+      },
+    )
+    let _deleteHandler = Handler.testHandler.hxDelete(
+      "/test-delete-direct",
+      ~securityPolicy=SecurityPolicy.allow,
+      ~handler=async _ => {
+        Hjsx.string("DELETE direct")
+      },
+    )
+    let _patchHandler = Handler.testHandler.hxPatch(
+      "/test-patch-direct",
+      ~securityPolicy=SecurityPolicy.allow,
+      ~handler=async _ => {
+        Hjsx.string("PATCH direct")
+      },
+    )
+
+    let putResponse = await getResponse(~method=PUT, ~url="/_api/test-put-direct")
+    let deleteResponse = await getResponse(~method=DELETE, ~url="/_api/test-delete-direct")
+    let patchResponse = await getResponse(~method=PATCH, ~url="/_api/test-patch-direct")
+
+    let putText = await putResponse->Response.text
+    let deleteText = await deleteResponse->Response.text
+    let patchText = await patchResponse->Response.text
+
+    expect(putText)->Expect.toBe(`<!DOCTYPE html>PUT direct`)
+    expect(deleteText)->Expect.toBe(`<!DOCTYPE html>DELETE direct`)
+    expect(patchText)->Expect.toBe(`<!DOCTYPE html>PATCH direct`)
+  })
+
   testAsync("delaying GET handler implementation works", async () => {
     let getHandler = Handler.testHandler.hxGetRef("/test-delay")
     Handler.testHandler.hxGetDefine(

@@ -57,7 +57,7 @@ let Html = {
   make: TestUtils$Html
 };
 
-async function getResponse(methodOpt, getContent, onBeforeSendResponse, onBeforeBuildResponse, onAfterBuildResponse, urlOpt) {
+async function getResponseForHandler(handler, methodOpt, getContent, onBeforeSendResponse, onBeforeBuildResponse, onAfterBuildResponse, urlOpt) {
   let method = methodOpt !== undefined ? methodOpt : "GET";
   let url = urlOpt !== undefined ? urlOpt : "/";
   let match = getPort();
@@ -65,7 +65,7 @@ async function getResponse(methodOpt, getContent, onBeforeSendResponse, onBefore
   let server = Bun.serve({
     development: true,
     port: port,
-    fetch: async (request, _server) => await testHandler.handleRequest({
+    fetch: async (request, _server) => await handler.handleRequest({
       request: request,
       render: async renderConfig => {
         if (getContent !== undefined) {
@@ -117,19 +117,25 @@ async function getResponse(methodOpt, getContent, onBeforeSendResponse, onBefore
   }
 }
 
+async function getResponse(methodOpt, getContent, onBeforeSendResponse, onBeforeBuildResponse, onAfterBuildResponse, urlOpt) {
+  let method = methodOpt !== undefined ? methodOpt : "GET";
+  let url = urlOpt !== undefined ? urlOpt : "/";
+  return await getResponseForHandler(testHandler, method, getContent, onBeforeSendResponse, onBeforeBuildResponse, onAfterBuildResponse, url);
+}
+
 async function getContentInBody(getContent) {
   let content = await getResponse(undefined, getContent, undefined, undefined, undefined, undefined);
   return await content.text();
 }
 
-async function getResponseWithInit(urlOpt, init) {
+async function getResponseWithInitForHandler(handler, urlOpt, init) {
   let url = urlOpt !== undefined ? urlOpt : "/";
   let match = getPort();
   let port = match[0];
   let server = Bun.serve({
     development: true,
     port: port,
-    fetch: async (request, _server) => await testHandler.handleRequest({
+    fetch: async (request, _server) => await handler.handleRequest({
       request: request,
       render: async _renderConfig => null,
       setupHeaders: () => new Headers([[
@@ -170,6 +176,11 @@ async function getResponseWithInit(urlOpt, init) {
   }
 }
 
+async function getResponseWithInit(urlOpt, init) {
+  let url = urlOpt !== undefined ? urlOpt : "/";
+  return await getResponseWithInitForHandler(testHandler, url, init);
+}
+
 let portsBase = 40000;
 
 exports.Handler = Handler;
@@ -177,7 +188,9 @@ exports.currentPortsUsed = currentPortsUsed;
 exports.portsBase = portsBase;
 exports.getPort = getPort;
 exports.Html = Html;
+exports.getResponseForHandler = getResponseForHandler;
 exports.getResponse = getResponse;
 exports.getContentInBody = getContentInBody;
+exports.getResponseWithInitForHandler = getResponseWithInitForHandler;
 exports.getResponseWithInit = getResponseWithInit;
 /* testHandler Not a pure module */

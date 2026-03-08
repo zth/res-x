@@ -45,7 +45,8 @@ module Html = {
   }
 }
 
-let getResponse = async (
+let getResponseForHandler = async (
+  ~handler: Handlers.t<Handler.context>,
   ~method=GET,
   ~getContent=?,
   ~onBeforeSendResponse=?,
@@ -59,7 +60,7 @@ let getResponse = async (
     port,
     development: true,
     fetch: async (request, _server) => {
-      await Handler.testHandler.handleRequest({
+      await handler.handleRequest({
         request,
         setupHeaders: () => {
           Headers.make(~init=FromArray([("Content-Type", "text/html")]))
@@ -94,19 +95,41 @@ let getResponse = async (
   }
 }
 
+let getResponse = async (
+  ~method=GET,
+  ~getContent=?,
+  ~onBeforeSendResponse=?,
+  ~onBeforeBuildResponse=?,
+  ~onAfterBuildResponse=?,
+  ~url="/",
+) =>
+  await getResponseForHandler(
+    ~handler=Handler.testHandler,
+    ~method,
+    ~getContent?,
+    ~onBeforeSendResponse?,
+    ~onBeforeBuildResponse?,
+    ~onAfterBuildResponse?,
+    ~url,
+  )
+
 let getContentInBody = async getContent => {
   let content = await getResponse(~getContent)
   await content->Response.text
 }
 
-let getResponseWithInit = async (~url="/", ~init) => {
+let getResponseWithInitForHandler = async (
+  ~handler: Handlers.t<Handler.context>,
+  ~url="/",
+  ~init,
+) => {
   let (port, unsubPort) = getPort()
 
   let server = Bun.serve({
     port,
     development: true,
     fetch: async (request, _server) => {
-      await Handler.testHandler.handleRequest({
+      await handler.handleRequest({
         request,
         setupHeaders: () => {
           Headers.make(~init=FromArray([("Content-Type", "text/html")]))
@@ -128,4 +151,8 @@ let getResponseWithInit = async (~url="/", ~init) => {
   | Ok(res) => res
   | Error(err) => panic(err)
   }
+}
+
+let getResponseWithInit = async (~url="/", ~init) => {
+  await getResponseWithInitForHandler(~handler=Handler.testHandler, ~url, ~init)
 }

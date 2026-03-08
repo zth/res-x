@@ -41,4 +41,31 @@ describe("Form action handlers", () => {
 
     expect(text)->Expect.toBe(`42`)
   })
+
+  testAsync("duplicate form action registrations keep the first handler", async () => {
+    let _firstHandler = Handler.testHandler.formAction(
+      "/test-duplicate-first-wins",
+      ~securityPolicy=SecurityPolicy.allow,
+      ~handler=async _ => {
+        Response.make("First")
+      },
+    )
+    let _secondHandler = Handler.testHandler.formAction(
+      "/test-duplicate-first-wins",
+      ~securityPolicy=SecurityPolicy.allow,
+      ~handler=async _ => {
+        Response.make("Second")
+      },
+    )
+    let response = await getResponse(
+      ~getContent=_ => {
+        Hjsx.string("nope")
+      },
+      ~url="/_form/test-duplicate-first-wins",
+    )
+
+    let text = await response->Response.text
+
+    expect(text)->Expect.toBe(`First`)
+  })
 })

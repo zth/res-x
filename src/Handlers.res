@@ -75,8 +75,8 @@ type defaultCsrfCheck =
     })
 
 type state<'ctx> = {
-  htmxHandlers: array<htmxRegistration<'ctx>>,
-  formActionHandlers: array<formActionRegistration<'ctx>>,
+  mutable htmxHandlersByRoute: Belt.Map.String.t<htmxRegistration<'ctx>>,
+  mutable formActionHandlersByPath: Belt.Map.String.t<formActionRegistration<'ctx>>,
   requestToContext: Request.t => promise<'ctx>,
   asyncLocalStorage: AsyncHooks.AsyncLocalStorage.t<renderConfig<'ctx>>,
   htmxApiPrefix: string,
@@ -95,6 +95,83 @@ type options = {
   formActionHandlerApiPrefix?: string,
   defaultCsrfCheck?: defaultCsrfCheck,
 }
+
+let getHtmxRouteKey = (method: method, path: string) => `${(method :> string)}:${path}`
+
+let warnDuplicateFormActionHandler = path => {
+  Console.warn(`[ResX.Handlers] Duplicate form action registration ignored for ${path}.`)
+}
+
+let warnDuplicateHtmxHandler = (method: method, path) => {
+  Console.warn(
+    `[ResX.Handlers] Duplicate HTMX handler registration ignored for ${(method :> string)} ${path}.`,
+  )
+}
+
+let warnFormActionShadowsHtmxHandler = (method: method, path) => {
+  Console.warn(
+    `[ResX.Handlers] Form action registration for ${path} shadows an existing HTMX handler for ${(method :> string)} ${path}.`,
+  )
+}
+
+let warnHtmxHandlerShadowedByFormAction = (method: method, path) => {
+  Console.warn(
+    `[ResX.Handlers] HTMX handler registration for ${(method :> string)} ${path} is shadowed by an existing form action route on the same path.`,
+  )
+}
+
+let warnIfFormActionShadowsHtmxHandler = (state: state<_>, path) => {
+  if state.htmxHandlersByRoute->Belt.Map.String.has(getHtmxRouteKey(GET, path)) {
+    warnFormActionShadowsHtmxHandler(GET, path)
+  }
+  if state.htmxHandlersByRoute->Belt.Map.String.has(getHtmxRouteKey(POST, path)) {
+    warnFormActionShadowsHtmxHandler(POST, path)
+  }
+}
+
+let warnIfHtmxHandlerIsShadowedByFormAction = (state: state<_>, method: method, path) =>
+  switch method {
+  | GET | POST if state.formActionHandlersByPath->Belt.Map.String.has(path) =>
+    warnHtmxHandlerShadowedByFormAction(method, path)
+  | _ => ()
+  }
+
+let registerFormActionHandler = (
+  state: state<'ctx>,
+  registration: formActionRegistration<'ctx>,
+) => {
+  if !(state.formActionHandlersByPath->Belt.Map.String.has(registration.path)) {
+    state->warnIfFormActionShadowsHtmxHandler(registration.path)
+    state.formActionHandlersByPath = state.formActionHandlersByPath->Belt.Map.String.set(
+      registration.path,
+      registration,
+    )
+  } else {
+    warnDuplicateFormActionHandler(registration.path)
+  }
+}
+
+let registerHtmxHandler = (state: state<'ctx>, registration: htmxRegistration<'ctx>) => {
+  let routeKey = getHtmxRouteKey(registration.method, registration.path)
+  if !(state.htmxHandlersByRoute->Belt.Map.String.has(routeKey)) {
+    state->warnIfHtmxHandlerIsShadowedByFormAction(registration.method, registration.path)
+    state.htmxHandlersByRoute = state.htmxHandlersByRoute->Belt.Map.String.set(
+      routeKey,
+      registration,
+    )
+  } else {
+    warnDuplicateHtmxHandler(registration.method, registration.path)
+  }
+}
+
+let getTargetFormActionHandler = (state: state<_>, requestMethod, pathname) =>
+  switch requestMethod {
+  | GET | POST => state.formActionHandlersByPath->Belt.Map.String.get(pathname)
+  | _ => None
+  }
+
+let getTargetHtmxHandler = (state: state<_>, requestMethod, pathname) =>
+  state.htmxHandlersByRoute->Belt.Map.String.get(getHtmxRouteKey(requestMethod, pathname))
 
 let isCsrfEnabledFor = (state: state<_>, m: method) =>
   switch state.defaultCsrfCheck {
@@ -258,10 +335,9 @@ type t<'ctx> = {
     ~handler: htmxHandler<'ctx, 'securityPolicyData>,
     ~csrfCheck: bool=?,
   ) => unit,
-  internalGetHandlers: unit => array<htmxRegistration<'ctx>>,
 }
 
-let _handleRequestWithState = async (
+let handleRequestWithState = async (
   t,
   {
     request,
@@ -277,21 +353,8 @@ let _handleRequestWithState = async (
   let url = request->Request.url->URL.make
   let pathname = url->URL.pathname
 
-  // TODO: Can optimize when this runs
-  let targetFormActionHandler = t.formActionHandlers->Array.findMap(reg =>
-    switch request->Request.method {
-    | POST | GET if reg.path === pathname => Some(reg)
-    | _ => None
-    }
-  )
-
-  let targetHtmxHandler = t.htmxHandlers->Array.findMap(reg =>
-    if reg.method === request->Request.method && reg.path === pathname {
-      Some(reg)
-    } else {
-      None
-    }
-  )
+  let targetFormActionHandler = t->getTargetFormActionHandler(request->Request.method, pathname)
+  let targetHtmxHandler = t->getTargetHtmxHandler(request->Request.method, pathname)
 
   let ctx = await t.requestToContext(request)
   let requestController = RequestController.make()
@@ -491,7 +554,7 @@ let makeFormActionRunner: (
 let formAction = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) => {
   let path = state.formActionHandlerApiPrefix ++ path
   let run = makeFormActionRunner(securityPolicy, handler)
-  state.formActionHandlers->Array.push({
+  state->registerFormActionHandler({
     path,
     csrfCheckOpt: csrfCheck,
     run,
@@ -503,135 +566,70 @@ let getHtmxPath = (state: state<_>, path) => {
   state.htmxApiPrefix ++ path
 }
 
-let hxGet = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) => {
-  let path = state.htmxApiPrefix ++ path
+let registerHtmxPath = (state: state<_>, ~httpMethod, ~path, ~securityPolicy, ~handler, ~csrfCheck=?) => {
   let run = makeHtmxRunner(securityPolicy, handler)
-  state.htmxHandlers->Array.push({
-    method: GET,
-    path,
-    csrfCheckOpt: csrfCheck,
-    run,
-  })
-  path
-}
-let hxGetRef = (state: state<_>, path) => {
-  state->getHtmxPath(path)
-}
-let hxGetDefine = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) => {
-  let run = makeHtmxRunner(securityPolicy, handler)
-  state.htmxHandlers->Array.push({
-    method: GET,
+  state->registerHtmxHandler({
+    method: httpMethod,
     path,
     csrfCheckOpt: csrfCheck,
     run,
   })
 }
+
+let createHtmxRoute = (state: state<_>, ~httpMethod, path, ~securityPolicy, ~handler, ~csrfCheck=?) => {
+  let routePath = state->getHtmxPath(path)
+  state->registerHtmxPath(
+    ~httpMethod,
+    ~path=routePath,
+    ~securityPolicy,
+    ~handler,
+    ~csrfCheck?,
+  )
+  routePath
+}
+
+let defineHtmxRoute = (state: state<_>, ~httpMethod, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  state->registerHtmxPath(~httpMethod, ~path, ~securityPolicy, ~handler, ~csrfCheck?)
+
+let hxGet = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  state->createHtmxRoute(~httpMethod=GET, path, ~securityPolicy, ~handler, ~csrfCheck?)
+let hxGetRef = (state: state<_>, path) => state->getHtmxPath(path)
+let hxGetDefine = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  state->defineHtmxRoute(~httpMethod=GET, path, ~securityPolicy, ~handler, ~csrfCheck?)
 let hxGetToEndpointURL = s => s
 
-let hxPost = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) => {
-  let path = state->getHtmxPath(path)
-  let run = makeHtmxRunner(securityPolicy, handler)
-  state.htmxHandlers->Array.push({
-    method: POST,
-    path,
-    csrfCheckOpt: csrfCheck,
-    run,
-  })
-  path
-}
-let hxPostRef = (state: state<_>, path) => {
-  state->getHtmxPath(path)
-}
-let hxPostDefine = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) => {
-  let run = makeHtmxRunner(securityPolicy, handler)
-  state.htmxHandlers->Array.push({
-    method: POST,
-    path,
-    csrfCheckOpt: csrfCheck,
-    run,
-  })
-}
+let hxPost = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  state->createHtmxRoute(~httpMethod=POST, path, ~securityPolicy, ~handler, ~csrfCheck?)
+let hxPostRef = (state: state<_>, path) => state->getHtmxPath(path)
+let hxPostDefine = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  state->defineHtmxRoute(~httpMethod=POST, path, ~securityPolicy, ~handler, ~csrfCheck?)
 let hxPostToEndpointURL = s => s
 
-let hxPut = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) => {
-  let path = state->getHtmxPath(path)
-  let run = makeHtmxRunner(securityPolicy, handler)
-  state.htmxHandlers->Array.push({
-    method: PUT,
-    path,
-    csrfCheckOpt: csrfCheck,
-    run,
-  })
-  path
-}
-let hxPutRef = (state: state<_>, path) => {
-  state->getHtmxPath(path)
-}
-let hxPutDefine = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) => {
-  let run = makeHtmxRunner(securityPolicy, handler)
-  state.htmxHandlers->Array.push({
-    method: PUT,
-    path,
-    csrfCheckOpt: csrfCheck,
-    run,
-  })
-}
+let hxPut = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  state->createHtmxRoute(~httpMethod=PUT, path, ~securityPolicy, ~handler, ~csrfCheck?)
+let hxPutRef = (state: state<_>, path) => state->getHtmxPath(path)
+let hxPutDefine = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  state->defineHtmxRoute(~httpMethod=PUT, path, ~securityPolicy, ~handler, ~csrfCheck?)
 let hxPutToEndpointURL = s => s
 
-let hxDelete = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) => {
-  let path = state->getHtmxPath(path)
-  let run = makeHtmxRunner(securityPolicy, handler)
-  state.htmxHandlers->Array.push({
-    method: DELETE,
-    path,
-    csrfCheckOpt: csrfCheck,
-    run,
-  })
-  path
-}
-let hxDeleteRef = (state: state<_>, path) => {
-  state->getHtmxPath(path)
-}
-let hxDeleteDefine = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) => {
-  let run = makeHtmxRunner(securityPolicy, handler)
-  state.htmxHandlers->Array.push({
-    method: DELETE,
-    path,
-    csrfCheckOpt: csrfCheck,
-    run,
-  })
-}
+let hxDelete = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  state->createHtmxRoute(~httpMethod=DELETE, path, ~securityPolicy, ~handler, ~csrfCheck?)
+let hxDeleteRef = (state: state<_>, path) => state->getHtmxPath(path)
+let hxDeleteDefine = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  state->defineHtmxRoute(~httpMethod=DELETE, path, ~securityPolicy, ~handler, ~csrfCheck?)
 let hxDeleteToEndpointURL = s => s
 
-let hxPatch = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) => {
-  let path = state->getHtmxPath(path)
-  let run = makeHtmxRunner(securityPolicy, handler)
-  state.htmxHandlers->Array.push({
-    method: PATCH,
-    path,
-    csrfCheckOpt: csrfCheck,
-    run,
-  })
-  path
-}
-let hxPatchRef = (state: state<_>, path) => {
-  state->getHtmxPath(path)
-}
-let hxPatchDefine = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) => {
-  let run = makeHtmxRunner(securityPolicy, handler)
-  state.htmxHandlers->Array.push({
-    method: PATCH,
-    path,
-    csrfCheckOpt: csrfCheck,
-    run,
-  })
-}
+let hxPatch = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  state->createHtmxRoute(~httpMethod=PATCH, path, ~securityPolicy, ~handler, ~csrfCheck?)
+let hxPatchRef = (state: state<_>, path) => state->getHtmxPath(path)
+let hxPatchDefine = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  state->defineHtmxRoute(~httpMethod=PATCH, path, ~securityPolicy, ~handler, ~csrfCheck?)
 let hxPatchToEndpointURL = s => s
 
 let make = (~requestToContext, ~options=?): t<'ctx> => {
   let state: state<'ctx> = {
-    htmxHandlers: [],
-    formActionHandlers: [],
+    htmxHandlersByRoute: Belt.Map.String.empty,
+    formActionHandlersByPath: Belt.Map.String.empty,
     requestToContext,
     asyncLocalStorage: AsyncHooks.AsyncLocalStorage.make(),
     htmxApiPrefix: options
@@ -647,192 +645,7 @@ let make = (~requestToContext, ~options=?): t<'ctx> => {
 
   let useContext = () => state.asyncLocalStorage->AsyncHooks.AsyncLocalStorage.getStoreUnsafe
 
-  let handleRequest = async (
-    {
-      request,
-      render,
-      ?experimental_stream,
-      ?onBeforeSendResponse,
-      ?onBeforeBuildResponse,
-      ?onAfterBuildResponse,
-    } as config,
-  ) => {
-    let stream = experimental_stream->Option.getOr(false)
-
-    let url = request->Request.url->URL.make
-    let pathname = url->URL.pathname
-
-    // TODO: Can optimize when this runs
-    let targetFormActionHandler = state.formActionHandlers->Array.findMap(reg =>
-      switch request->Request.method {
-      | POST | GET if reg.path === pathname => Some(reg)
-      | _ => None
-      }
-    )
-
-    let targetHtmxHandler = state.htmxHandlers->Array.findMap(reg =>
-      if reg.method === request->Request.method && reg.path === pathname {
-        Some(reg)
-      } else {
-        None
-      }
-    )
-
-    let ctx = await state.requestToContext(request)
-    let requestController = RequestController.make()
-
-    let headers = switch config.setupHeaders {
-    | Some(setupHeaders) => setupHeaders()
-    | None => Headers.make(~init=FromArray(defaultHeaders))
-    }
-    let renderConfig = {
-      context: ctx,
-      headers,
-      request,
-      path: pathname
-      ->String.split("/")
-      ->Array.filter(s => s->String.trim !== "")
-      ->List.fromArray,
-      url,
-      requestController,
-    }
-
-    await state.asyncLocalStorage->AsyncHooks.AsyncLocalStorage.run(renderConfig, async _token => {
-      let isFormAction = targetFormActionHandler->Option.isSome
-
-      let content = switch (targetFormActionHandler, targetHtmxHandler) {
-      | (Some(_), _) => null
-      | (None, None) => await render(renderConfig)
-      | (None, Some(reg)) =>
-        let csrfEnabled = reg.csrfCheckOpt->Option.getOr(state->isCsrfEnabledFor(reg.method))
-        let csrfOk = switch csrfEnabled {
-        | true => await CSRF.verifyRequest(request)
-        | false => true
-        }
-        if !csrfOk {
-          requestController.setStatus(403)
-          string("Invalid CSRF token.")
-        } else {
-          await reg.run({
-            request,
-            context: ctx,
-            headers,
-            requestController,
-          })
-        }
-      }
-
-      let responseType = switch (targetFormActionHandler, targetHtmxHandler) {
-      | (Some(_), _) => FormActionHandler
-      | (None, Some(_)) => HtmxHandler
-      | (None, None) => Default
-      }
-
-      switch onBeforeBuildResponse {
-      | None => ()
-      | Some(onBeforeBuildResponse) =>
-        await onBeforeBuildResponse({
-          context: ctx,
-          request,
-          responseType,
-          requestController,
-        })
-      }
-
-      if isFormAction {
-        let reg = targetFormActionHandler->Option.getOrThrow
-        let csrfEnabled = reg.csrfCheckOpt->Option.getOr(state->isCsrfEnabledFor(request->Request.method))
-        let csrfOk = switch csrfEnabled {
-        | true => await CSRF.verifyRequest(request)
-        | false => true
-        }
-        let response = if !csrfOk {
-          Response.make("Invalid CSRF token.", ~options={status: 403})
-        } else {
-          await reg.run({context: ctx, request})
-        }
-        switch onBeforeSendResponse {
-        | Some(onBeforeSendResponse) =>
-          await onBeforeSendResponse({
-            response,
-            context: ctx,
-            request,
-            responseType,
-          })
-        | None => response
-        }
-      } else if stream {
-        let {readable, writable} = TransformStream.make({
-          transform: (chunk, controller) => {
-            controller->TransformStream.Controller.enqueue(chunk)
-          },
-        })
-        let writer = writable->WritableStream.getWriter
-        let textEncoder = TextEncoder.make()
-
-        H.renderToStream(content, ~onChunk=chunk => {
-          let encoded = textEncoder->TextEncoder.encode(chunk)
-          writer->WritableStream.WritableStreamDefaultWriter.write(encoded)->Promise.ignore
-        })
-        ->Promise.thenResolve(_ => {
-          writer->WritableStream.WritableStreamDefaultWriter.close
-        })
-        ->Promise.ignore
-
-        let response = Response.makeFromReadableStream(
-          readable,
-          ~options={
-            status: 200,
-            headers: FromArray([("Content-Type", "text/html")]),
-          },
-        )
-
-        switch onBeforeSendResponse {
-        | Some(onBeforeSendResponse) =>
-          await onBeforeSendResponse({
-            response,
-            context: ctx,
-            request,
-            responseType,
-          })
-        | None => response
-        }
-      } else {
-        let onAfterRender: option<unit => promise<unit>> = switch onAfterBuildResponse {
-        | Some(onAfterBuildResponse) =>
-          Some(
-            async () =>
-              await onAfterBuildResponse({
-                context: ctx,
-                request,
-                responseType,
-                requestController,
-              }),
-          )
-        | None => None
-        }
-
-        let content = await renderWithDocType(
-          content,
-          ~requestController,
-          ~renderTitle=?config.renderTitle,
-          ~onAfterRender?,
-        )
-        let response = switch (
-          requestController.getCurrentRedirect(),
-          requestController.getCurrentStatus(),
-        ) {
-        | (Some(url, status), _) => Response.makeRedirect(url, ~status?)
-        | (None, status) => Response.makeWithHeaders(content, ~options={headers, status})
-        }
-        switch onBeforeSendResponse {
-        | Some(onBeforeSendResponse) =>
-          await onBeforeSendResponse({response, context: ctx, request, responseType})
-        | None => response
-        }
-      }
-    })
-  }
+  let handleRequest = config => state->handleRequestWithState(config)
 
   {
     useContext,
@@ -864,7 +677,6 @@ let make = (~requestToContext, ~options=?): t<'ctx> => {
     hxPatchRef: path => state->hxPatchRef(path),
     hxPatchDefine: (path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
       state->hxPatchDefine(path, ~securityPolicy, ~handler, ~csrfCheck?),
-    internalGetHandlers: () => state.htmxHandlers,
   }
 }
 
@@ -932,8 +744,3 @@ let hxPatchRef = (t, path) => t.hxPatchRef(path)
 @deprecated("Use handler.hxPatchDefine(...)")
 let hxPatchDefine = (t, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
   t.hxPatchDefine(path, ~securityPolicy, ~handler, ~csrfCheck?)
-
-module Internal = {
-  type htmxRegistration<'ctx> = htmxRegistration<'ctx>
-  let getHandlers = t => t.internalGetHandlers()
-}

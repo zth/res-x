@@ -33,6 +33,27 @@ Buntest.describe("HTMX handlers", () => {
     let text = await response.text();
     Buntest.expect(text).toBe(`<!DOCTYPE html>meta`);
   });
+  Buntest.test("duplicate HTMX registrations keep the first handler", async () => {
+    TestUtils$ResX.Handler.testHandler.hxGet("/test-duplicate-first-wins", SecurityPolicy$ResX.allow, async param => "First", undefined);
+    TestUtils$ResX.Handler.testHandler.hxGet("/test-duplicate-first-wins", SecurityPolicy$ResX.allow, async param => "Second", undefined);
+    let response = await TestUtils$ResX.getResponse(undefined, undefined, undefined, undefined, undefined, "/_api/test-duplicate-first-wins");
+    let text = await response.text();
+    Buntest.expect(text).toBe(`<!DOCTYPE html>First`);
+  });
+  Buntest.test("direct PUT, DELETE, and PATCH handler registration works", async () => {
+    TestUtils$ResX.Handler.testHandler.hxPut("/test-put-direct", SecurityPolicy$ResX.allow, async param => "PUT direct", undefined);
+    TestUtils$ResX.Handler.testHandler.hxDelete("/test-delete-direct", SecurityPolicy$ResX.allow, async param => "DELETE direct", undefined);
+    TestUtils$ResX.Handler.testHandler.hxPatch("/test-patch-direct", SecurityPolicy$ResX.allow, async param => "PATCH direct", undefined);
+    let putResponse = await TestUtils$ResX.getResponse("PUT", undefined, undefined, undefined, undefined, "/_api/test-put-direct");
+    let deleteResponse = await TestUtils$ResX.getResponse("DELETE", undefined, undefined, undefined, undefined, "/_api/test-delete-direct");
+    let patchResponse = await TestUtils$ResX.getResponse("PATCH", undefined, undefined, undefined, undefined, "/_api/test-patch-direct");
+    let putText = await putResponse.text();
+    let deleteText = await deleteResponse.text();
+    let patchText = await patchResponse.text();
+    Buntest.expect(putText).toBe(`<!DOCTYPE html>PUT direct`);
+    Buntest.expect(deleteText).toBe(`<!DOCTYPE html>DELETE direct`);
+    Buntest.expect(patchText).toBe(`<!DOCTYPE html>PATCH direct`);
+  });
   Buntest.test("delaying GET handler implementation works", async () => {
     let getHandler = TestUtils$ResX.Handler.testHandler.hxGetRef("/test-delay");
     TestUtils$ResX.Handler.testHandler.hxGetDefine(getHandler, SecurityPolicy$ResX.allow, async param => "Test!", undefined);

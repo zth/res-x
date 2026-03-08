@@ -28,8 +28,6 @@ type formActionHandler<'ctx, 'securityPolicyData> = formActionConfig<
   'securityPolicyData,
 > => promise<Response.t>
 
-type htmxRegistration<'ctx>
-
 type hxGet
 type hxPost
 type hxPut
@@ -187,7 +185,6 @@ type t<'ctx> = {
     ~handler: htmxHandler<'ctx, 'securityPolicyData>,
     ~csrfCheck: bool=?,
   ) => unit,
-  internalGetHandlers: unit => array<htmxRegistration<'ctx>>,
 }
 
 let make: (~requestToContext: Request.t => promise<'ctx>, ~options: options=?) => t<'ctx>
@@ -324,8 +321,3 @@ let useContext: t<'ctx> => renderConfig<'ctx>
 
 @deprecated("Use handler.handleRequest(...)")
 let handleRequest: (t<'ctx>, handleRequestConfig<'ctx>) => promise<Response.t>
-
-module Internal: {
-  type htmxRegistration<'ctx> = htmxRegistration<'ctx>
-  let getHandlers: t<'ctx> => array<htmxRegistration<'ctx>>
-}

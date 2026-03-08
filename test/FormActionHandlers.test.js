@@ -21,6 +21,13 @@ Buntest.describe("Form action handlers", () => {
     let text = await response.text();
     Buntest.expect(text).toBe(`42`);
   });
+  Buntest.test("duplicate form action registrations keep the first handler", async () => {
+    TestUtils$ResX.Handler.testHandler.formAction("/test-duplicate-first-wins", SecurityPolicy$ResX.allow, async param => new Response("First"), undefined);
+    TestUtils$ResX.Handler.testHandler.formAction("/test-duplicate-first-wins", SecurityPolicy$ResX.allow, async param => new Response("Second"), undefined);
+    let response = await TestUtils$ResX.getResponse(undefined, param => "nope", undefined, undefined, undefined, "/_form/test-duplicate-first-wins");
+    let text = await response.text();
+    Buntest.expect(text).toBe(`First`);
+  });
 });
 
 /*  Not a pure module */
