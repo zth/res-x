@@ -135,44 +135,43 @@ let port = 4444
 let server = Bun.serve({
   port,
   development: ResX.BunUtils.isDev,
-  fetch: async (request, server) => {
-    open Bun
-
-    // Serve static files first
-    switch await ResX.BunUtils.serveStaticFile(request) {
-    | Some(staticResponse) => staticResponse
-    | None =>
-      // Handle the request using the ResX handler if this wasn't a static file request.
-      // Note: By default, all HTMX handler routes are prefixed with "_api", and all form action routes are prefixed with "_form".
-      await Handler.handler.handleRequest({
-        request,
-        setupHeaders: () => {
-          // You can do any basic headers setup here that you want. These can be overwritten easily by your main application regardless of what you set here.
-          Headers.makeWithInit(FromArray([("Content-Type", "text/html")]))
-        },
-        render: async ({path, requestController, headers}) => {
-          // This handles the actual request.
-          switch path {
-          | list{"sitemap.xml"} => <SiteMap />
-          | appRoutes =>
-            requestController.appendTitleSegment("Test App")
-            <Html>
-              <div>
-                {switch appRoutes {
-                | list{} =>
-                  <div> {Hjsx.string("Start page!")} </div>
-                | list{"moved"} =>
-                  requestController.redirect("/start", ~status=302)
-                | _ =>
-                  requestController.setStatus(404)
-                  <div>{Hjsx.string("404")}</div>
-                }}
-              </div>
-            </Html>
-          }
-        },
-      })
-    }
+  routes: Dict.assign(
+    dict{
+      "/health": {get: Bun.Static(Response.make("ok"))},
+    },
+    ResXAssets.staticAssetRoutes,
+  ),
+  fetch: async (request, _server) => {
+    // Handle the request using the ResX handler if this wasn't a static route.
+    // Note: By default, all HTMX handler routes are prefixed with "_api", and all form action routes are prefixed with "_form".
+    await Handler.handler.handleRequest({
+      request,
+      setupHeaders: () => {
+        // You can do any basic headers setup here that you want. These can be overwritten easily by your main application regardless of what you set here.
+        Headers.make(~init=FromArray([("Content-Type", "text/html")]))
+      },
+      render: async ({path, requestController, headers}) => {
+        // This handles the actual request.
+        switch path {
+        | list{"sitemap.xml"} => <SiteMap />
+        | appRoutes =>
+          requestController.appendTitleSegment("Test App")
+          <Html>
+            <div>
+              {switch appRoutes {
+              | list{} =>
+                <div> {Hjsx.string("Start page!")} </div>
+              | list{"moved"} =>
+                requestController.redirect("/start", ~status=302)
+              | _ =>
+                requestController.setStatus(404)
+                <div>{Hjsx.string("404")}</div>
+              }}
+            </div>
+          </Html>
+        }
+      },
+    })
   },
 })
 
@@ -215,20 +214,97 @@ switch path {
 
 ## Static assets
 
-ResX comes with full static asset (fonts, images, etc) handling via Vite, that you can use if you want. In order to actually serve the static assets, make sure you use `ResX.BunUtils.serveStaticFile` before trying to handle your request in another way:
+ResX comes with full static asset (fonts, images, etc) handling via Vite, that you can use if you want. The asset pipeline generates Bun-ready static routes for you under `ResXAssets.staticAssetRoutes`:
 
 ```rescript
-fetch: async (request, server) => {
-    open Bun
-
-    switch await ResX.BunUtils.serveStaticFile(request) {
-    | Some(staticResponse) => staticResponse
-    | None =>
-      await Handler.handler.handleRequest({
-        ...
+let server = Bun.serve({
+  port,
+  routes: ResXAssets.staticAssetRoutes,
+  fetch: async (request, _server) =>
+    await Handler.handler.handleRequest({
+      request,
+      ...
+    }),
+})
 ```
 
-`ResX.BunUtils.serveStaticFile` check if the request is for a static file, and if it is return a response serving that static file via `Bun`. If it's not a static file request, you continue as usual with serving the response.
+If you want to add your own Bun static routes, `staticAssetRoutes` is a regular `Dict.t`, so you can merge it the same way you would merge any other ReScript dict:
+
+```rescript
+Bun.serve({
+  port,
+  routes: Dict.assign(
+    dict{
+      "/health": {get: Bun.Static(Response.make("ok"))},
+    },
+    ResXAssets.staticAssetRoutes,
+  ),
+  fetch: async (request, _server) =>
+    await Handler.handler.handleRequest({
+      request,
+      ...
+    }),
+})
+```
+
+If you want to configure how these generated static asset routes behave, pass `staticAssetRoutes` to the Vite plugin:
+
+> These settings only apply to generated static asset routes, not your normal app routes.
+
+```js
+// vite.config.js
+import { defineConfig } from "vite";
+import resXVitePlugin from "rescript-x/res-x-vite-plugin.mjs";
+
+export default defineConfig({
+  plugins: [
+    resXVitePlugin({
+      staticAssetRoutes: {
+        headers: {
+          "/assets/**": {
+            "Cache-Control": "public, max-age=31536000, immutable",
+          },
+          "/robots.txt": {
+            "Cache-Control": "public, max-age=300",
+          },
+        },
+      },
+    }),
+  ],
+});
+```
+
+`staticAssetRoutes.headers` is an object where:
+
+- Each key is a route pattern for generated static asset routes.
+- Each value is a map of response headers to apply when that pattern matches.
+- Exact paths like `"/robots.txt"` match only that route.
+- `*` matches a single path segment, for example `"/assets/*"`.
+- `**` matches any remaining path depth, for example `"/assets/**"`.
+- If multiple patterns match the same route, the last matching rule wins.
+
+So this:
+
+```js
+headers: {
+  "/assets/**": {
+    "Cache-Control": "public, max-age=31536000, immutable",
+  },
+  "/robots.txt": {
+    "Cache-Control": "public, max-age=300",
+  },
+}
+```
+
+means:
+
+- all generated `/assets/...` routes get long-lived immutable caching
+- `/robots.txt` gets a shorter cache policy
+- nothing outside the generated static asset routes is affected
+
+ResX always generates exact Bun routes for the static assets it knows about at build time. That keeps the runtime simple: Bun just loads a generated file that already contains the route table and any configured headers.
+
+This built-in pipeline is intended for standard webapp asset sets. If you have so many generated static asset routes that Bun startup is becoming slow, that is a sign that you should implement your own asset loading pipeline instead of pushing the built-in one further.
 
 As for the assets themselves, there are two ways of handling them in ResX:
 
@@ -239,6 +315,13 @@ Putting assets in the `public` directory. Any assets you put in the top level `p
 ```
 // public/robots.txt exists
 GET /robots.txt
+```
+
+Nested paths are preserved as well:
+
+```
+// public/assets/logo.svg exists
+GET /assets/logo.svg
 ```
 
 ### `assets` for assets that do need transformation

@@ -3,9 +3,7 @@
 
 
 function tw(classes) {
-  return classes.filter(function (c) {
-                return c !== "";
-              }).join(" ");
+  return classes.filter(c => c !== "").join(" ");
 }
 
 exports.tw = tw;
