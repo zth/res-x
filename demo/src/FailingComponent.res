@@ -1,4 +1,4 @@
 @jsx.component
 let make = () => {
-  Exn.raiseError("Error!")
+  JsError.throwWithMessage("Error!")
 }

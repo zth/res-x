@@ -1,5 +1,3 @@
-let serveStaticFile: Request.t => promise<option<Response.t>>
-
 let runDevServer: (~port: int) => unit
 
 let isDev: bool

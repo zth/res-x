@@ -27,3 +27,5 @@ type assets = {
 }
 
 @module("./res-x-assets.js") external assets: assets = "assets"
+
+@module("./res-x-static-routes.js") external staticAssetRoutes: Dict.t<Bun.routeHandlerObject> = "staticAssetRoutes"
