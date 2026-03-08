@@ -100,8 +100,10 @@ bootSocket()
 }
 
 function Dev(props) {
+  let __viteOrigin = props.viteOrigin;
   let __port = props.port;
   let port = __port !== undefined ? __port : 4444;
+  let viteOrigin = __viteOrigin !== undefined ? __viteOrigin : "http://localhost:9000";
   if (BunUtils$ResX.isDev) {
     return [
       Hjsx$ResX.Elements.jsx("script", {
@@ -113,7 +115,7 @@ function Dev(props) {
         src: "https://unpkg.com/morphdom/dist/morphdom-umd.js"
       }),
       Hjsx$ResX.Elements.jsx("script", {
-        src: "http://localhost:9000/@vite/client",
+        src: viteOrigin + `/@vite/client`,
         type: "module"
       })
     ];

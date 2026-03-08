@@ -59,7 +59,11 @@ import { defineConfig } from "vite";
 import { resXVitePlugin } from "rescript-x";
 
 export default defineConfig({
-  plugins: [resXVitePlugin()],
+  plugins: [
+    resXVitePlugin({
+      clientDirs: ["client"],
+    }),
+  ],
   server: {
     port: 9000,
   },
@@ -326,7 +330,7 @@ GET /assets/logo.svg
 
 ### `assets` for assets that do need transformation
 
-If you have assets you'd like transformed by Vite before using, put them in the top level `assets` folder. This could be CSS, images, additional JavaScript, and so on. Anything you might want Vite to transform.
+If you have assets you'd like transformed by Vite before using, put them in the top level `assets` folder. This could be CSS, images, or browser entry JavaScript. Anything you might want Vite to transform.
 
 Here's an example of how you wire up Tailwind:
 
@@ -346,6 +350,22 @@ Then, include it in your ReScript:
 ```
 
 There! It's now available to you, and Vite will both transform and hot module reload the asset if it's possible.
+
+JavaScript and TypeScript files under `assets/` are exposed the same way, but should be used as module scripts:
+
+```rescript
+<script type_="module" src={ResXAssets.assets.analytics_js} />
+```
+
+If you want browser entry files outside `assets/`, configure `clientDirs` in `resXVitePlugin`. Files found there are also exposed through `ResXAssets.assets`, prefixed by directory name:
+
+```rescript
+<script type_="module" src={ResXAssets.assets.client__admin_ts} />
+```
+
+Any CSS imported from those browser entries is emitted and loaded automatically in both development and production.
+
+By default, only top level JS and TS files in `assets/` and each configured `clientDirs` folder become entries. Put shared support modules in subdirectories and import them from those entries so Vite can emit shared chunks for them. If you want a different discovery rule, set `assetEntryGlobs` and `clientEntryGlobs`.
 
 #### Referring to transformed `assets`
 
@@ -687,7 +707,7 @@ ResX also ships with a tiny client side library that will help you do basic clie
 To use ResX client, make sure you include its script:
 
 ```rescript
-<script src={ResXAssets.assets.resXClient_js} async=true />
+<script type_="module" src={ResXAssets.assets.resXClient_js} async=true />
 ```
 
 #### Handling CSS classes on events
