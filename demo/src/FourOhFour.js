@@ -3,15 +3,14 @@
 
 let Hjsx$ResX = require("rescript-x/src/Hjsx.js");
 let HtmxHandler = require("./HtmxHandler.js");
-let RequestController$ResX = require("rescript-x/src/RequestController.js");
 
 function FourOhFour(props) {
   let __setGenericTitle = props.setGenericTitle;
   let setGenericTitle = __setGenericTitle !== undefined ? __setGenericTitle : false;
   let context = HtmxHandler.useContext();
-  RequestController$ResX.setStatus(context.requestController, 404);
+  context.requestController.setStatus(404);
   if (setGenericTitle) {
-    RequestController$ResX.setFullTitle(context.requestController, "Not Found");
+    context.requestController.setFullTitle("Not Found");
   }
   return Hjsx$ResX.Elements.jsx("div", {
     children: "404"

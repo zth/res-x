@@ -4,11 +4,10 @@
 let Hjsx$ResX = require("rescript-x/src/Hjsx.js");
 let Utils$ResX = require("rescript-x/src/Utils.js");
 let HtmxHandler = require("./HtmxHandler.js");
-let RequestController$ResX = require("rescript-x/src/RequestController.js");
 
 function SiteMap(props) {
   let context = HtmxHandler.useContext();
-  RequestController$ResX.setDocHeader(context.requestController, `<?xml version="1.0" encoding="UTF-8"?>`);
+  context.requestController.setDocHeader(`<?xml version="1.0" encoding="UTF-8"?>`);
   context.headers.set("Content-Type", "application/xml; charset=UTF-8");
   context.headers.set("Cache-Control", Utils$ResX.CacheControl.make(undefined, "public", [{
       kind: "max-age",

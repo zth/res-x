@@ -2,8 +2,6 @@
 'use strict';
 
 let Hjsx$ResX = require("rescript-x/src/Hjsx.js");
-let Handlers$ResX = require("rescript-x/src/Handlers.js");
-let RequestController$ResX = require("rescript-x/src/RequestController.js");
 
 function Head(props) {
   return Hjsx$ResX.Elements.jsx("head", {
@@ -12,8 +10,8 @@ function Head(props) {
 }
 
 function Head$RenderInHead(props) {
-  let ctx = Handlers$ResX.useContext(props.handler);
-  RequestController$ResX.appendToHead(ctx.requestController, props.children);
+  let ctx = props.handler.useContext();
+  ctx.requestController.appendToHead(props.children);
   return null;
 }
 

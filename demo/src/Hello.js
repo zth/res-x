@@ -6,7 +6,6 @@ let Htmx$ResX = require("rescript-x/src/Htmx.js");
 let Stdlib_Exn = require("@rescript/runtime/lib/js/Stdlib_Exn.js");
 let HtmxHandler = require("./HtmxHandler.js");
 let ErrorMessage = require("./ErrorMessage.js");
-let Handlers$ResX = require("rescript-x/src/Handlers.js");
 let Primitive_option = require("@rescript/runtime/lib/js/Primitive_option.js");
 let SecurityPolicy$ResX = require("rescript-x/src/SecurityPolicy.js");
 let FormDataHelpers$ResX = require("rescript-x/src/FormDataHelpers.js");
@@ -33,7 +32,7 @@ function myVariantFromString(a) {
   };
 }
 
-let onButtonBlick = Handlers$ResX.hxPost(HtmxHandler.handler, "/button-click", SecurityPolicy$ResX.allow, async param => {
+let onButtonBlick = HtmxHandler.handler.hxPost("/button-click", SecurityPolicy$ResX.allow, async param => {
   try {
     let formData = await param.request.formData();
     let firstName = FormDataHelpers$ResX.expectString(formData, "firstName", undefined);

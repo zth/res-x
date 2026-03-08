@@ -5,14 +5,13 @@ let UserPage = require("./UserPage.js");
 let Hjsx$ResX = require("rescript-x/src/Hjsx.js");
 let FourOhFour = require("./FourOhFour.js");
 let UserFriends = require("./UserFriends.js");
-let RequestController$ResX = require("rescript-x/src/RequestController.js");
 
 function match(userRoutes, headers, requestController) {
-  RequestController$ResX.appendTitleSegment(requestController, "Users");
+  requestController.appendTitleSegment("Users");
   if (userRoutes !== 0) {
     let userRoutes$1 = userRoutes.tl;
     let userId = userRoutes.hd;
-    RequestController$ResX.appendTitleSegment(requestController, userId);
+    requestController.appendTitleSegment(userId);
     headers.set("Cache-Control", "private");
     let tmp;
     tmp = userRoutes$1 !== 0 && userRoutes$1.hd === "friends" && userRoutes$1.tl === 0 ? Hjsx$ResX.jsx(UserFriends.make, {
@@ -23,7 +22,7 @@ function match(userRoutes, headers, requestController) {
       userId: userId
     });
   }
-  RequestController$ResX.appendTitleSegment(requestController, "Not found");
+  requestController.appendTitleSegment("Not found");
   return Hjsx$ResX.jsx(FourOhFour.make, {});
 }
 

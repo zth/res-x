@@ -8,7 +8,7 @@ let handler = Handlers$ResX.make(async _request => ({
 }), undefined);
 
 function useContext() {
-  return Handlers$ResX.useContext(handler);
+  return handler.useContext();
 }
 
 exports.handler = handler;

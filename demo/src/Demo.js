@@ -10,13 +10,11 @@ let ResXAssets = require("./__generated__/ResXAssets.js");
 let UserRoutes = require("./UserRoutes.js");
 let HtmxHandler = require("./HtmxHandler.js");
 let BunUtils$ResX = require("rescript-x/src/BunUtils.js");
-let Handlers$ResX = require("rescript-x/src/Handlers.js");
-let RequestController$ResX = require("rescript-x/src/RequestController.js");
 
 let server = Bun.serve({
   development: BunUtils$ResX.isDev,
   port: 4444,
-  fetch: async (request, _server) => await Handlers$ResX.handleRequest(HtmxHandler.handler, {
+  fetch: async (request, _server) => await HtmxHandler.handler.handleRequest({
     request: request,
     render: async param => {
       let requestController = param.requestController;
@@ -32,7 +30,7 @@ let server = Bun.serve({
         exit = 1;
       }
       if (exit === 1) {
-        RequestController$ResX.appendTitleSegment(requestController, "Test App");
+        requestController.appendTitleSegment("Test App");
         let tmp;
         let exit$1 = 0;
         if (path !== 0) {
@@ -41,7 +39,7 @@ let server = Bun.serve({
             case "moved" :
               tmp = path.tl !== 0 ? Hjsx$ResX.jsx(FourOhFour.make, {
                   setGenericTitle: true
-                }) : RequestController$ResX.redirect(requestController, "/start", 302);
+                }) : requestController.redirect("/start", 302);
               break;
             case "" :
             case "start" :

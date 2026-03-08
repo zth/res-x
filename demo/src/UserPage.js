@@ -9,7 +9,6 @@ let Client$ResX = require("rescript-x/src/Client.js");
 let HtmxHandler = require("./HtmxHandler.js");
 let Core__Option = require("@rescript/core/src/Core__Option.js");
 let Stdlib_JsExn = require("@rescript/runtime/lib/js/Stdlib_JsExn.js");
-let Handlers$ResX = require("rescript-x/src/Handlers.js");
 let FailingComponent = require("./FailingComponent.js");
 let Primitive_option = require("@rescript/runtime/lib/js/Primitive_option.js");
 let ErrorBoundary$ResX = require("rescript-x/src/ErrorBoundary.js");
@@ -17,7 +16,7 @@ let SecurityPolicy$ResX = require("rescript-x/src/SecurityPolicy.js");
 let FormDataHelpers$ResX = require("rescript-x/src/FormDataHelpers.js");
 let Primitive_exceptions = require("@rescript/runtime/lib/js/Primitive_exceptions.js");
 
-let onForm = Handlers$ResX.hxPost(HtmxHandler.handler, "/user-single", SecurityPolicy$ResX.allow, async param => {
+let onForm = HtmxHandler.handler.hxPost("/user-single", SecurityPolicy$ResX.allow, async param => {
   let formData = await param.request.formData();
   try {
     let name = FormDataHelpers$ResX.expectString(formData, "name", undefined);
