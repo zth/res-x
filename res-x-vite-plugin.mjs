@@ -5,7 +5,7 @@ import fg from "fast-glob";
 
 const defaultClientEntryExtensions = [".js", ".mjs", ".jsx", ".ts", ".tsx"];
 const defaultExtraClientEntries = {
-  resXClient_js: "node_modules/rescript-x/src/ResXClient.js",
+  resXClient_js: "node_modules/rescript-x/client/ResXClient.js",
 };
 const assetInputPrefix = "__resx_asset__";
 const assetVirtualModulePrefix = "@res-x-asset-entry:";
@@ -95,6 +95,12 @@ export default function resXVitePlugin(options = {}) {
         projectRoot: configProjectRoot,
       });
       const buildInputs = getBuildInputs(configManifest);
+      const devFsAllow = getDevFsAllowPaths({
+        assetDir,
+        clientDirs,
+        extraClientEntries: resolvedExtraClientEntries,
+        projectRoot: configProjectRoot,
+      });
       const existingInputs = normalizeRollupInput(
         config.build?.rollupOptions?.input
       );
@@ -126,35 +132,40 @@ export default function resXVitePlugin(options = {}) {
       };
 
       if (env.command === "serve") {
+        const nextServer = { ...(config.server || {}) };
         const proxy = config.server?.proxy || {};
+        nextServer.fs = {
+          ...(config.server?.fs || {}),
+          allow: mergeUniquePaths(config.server?.fs?.allow, devFsAllow),
+        };
         if (proxy["/"] != null) {
           console.warn("[WARN] Path `/` is already proxied. Skipping.");
         } else {
-          nextConfig.server = {
-            proxy: {
-              ...proxy,
-              "/": {
-                target: serverUri,
-                changeOrigin: true,
-                bypass: req => {
-                  const requestPath = stripUrlSearchHash(req.url);
-                  if (
-                    requestPath?.startsWith(`/${stripLeadingSlash(assetDir)}/`) ||
-                    requestPath?.includes("@vite/client") ||
-                    requestPath?.includes("node_modules/") ||
-                    requestPath?.startsWith("/@fs/") ||
-                    getProjectFileForRequest(configProjectRoot, requestPath) !=
-                      null
-                  ) {
-                    return req.url;
-                  }
+          nextServer.proxy = {
+            ...proxy,
+            "/": {
+              target: serverUri,
+              changeOrigin: true,
+              bypass: req => {
+                const requestPath = stripUrlSearchHash(req.url);
+                if (
+                  requestPath?.startsWith(`/${stripLeadingSlash(assetDir)}/`) ||
+                  requestPath?.includes("@vite/client") ||
+                  requestPath?.includes("node_modules/") ||
+                  requestPath?.startsWith("/@fs/") ||
+                  getProjectFileForRequest(configProjectRoot, requestPath) !=
+                    null
+                ) {
+                  return req.url;
+                }
 
-                  return null;
-                },
+                return null;
               },
             },
           };
         }
+
+        nextConfig.server = nextServer;
       }
 
       return nextConfig;
@@ -636,6 +647,58 @@ function getWatchPaths({
   ];
 }
 
+function getDevFsAllowPaths({
+  assetDir,
+  clientDirs,
+  extraClientEntries,
+  projectRoot,
+}) {
+  const allowPaths = [projectRoot];
+  const resolvedAssetDir = resolveConfiguredPath(projectRoot, assetDir);
+  if (!isWithinProjectRoot(projectRoot, resolvedAssetDir)) {
+    allowPaths.push(resolvedAssetDir);
+  }
+
+  clientDirs.forEach(clientDir => {
+    const resolvedClientDir = resolveConfiguredPath(projectRoot, clientDir);
+    if (!isWithinProjectRoot(projectRoot, resolvedClientDir)) {
+      allowPaths.push(resolvedClientDir);
+    }
+  });
+
+  Object.values(extraClientEntries).forEach(sourcePath => {
+    const resolvedSourcePath = resolveConfiguredPath(projectRoot, sourcePath);
+    const resolvedSourceDir = path.dirname(resolvedSourcePath);
+    if (!isWithinProjectRoot(projectRoot, resolvedSourceDir)) {
+      allowPaths.push(resolvedSourceDir);
+    }
+  });
+
+  return mergeUniquePaths([], allowPaths);
+}
+
+function mergeUniquePaths(existingPaths, nextPaths) {
+  const mergedPaths = new Set();
+  const values = [
+    ...normalizeStringArray(existingPaths),
+    ...normalizeStringArray(nextPaths),
+  ];
+
+  values.forEach(value => {
+    mergedPaths.add(normalizeFsPath(value));
+  });
+
+  return Array.from(mergedPaths);
+}
+
+function normalizeStringArray(values) {
+  if (values == null) {
+    return [];
+  }
+
+  return Array.isArray(values) ? values : [values];
+}
+
 function closeWatcher(stopWatching) {
   if (stopWatching != null) {
     stopWatching();
@@ -704,11 +767,18 @@ function getProjectRoot(configRoot) {
 
 function getProjectRelativePath(projectRoot, sourcePath) {
   const relativePath = path.relative(projectRoot, sourcePath);
-  if (relativePath.startsWith("..")) {
+  if (
+    relativePath.startsWith("..") ||
+    path.isAbsolute(relativePath)
+  ) {
     return null;
   }
 
   return toPosix(relativePath);
+}
+
+function isWithinProjectRoot(projectRoot, filePath) {
+  return getProjectRelativePath(projectRoot, filePath) != null;
 }
 
 function getSourceRootLabel(projectRoot, configuredPath, resolvedPath) {

@@ -5,9 +5,6 @@ export default defineConfig({
   plugins: [
     resXVitePlugin({
       clientDirs: ["client"],
-      extraClientEntries: {
-        resXClient_js: "../src/ResXClient.js",
-      },
     }),
   ],
   server: {

@@ -1,0 +1,106 @@
+// Built browser entry for ResX.Client.
+// Source of truth: src/ResXClient.res
+// Regenerate with: npm run build:resx-client
+
+function init() {
+  let getTarget = (target, $$this) => {
+    if (typeof target !== "object") {
+      return $$this;
+    } else {
+      return document.querySelector(target.selector);
+    }
+  };
+  let handleAction = (action, $$this) => {
+    let target;
+    target = action.kind === "CopyToClipboard" ? null : getTarget(action.target, $$this);
+    if (target === null) {
+      if (action.kind !== "CopyToClipboard") {
+        return;
+      }
+      let onAfterFailure = action.onAfterFailure;
+      let onAfterSuccess = action.onAfterSuccess;
+      navigator.clipboard.writeText(action.text).catch(param => {
+        if (onAfterFailure !== undefined) {
+          return Promise.resolve((onAfterFailure.forEach(action => handleAction(action, $$this)), undefined));
+        } else {
+          return Promise.resolve();
+        }
+      }).then(() => {
+        if (onAfterSuccess !== undefined) {
+          onAfterSuccess.forEach(action => handleAction(action, $$this));
+          return;
+        }
+      });
+      return;
+    }
+    switch (action.kind) {
+      case "ToggleClass" :
+        action.className.split(" ").forEach(className => target.classList.toggle(className));
+        return;
+      case "RemoveClass" :
+        action.className.split(" ").forEach(className => target.classList.remove(className));
+        return;
+      case "AddClass" :
+        action.className.split(" ").forEach(className => target.classList.add(className));
+        return;
+      case "SwapClass" :
+        action.fromClassName.split(" ").forEach(className => target.classList.remove(className));
+        action.toClassName.split(" ").forEach(className => target.classList.add(className));
+        return;
+      case "RemoveElement" :
+        return target.remove();
+      case "CopyToClipboard" :
+        return;
+    }
+  };
+  document.addEventListener("click", event => {
+    let $$this = event.target;
+    let match = $$this.attributes["resx-onclick"];
+    let actions = match !== undefined ? JSON.parse(match.value) : [];
+    actions.forEach(action => handleAction(action, $$this));
+  });
+  document.addEventListener("invalid", event => {
+    let $$this = event.target;
+    let match = $$this.validity;
+    let match$1 = $$this.attributes["resx-validity-message"];
+    if (match === undefined) {
+      return;
+    }
+    if (match.valid) {
+      return;
+    }
+    if (match$1 === undefined) {
+      return;
+    }
+    let validityMessages = JSON.parse(match$1.value);
+    let messageToSet = match.badInput ? validityMessages.badInput : (
+        match.patternMismatch ? validityMessages.patternMismatch : (
+            match.rangeOverflow ? validityMessages.rangeOverflow : (
+                match.rangeUnderflow ? validityMessages.rangeUnderflow : (
+                    match.stepMismatch ? validityMessages.stepMismatch : (
+                        match.tooLong ? validityMessages.tooLong : (
+                            match.tooShort ? validityMessages.tooShort : (
+                                match.typeMismatch ? validityMessages.typeMismatch : (
+                                    match.valueMissing ? validityMessages.valueMissing : undefined
+                                  )
+                              )
+                          )
+                      )
+                  )
+              )
+          )
+      );
+    if (messageToSet !== undefined) {
+      return $$this.setCustomValidity(messageToSet);
+    }
+  }, true);
+  document.addEventListener("change", event => {
+    let $$this = event.target;
+    let match = $$this.attributes["resx-validity-message"];
+    if (match !== undefined) {
+      return $$this.setCustomValidity("");
+    }
+  });
+}
+
+init();

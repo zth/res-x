@@ -351,7 +351,23 @@ Then, include it in your ReScript:
 
 There! It's now available to you, and Vite will both transform and hot module reload the asset if it's possible.
 
-JavaScript and TypeScript files under `assets/` are exposed the same way, but should be used as module scripts:
+#### Thinking about client side JavaScript
+
+ResX is server-first. The default is:
+
+- Render HTML on the server.
+- Reach for normal links, forms and handlers first.
+- Use HTMX or `ResX.Client` when declarative browser behavior is enough.
+- Add your own browser JavaScript only when you actually need code running in the browser.
+
+When you do need browser JavaScript, think in terms of browser entry modules, not loose script files. An entry module is the file you include from HTML. That file can then import whatever else it needs, and Vite will handle transformation, minification, hashing, CSS extraction, and shared chunks in production.
+
+There are two intended places for those entry modules:
+
+- Put small app-local entry files in top level `assets/` when they sit naturally next to your other transformed assets.
+- Configure `clientDirs` when you want a dedicated folder for browser code, for example `client/`.
+
+Top level JS and TS files in `assets/` become browser entries automatically. They are exposed through `ResXAssets.assets` and should be loaded as module scripts:
 
 ```rescript
 <script type_="module" src={ResXAssets.assets.analytics_js} />
@@ -359,13 +375,56 @@ JavaScript and TypeScript files under `assets/` are exposed the same way, but sh
 
 If you want browser entry files outside `assets/`, configure `clientDirs` in `resXVitePlugin`. Files found there are also exposed through `ResXAssets.assets`, prefixed by directory name:
 
+```js
+// vite.config.js
+import { defineConfig } from "vite";
+import resXVitePlugin from "rescript-x/res-x-vite-plugin.mjs";
+
+export default defineConfig({
+  plugins: [
+    resXVitePlugin({
+      clientDirs: ["client"],
+    }),
+  ],
+});
+```
+
 ```rescript
 <script type_="module" src={ResXAssets.assets.client__admin_ts} />
+```
+
+The recommended structure is:
+
+- Keep entry files at the top level of `assets/` or each configured `clientDirs` folder.
+- Put shared support modules in subdirectories and import them from those entries.
+- Import CSS from the entry module when that CSS belongs to that client behavior.
+
+For example:
+
+```text
+assets/
+  analytics.js
+client/
+  admin.ts
+  admin.css
+  shared/
+    markLoaded.ts
+```
+
+```ts
+// client/admin.ts
+import "./admin.css";
+import {markLoaded} from "./shared/markLoaded";
+
+document.body.classList.add("client-admin-loaded");
+markLoaded(document.body, "admin-loaded");
 ```
 
 Any CSS imported from those browser entries is emitted and loaded automatically in both development and production.
 
 By default, only top level JS and TS files in `assets/` and each configured `clientDirs` folder become entries. Put shared support modules in subdirectories and import them from those entries so Vite can emit shared chunks for them. If you want a different discovery rule, set `assetEntryGlobs` and `clientEntryGlobs`.
+
+Current limitation: this pipeline expects browser entries to be JavaScript or TypeScript by the time Vite sees them. Direct `.res` entry files are not part of this flow. If you want to write client code in ReScript, compile it to JS first and then point `clientDirs` or `extraClientEntries` at that generated JS.
 
 #### Referring to transformed `assets`
 
@@ -703,6 +762,8 @@ These functions should only be used in exceptional cases where you need to:
 ### ResX Client
 
 ResX also ships with a tiny client side library that will help you do basic client side tasks fully declaratively. It's quite basic at the moment, but will be extended (tastefully) as we discover more places where it can help you avoid having to use a full blown client side framework to accomplish fairly basic tasks.
+
+The browser bundle for this is shipped with `rescript-x`, so you can reference `ResXAssets.assets.resXClient_js` directly without adding your own `extraClientEntries` config.
 
 To use ResX client, make sure you include its script:
 
