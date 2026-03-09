@@ -7,8 +7,8 @@ let ResXAssets = require("./__generated__/ResXAssets.js");
 let Stdlib_Exn = require("@rescript/runtime/lib/js/Stdlib_Exn.js");
 let Client$ResX = require("rescript-x/src/Client.js");
 let HtmxHandler = require("./HtmxHandler.js");
-let Core__Option = require("@rescript/core/src/Core__Option.js");
 let Stdlib_JsExn = require("@rescript/runtime/lib/js/Stdlib_JsExn.js");
+let Stdlib_Option = require("@rescript/runtime/lib/js/Stdlib_Option.js");
 let FailingComponent = require("./FailingComponent.js");
 let Primitive_option = require("@rescript/runtime/lib/js/Primitive_option.js");
 let ErrorBoundary$ResX = require("rescript-x/src/ErrorBoundary.js");
@@ -128,7 +128,7 @@ function UserPage(props) {
           Hjsx$ResX.jsx(ErrorBoundary$ResX.make, {
             children: Hjsx$ResX.jsx(FailingComponent.make, {}),
             renderError: err => Hjsx$ResX.Elements.jsx("div", {
-              children: "Oops, failed! " + Core__Option.getOr(Stdlib_JsExn.message(err), "-")
+              children: "Oops, failed! " + Stdlib_Option.getOr(Stdlib_JsExn.message(err), "-")
             })
           })
         ],

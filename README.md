@@ -15,30 +15,54 @@ ResX has an "open hood". That means that it's trying to stay close to the metal,
 _The demo is currently a WIP._
 The `demo/` will contain a comprehensive example of using ResX.
 
+## Deploy
+
+ResX apps are deployed the same basic way you would deploy a server-rendered JS app: you either ship a built server artifact, or you ship the app code and run the server entry point on the machine that hosts it.
+
+In practice that usually means a build step in CI, then either a container or a process manager on the server, typically sitting behind a reverse proxy.
+
+With ResX and Bun, the practical options are:
+
+- Build a Bun single-file executable and deploy that
+- Deploy the built app code and run the entry point with Bun on the server
+- Wrap either of those in Docker if you want a more self-contained deploy unit
+
+The demo app in `demo/` contains a working example of the first option. It includes a minimal Docker setup that builds a Bun single-file executable and runs it from a small Alpine image.
+
+Important detail: if you use the ResX asset pipeline, the executable is not completely standalone. The generated static asset routes serve files from `./dist`, so you need to deploy the built `dist/` directory alongside the executable and run the process from the directory that contains that `dist/` folder.
+
+In the demo:
+
+- `demo/assets/` and `demo/public/` are emitted into `demo/dist/`
+- `demo/build/demo-app` is the compiled executable
+- `demo/Dockerfile` shows the minimal Alpine image setup
+- `demo/README.md` documents the full Docker and direct-SFE flow
+
+The Docker path is the safest default because it builds the Linux executable in-container and packages the executable together with the required `dist/` assets.
+
 ## Getting started
 
 First, make sure you have [`Bun`](https://bun.sh) installed and setup. Then, install `rescript-x` and the dependencies needed:
 
 ```bash
-npm i rescript-x vite @rescript/core rescript-bun
+npm i rescript@^12 rescript-x vite rescript-bun
 ```
 
 Note that ResX requires these versions:
 
-- `rescript@>=11.1.0-rc.2`
-- `@rescript/core@>=1.0.0`
-- `rescript-bun@>=0.4.1`
+- `rescript@>=12.0.0-0 <13.0.0`
+- `rescript-bun@>=2.1.0`
 
 Configure our `rescript.json`:
 
 ```json
 {
   "jsx": {
-    "module": "Hjsx"
+    "module": "Hjsx",
+    "version": 4
   },
-  "bs-dependencies": ["@rescript/core", "rescript-x", "rescript-bun"],
-  "bsc-flags": [
-    "-open RescriptCore",
+  "dependencies": ["rescript-x", "rescript-bun"],
+  "compiler-flags": [
     "-open RescriptBun",
     "-open RescriptBun.Globals",
     "-open ResX.Globals"
@@ -414,7 +438,7 @@ client/
 ```ts
 // client/admin.ts
 import "./admin.css";
-import {markLoaded} from "./shared/markLoaded";
+import { markLoaded } from "./shared/markLoaded";
 
 document.body.classList.add("client-admin-loaded");
 markLoaded(document.body, "admin-loaded");

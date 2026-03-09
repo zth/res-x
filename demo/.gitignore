@@ -1,6 +1,7 @@
 node_modules
 lib
 dist
+build
 out
 src/__generated__/res-x-assets.js
 src/__generated__/res-x-static-routes.js

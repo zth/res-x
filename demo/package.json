@@ -1,16 +1,19 @@
 {
-  "name": "rescript-htmx",
+  "name": "res-x-demo",
   "version": "0.0.0",
   "scripts": {
     "start": "NODE_ENV=production bun run src/Demo.js",
-    "build": "NODE_ENV=production && bun run build:vite && bun run build:res",
+    "build": "NODE_ENV=production bun run build:vite && bun run build:res",
     "build:vite": "vite build",
     "build:res": "rescript",
+    "build:sfe": "bun run build && mkdir -p build && NODE_ENV=production bun build --compile --outfile ./build/demo-app ./src/Demo.js",
     "clean:res": "rescript clean",
     "dev:res": "rescript build -w",
     "dev:server": "bun --watch run src/Demo.js",
     "dev:vite": "vite",
-    "dev": "concurrently 'bun:dev:*'"
+    "dev": "concurrently 'bun:dev:*'",
+    "link:resx": "node scripts/link-local-rescript-x.mjs",
+    "postinstall": "node scripts/link-local-rescript-x.mjs"
   },
   "keywords": [
     "rescript"
@@ -18,10 +21,8 @@
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "@rescript/core": "1.6.0",
     "concurrently": "^8.2.1",
     "fast-glob": "^3.3.1",
-    "rescript-x": "../",
     "rescript": "12.0.0-rc.3",
     "vite": "^4.4.11",
     "rescript-bun": "2.1.0"

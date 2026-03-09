@@ -1,0 +1,8 @@
+.git
+.DS_Store
+node_modules
+demo/node_modules
+build
+dist
+demo/build
+demo/dist

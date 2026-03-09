@@ -7,13 +7,19 @@ let Hjsx$ResX = require("rescript-x/src/Hjsx.js");
 let FourOhFour = require("./FourOhFour.js");
 let Navigation = require("./Navigation.js");
 let ResXAssets = require("./__generated__/ResXAssets.js");
+let Stdlib_Int = require("@rescript/runtime/lib/js/Stdlib_Int.js");
 let UserRoutes = require("./UserRoutes.js");
 let HtmxHandler = require("./HtmxHandler.js");
 let BunUtils$ResX = require("rescript-x/src/BunUtils.js");
+let Stdlib_Option = require("@rescript/runtime/lib/js/Stdlib_Option.js");
+
+let port = Stdlib_Option.flatMap(Bun.env["PORT"], port => Stdlib_Int.fromString(port, undefined));
+
+let port$1 = port !== undefined ? port : 4444;
 
 let server = Bun.serve({
   development: BunUtils$ResX.isDev,
-  port: 4444,
+  port: port$1,
   fetch: async (request, _server) => await HtmxHandler.handler.handleRequest({
     request: request,
     render: async param => {
@@ -94,12 +100,10 @@ let portString = server.port.toString();
 console.log(`Listening! on localhost:` + portString);
 
 if (BunUtils$ResX.isDev) {
-  BunUtils$ResX.runDevServer(4444);
+  BunUtils$ResX.runDevServer(port$1);
 }
 
-let port = 4444;
-
-exports.port = port;
+exports.port = port$1;
 exports.server = server;
 exports.portString = portString;
-/* server Not a pure module */
+/* port Not a pure module */

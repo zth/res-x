@@ -1,6 +1,7 @@
 {
   "jsx": {
-    "module": "Hjsx"
+    "module": "Hjsx",
+    "version": 4
   },
   "name": "res-x-demo",
   "sources": {
@@ -12,9 +13,8 @@
     "in-source": true
   },
   "suffix": ".js",
-  "bs-dependencies": ["@rescript/core", "rescript-x", "rescript-bun"],
-  "bsc-flags": [
-    "-open RescriptCore",
+  "dependencies": ["rescript-x", "rescript-bun"],
+  "compiler-flags": [
     "-open RescriptBun",
     "-open RescriptBun.Globals",
     "-open ResX.Globals"

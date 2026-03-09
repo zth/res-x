@@ -1,4 +1,8 @@
-let port = 4444
+let port =
+  switch Bun.env->Bun.Env.get("PORT")->Option.flatMap(port => port->Int.fromString) {
+  | Some(port) => port
+  | None => 4444
+  }
 
 let server = Bun.serve({
   port,
