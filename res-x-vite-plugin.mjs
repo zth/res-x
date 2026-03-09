@@ -1,7 +1,15 @@
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 import fg from "fast-glob";
-import chokidar from "chokidar";
+
+const defaultClientEntryExtensions = [".js", ".mjs", ".jsx", ".ts", ".tsx"];
+const defaultExtraClientEntries = {
+  resXClient_js: "node_modules/rescript-x/client/ResXClient.js",
+};
+const assetInputPrefix = "__resx_asset__";
+const assetVirtualModulePrefix = "@res-x-asset-entry:";
+const clientInputPrefix = "__resx_client__";
 
 const defaultStaticAssetRoutesConfig = Object.freeze({
   headers: Object.freeze({}),
@@ -11,44 +19,63 @@ export default function resXVitePlugin(options = {}) {
   const {
     generated = "src/__generated__",
     serverUri = "http://localhost:4444",
-    resXClientLocation = "node_modules/rescript-x/src/ResXClient.js",
+    resXClientLocation = defaultExtraClientEntries.resXClient_js,
     staticAssetRoutes: staticAssetRoutesOptions = defaultStaticAssetRoutesConfig,
+    assetDir = "assets",
+    clientDirs = [],
+    clientEntryExtensions = defaultClientEntryExtensions,
+    assetEntryGlobs = getDefaultEntryGlobs(clientEntryExtensions),
+    clientEntryGlobs = getDefaultEntryGlobs(clientEntryExtensions),
+    extraClientEntries = {},
+    devOrigin,
   } = options;
 
   const staticAssetRoutes = createStaticAssetRoutesConfig(
     staticAssetRoutesOptions
   );
-  const assetDir = "assets";
   const publicDir = "public";
+  const resolvedExtraClientEntries = {
+    ...defaultExtraClientEntries,
+    ...(resXClientLocation == null ? {} : { resXClient_js: resXClientLocation }),
+    ...extraClientEntries,
+  };
+
+  let projectRoot = process.cwd();
   let outDir = "dist";
   let isBuild = false;
-  let watcher;
-  let indexContent = "";
-  const virtualIndexId = "@res-x-index";
+  let stopWatching = null;
+  let manifest = [];
+  let resolvedDevOrigin = normalizeDevOrigin("http://localhost:9000");
 
   function regenerate(context) {
-    indexContent = getDummyFile(assetDir, resXClientLocation);
-    writeResTypeFile(assetDir, generated);
+    manifest = getManifest({
+      assetDir,
+      assetEntryGlobs,
+      clientDirs,
+      clientEntryExtensions,
+      clientEntryGlobs,
+      extraClientEntries: resolvedExtraClientEntries,
+      projectRoot,
+    });
+    writeResTypeFile(projectRoot, generated, manifest);
 
     if (!isBuild) {
-      const dummyDevFile = getDummyDevFile(assetDir, resXClientLocation);
-      writeIfChanged(getAssetJsFileLoc(generated), dummyDevFile);
       writeIfChanged(
-        getStaticAssetRoutesJsFileLoc(generated),
+        getAssetJsFileLoc(projectRoot, generated),
+        getGeneratedDevAssetMap(manifest, resolvedDevOrigin)
+      );
+      writeIfChanged(
+        getStaticAssetRoutesJsFileLoc(projectRoot, generated),
         getDummyStaticAssetRoutesFile(
           assetDir,
           publicDir,
-          resXClientLocation,
+          resolvedExtraClientEntries.resXClient_js,
           staticAssetRoutes
         )
       );
-      const content = getAssetDirContent(assetDir);
 
-      // TODO: Check if really needed
-      content.forEach(c => {
-        context.load({
-          id: path.resolve(c),
-        });
+      manifest.forEach(entry => {
+        context.addWatchFile(entry.sourcePath);
       });
     }
   }
@@ -56,153 +83,259 @@ export default function resXVitePlugin(options = {}) {
   return {
     name: "res-x-vite-plugin",
 
-    configResolved(config) {
-      options.outDir = config.build.outDir || outDir;
-      outDir = options.outDir;
+    config(config, env) {
+      const configProjectRoot = getProjectRoot(config.root);
+      const configManifest = getManifest({
+        assetDir,
+        assetEntryGlobs,
+        clientDirs,
+        clientEntryExtensions,
+        clientEntryGlobs,
+        extraClientEntries: resolvedExtraClientEntries,
+        projectRoot: configProjectRoot,
+      });
+      const buildInputs = getBuildInputs(configManifest);
+      const devFsAllow = getDevFsAllowPaths({
+        assetDir,
+        clientDirs,
+        extraClientEntries: resolvedExtraClientEntries,
+        projectRoot: configProjectRoot,
+      });
+      const existingInputs = normalizeRollupInput(
+        config.build?.rollupOptions?.input
+      );
+      const nextConfig = {
+        css: {
+          ...(config.css || {}),
+          codeSplit: false,
+          extract: true,
+        },
+        build: {
+          assetsInlineLimit: 0,
+          rollupOptions: {
+            input: {
+              ...existingInputs,
+              ...buildInputs,
+            },
+            preserveEntrySignatures: "strict",
+            output: {
+              assetFileNames: assetInfo => {
+                const parsedName = path.parse(assetInfo.name || "asset");
+                return `assets/${stripOutputPrefix(parsedName.name)}-[hash][extname]`;
+              },
+              entryFileNames: chunkInfo => {
+                return `assets/${stripOutputPrefix(chunkInfo.name)}-[hash].js`;
+              },
+            },
+          },
+        },
+      };
 
-      isBuild = config.command === "build";
-
-      config.css = config.css || {};
-      config.css.codeSplit = false;
-      config.css.extract = true;
-
-      config.build.assetsInlineLimit = 0;
-      config.build.rollupOptions.input = virtualIndexId;
-
-      config.build.rollupOptions.preserveEntrySignatures = "strict";
-
-      config.build.rollupOptions.output =
-        config.build.rollupOptions.output || {};
-
-      config.build.rollupOptions.output.preserveModules = true;
-
-      if (config.command === "serve") {
-        config.server = config.server || {};
-        config.server.proxy = config.server.proxy || {};
-        const proxy = config.server.proxy;
+      if (env.command === "serve") {
+        const nextServer = { ...(config.server || {}) };
+        const proxy = config.server?.proxy || {};
+        nextServer.fs = {
+          ...(config.server?.fs || {}),
+          allow: mergeUniquePaths(config.server?.fs?.allow, devFsAllow),
+        };
         if (proxy["/"] != null) {
           console.warn("[WARN] Path `/` is already proxied. Skipping.");
         } else {
-          proxy["/"] = {
-            target: serverUri,
-            changeOrigin: true,
-            bypass: req => {
-              if (
-                req.url?.startsWith("/assets/") ||
-                req.url?.includes("@vite/client") ||
-                req.url?.includes("node_modules/")
-              ) {
-                return req.url;
-              }
-              return null;
+          nextServer.proxy = {
+            ...proxy,
+            "/": {
+              target: serverUri,
+              changeOrigin: true,
+              bypass: req => {
+                const requestPath = stripUrlSearchHash(req.url);
+                if (
+                  requestPath?.startsWith(`/${stripLeadingSlash(assetDir)}/`) ||
+                  requestPath?.includes("@vite/client") ||
+                  requestPath?.includes("node_modules/") ||
+                  requestPath?.startsWith("/@fs/") ||
+                  getProjectFileForRequest(configProjectRoot, requestPath) !=
+                    null
+                ) {
+                  return req.url;
+                }
+
+                return null;
+              },
             },
           };
         }
+
+        nextConfig.server = nextServer;
       }
+
+      return nextConfig;
+    },
+
+    configResolved(config) {
+      projectRoot = config.root;
+      outDir = config.build.outDir || outDir;
+      isBuild = config.command === "build";
+      resolvedDevOrigin = getResolvedDevOrigin(config, devOrigin);
+      manifest = getManifest({
+        assetDir,
+        assetEntryGlobs,
+        clientDirs,
+        clientEntryExtensions,
+        clientEntryGlobs,
+        extraClientEntries: resolvedExtraClientEntries,
+        projectRoot,
+      });
     },
 
     resolveId(id) {
-      if (id === virtualIndexId) {
-        return virtualIndexId;
+      if (isAssetVirtualModuleId(id)) {
+        return id;
       }
     },
 
     load(id) {
-      if (id === virtualIndexId) {
-        return indexContent;
+      const assetEntry = manifest.find(
+        entry => entry.kind === "asset" && entry.buildId === id
+      );
+      if (assetEntry != null) {
+        return getAssetEntryModule(assetEntry);
       }
+    },
+
+    configureServer(server) {
+      const watchPaths = getWatchPaths({
+        assetDir,
+        publicDir,
+        clientDirs,
+        extraClientEntries: resolvedExtraClientEntries,
+        projectRoot,
+      });
+      const handleRegenerate = () => {
+        regenerate({
+          addWatchFile: filePath => {
+            server.watcher.add(filePath);
+          },
+        });
+        server.ws.send({ type: "full-reload" });
+      };
+
+      server.watcher.add(watchPaths);
+      ["add", "change", "unlink"].forEach(eventName => {
+        server.watcher.on(eventName, handleRegenerate);
+      });
+
+      stopWatching = () => {
+        ["add", "change", "unlink"].forEach(eventName => {
+          server.watcher.off(eventName, handleRegenerate);
+        });
+      };
     },
 
     buildStart() {
       regenerate(this);
-
-      if (!isBuild) {
-        // Watch static asset roots for add/remove changes in development mode.
-        watcher = chokidar.watch([assetDir, publicDir], {
-          persistent: true,
-          ignoreInitial: true,
-        });
-
-        watcher.on("add", _ => {
-          regenerate(this);
-        });
-
-        watcher.on("unlink", _ => {
-          regenerate(this);
-        });
-      }
     },
 
     buildEnd() {
-      if (watcher) {
-        watcher.close();
-      }
+      closeWatcher(stopWatching);
     },
 
     closeBundle() {
-      if (watcher) {
-        watcher.close();
-      }
+      closeWatcher(stopWatching);
     },
 
     generateBundle(_options, bundle) {
-      const map = {};
+      const assetEntriesByBuildId = new Map(
+        manifest
+          .filter(entry => entry.kind === "asset")
+          .map(entry => [entry.buildId, entry])
+      );
+      const clientEntriesByLookupId = new Map();
+      manifest
+        .filter(entry => entry.kind === "client")
+        .forEach(entry => {
+          entry.buildLookupIds.forEach(lookupId => {
+            clientEntriesByLookupId.set(lookupId, entry);
+          });
+        });
 
-      const content = getAssetDirContent(assetDir);
-      const contentResolved = content.map(c => path.resolve(assetDir, c));
-      contentResolved.push(fs.realpathSync(resXClientLocation));
+      const assetFileNameByBuildId = new Map();
+      const clientFileNameByFieldName = new Map();
+      const assetWrapperChunkFileNames = [];
 
-      Object.entries(bundle).forEach(([key, v]) => {
-        if (v.facadeModuleId != null) {
-          const moduleId = v.facadeModuleId.split("?")[0];
-          const bundlePath = key;
-          const importedCss = v.viteMetadata?.importedCss.values().next().value;
+      Object.entries(bundle).forEach(([fileName, output]) => {
+        if (output.type !== "chunk" || output.facadeModuleId == null) {
+          return;
+        }
 
-          if (importedCss != null) {
-            map[moduleId] = importedCss.toString();
-          } else {
-            const importedAsset = v.viteMetadata?.importedAssets
-              .values()
-              .next().value;
+        const facadeModuleId = stripQuery(output.facadeModuleId);
+        const assetEntry = assetEntriesByBuildId.get(facadeModuleId);
+        if (assetEntry != null) {
+          assetFileNameByBuildId.set(
+            assetEntry.buildId,
+            getTransformedAssetFileName(output)
+          );
+          assetWrapperChunkFileNames.push(fileName);
+          return;
+        }
 
-            if (importedAsset != null) {
-              map[moduleId] = importedAsset.toString();
-            } else {
-              map[moduleId] = bundlePath.toString();
-            }
-          }
+        const clientEntry = clientEntriesByLookupId.get(facadeModuleId);
+        if (clientEntry != null) {
+          const importedCss = Array.from(
+            output.viteMetadata?.importedCss || []
+          ).map(fileName => normalizeEmittedFileName(fileName.toString()));
+          const wrapperFileName = getClientEntryWrapperFileName(
+            clientEntry.fieldName,
+            output.fileName,
+            importedCss
+          );
+
+          bundle[wrapperFileName] = {
+            fileName: wrapperFileName,
+            source: getClientEntryWrapperModule(
+              wrapperFileName,
+              output.fileName,
+              importedCss
+            ),
+            type: "asset",
+          };
+
+          clientFileNameByFieldName.set(clientEntry.fieldName, wrapperFileName);
         }
       });
 
-      const transformed = contentResolved.reduce((acc, curr) => {
-        const generated = map[curr];
-        if (generated != null) {
-          const adjustedKeyName = curr.endsWith("ResXClient.js")
-            ? "resXClient.js"
-            : path.relative(path.resolve(assetDir), curr);
+      const assets = manifest.reduce((acc, entry) => {
+        const generatedPath =
+          entry.kind === "asset"
+            ? assetFileNameByBuildId.get(entry.buildId)
+            : clientFileNameByFieldName.get(entry.fieldName);
 
-          const [_, transformed] = toRescriptFieldName(adjustedKeyName, acc);
-
-          acc[transformed] = "/" + generated;
+        if (generatedPath != null) {
+          acc[entry.fieldName] = `/${generatedPath}`;
         }
+
         return acc;
       }, {});
 
-      const jsFileContent = `export const assets = ${JSON.stringify(
-        transformed,
-        null,
-        2
-      )}`;
+      assetWrapperChunkFileNames.forEach(fileName => {
+        delete bundle[fileName];
+      });
 
-      writeIfChanged(getAssetJsFileLoc(generated), jsFileContent);
+      const bundleFileNames = Object.values(bundle)
+        .map(output => output.fileName)
+        .filter(Boolean);
+
       writeIfChanged(
-        getStaticAssetRoutesJsFileLoc(generated),
-        getBuildStaticAssetRoutesFile(
-          transformed,
-          publicDir,
+        getAssetJsFileLoc(projectRoot, generated),
+        getGeneratedAssetModule(assets)
+      );
+      writeIfChanged(
+        getStaticAssetRoutesJsFileLoc(projectRoot, generated),
+        getBuildStaticAssetRoutesFile({
+          bundleFileNames,
           outDir,
-          staticAssetRoutes
-        )
+          publicDir,
+          staticAssetRoutes,
+        })
       );
     },
   };
@@ -218,112 +351,525 @@ function getPublicDirContent(publicDir) {
   });
 }
 
-function getDirContent(dir, options = {}) {
+function getDirContent(dirPath, options = {}) {
   const { dot = false } = options;
-  const cwd = path.resolve(dir);
+  const cwd = path.resolve(dirPath);
 
   if (!fs.existsSync(cwd)) {
     return [];
   }
 
-  return fg.globSync(["**/*"], {
-    dot,
-    cwd,
-  });
+  return fg
+    .globSync(["**/*"], {
+      cwd,
+      dot,
+      onlyFiles: true,
+    })
+    .sort();
 }
 
-function getAssetJsFileLoc(generated) {
-  return path.resolve(generated, "res-x-assets.js");
+function getDirContentMatchingPatterns(dirPath, patterns) {
+  if (!fs.existsSync(dirPath) || patterns.length === 0) {
+    return [];
+  }
+
+  return fg
+    .globSync(patterns, {
+      cwd: dirPath,
+      dot: false,
+      onlyFiles: true,
+    })
+    .sort();
 }
 
-function getStaticAssetRoutesJsFileLoc(generated) {
-  return path.resolve(generated, "res-x-static-routes.js");
-}
+function getManifest({
+  assetDir,
+  assetEntryGlobs,
+  clientDirs,
+  clientEntryExtensions,
+  clientEntryGlobs,
+  extraClientEntries,
+  projectRoot,
+}) {
+  const entries = [];
+  const usedFieldNames = {};
 
-function getAssetResFileLoc(generated) {
-  return path.resolve(generated, "ResXAssets.res");
-}
+  Object.entries(extraClientEntries).forEach(([fieldName, sourcePath]) => {
+    validateExplicitFieldName(fieldName);
 
-function getManifestStructure(assetDir, map = null) {
-  const content = getAssetDirContent(assetDir);
-  return content.reduce((acc, curr) => {
-    const generated = map != null ? map[curr] : curr;
-    if (generated != null) {
-      const [_, transformed] = toRescriptFieldName(curr, acc);
-      acc[transformed] = generated;
+    if (usedFieldNames[fieldName] != null) {
+      throw new Error(`Duplicate ResX asset field name: ${fieldName}`);
     }
+
+    const absoluteSourcePath = resolveConfiguredPath(projectRoot, sourcePath);
+    if (!fs.existsSync(absoluteSourcePath)) {
+      throw new Error(
+        `Configured ResX client entry is missing: ${sourcePath} (${fieldName})`
+      );
+    }
+
+    usedFieldNames[fieldName] = sourcePath;
+    entries.push(
+      createManifestEntry({
+        buildId: normalizeFsPath(absoluteSourcePath),
+        buildLookupIds: getPathAliases(absoluteSourcePath),
+        comment:
+          fieldName === "resXClient_js"
+            ? "ResX Client Bundle"
+            : `\`${sourcePath}\``,
+        displayPath: sourcePath,
+        fieldName,
+        inputName: `${clientInputPrefix}${fieldName}`,
+        kind: "client",
+        projectRoot,
+        relativePath: sourcePath,
+        sourcePath: absoluteSourcePath,
+      })
+    );
+  });
+
+  const resolvedAssetDir = resolveConfiguredPath(projectRoot, assetDir);
+  const assetEntries = new Set(
+    getDirContentMatchingPatterns(resolvedAssetDir, assetEntryGlobs)
+  );
+
+  getDirContent(resolvedAssetDir).forEach(relativePath => {
+    const absoluteSourcePath = path.resolve(resolvedAssetDir, relativePath);
+    const isClientLike = isClientEntryFile(relativePath, clientEntryExtensions);
+    if (isClientLike && !assetEntries.has(relativePath)) {
+      return;
+    }
+
+    const fieldName = toRescriptFieldName(relativePath, usedFieldNames);
+    usedFieldNames[fieldName] = relativePath;
+    const kind = isClientLike ? "client" : "asset";
+
+    entries.push(
+      createManifestEntry({
+        buildId:
+          kind === "asset"
+            ? getAssetVirtualModuleId(fieldName)
+            : normalizeFsPath(absoluteSourcePath),
+        buildLookupIds:
+          kind === "asset"
+            ? [getAssetVirtualModuleId(fieldName)]
+            : getPathAliases(absoluteSourcePath),
+        comment: `\`${relativePath}\``,
+        displayPath: relativePath,
+        fieldName,
+        inputName: `${kind === "asset" ? assetInputPrefix : clientInputPrefix}${fieldName}`,
+        kind,
+        projectRoot,
+        relativePath,
+        sourcePath: absoluteSourcePath,
+      })
+    );
+  });
+
+  clientDirs.forEach(clientDir => {
+    const resolvedClientDir = resolveConfiguredPath(projectRoot, clientDir);
+    const sourceRootLabel = getSourceRootLabel(
+      projectRoot,
+      clientDir,
+      resolvedClientDir
+    );
+
+    getDirContentMatchingPatterns(resolvedClientDir, clientEntryGlobs).forEach(
+      relativePath => {
+        if (!isClientEntryFile(relativePath, clientEntryExtensions)) {
+          return;
+        }
+
+        const absoluteSourcePath = path.resolve(resolvedClientDir, relativePath);
+        const displayPath = toPosix(path.join(sourceRootLabel, relativePath));
+        const fieldName = toRescriptFieldName(displayPath, usedFieldNames);
+        usedFieldNames[fieldName] = displayPath;
+
+        entries.push(
+          createManifestEntry({
+            buildId: normalizeFsPath(absoluteSourcePath),
+            buildLookupIds: getPathAliases(absoluteSourcePath),
+            comment: `\`${displayPath}\``,
+            displayPath,
+            fieldName,
+            inputName: `${clientInputPrefix}${fieldName}`,
+            kind: "client",
+            projectRoot,
+            relativePath,
+            sourcePath: absoluteSourcePath,
+          })
+        );
+      }
+    );
+  });
+
+  return entries;
+}
+
+function createManifestEntry({
+  buildId,
+  buildLookupIds,
+  comment,
+  displayPath,
+  fieldName,
+  inputName,
+  kind,
+  projectRoot,
+  relativePath,
+  sourcePath,
+}) {
+  return {
+    buildId,
+    buildLookupIds,
+    comment,
+    displayPath,
+    fieldName,
+    inputName,
+    kind,
+    projectRelativePath: getProjectRelativePath(projectRoot, sourcePath),
+    relativePath: toPosix(relativePath),
+    sourcePath: normalizeFsPath(sourcePath),
+  };
+}
+
+function getBuildInputs(manifest) {
+  return manifest.reduce((acc, entry) => {
+    acc[entry.inputName] = entry.buildId;
     return acc;
   }, {});
 }
 
-function writeIfChanged(p, content) {
-  let currentContent = "";
+function getAssetEntryModule(entry) {
+  const sourcePath = JSON.stringify(entry.sourcePath);
+  const fieldName = JSON.stringify(entry.fieldName);
 
-  try {
-    currentContent = fs.readFileSync(p, "utf8");
-  } catch {}
+  if (isStylesheetFile(entry.sourcePath)) {
+    return `import ${sourcePath};\nglobalThis.__resxAssetEntry = ${fieldName};`;
+  }
 
-  if (currentContent !== content) {
-    const dir = path.dirname(p);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
+  return `import assetUrl from ${sourcePath};\nglobalThis.__resxAssetEntry = assetUrl;`;
+}
+
+function getGeneratedAssetModule(assets) {
+  return `export const assets = ${JSON.stringify(assets, null, 2)}`;
+}
+
+function getClientEntryWrapperModule(
+  wrapperFileName,
+  entryFileName,
+  cssFileNames
+) {
+  const relativeEntryPath = toImportPath(wrapperFileName, entryFileName);
+  const relativeCssPaths = cssFileNames.map(cssFileName =>
+    toImportPath(wrapperFileName, cssFileName)
+  );
+
+  return `const d=document,c=${JSON.stringify(relativeCssPaths)};for(const p of c){const h=new URL(p,import.meta.url).href;if(d.querySelector(\`link[rel="stylesheet"][href="\${h}"]\`)==null){const l=d.createElement("link");l.rel="stylesheet";l.href=h;d.head.appendChild(l)}}import(${JSON.stringify(relativeEntryPath)});`;
+}
+
+function getGeneratedDevAssetMap(manifest, devOrigin) {
+  const assets = manifest.reduce((acc, entry) => {
+    acc[entry.fieldName] = getDevAssetUrl(entry, devOrigin);
+    return acc;
+  }, {});
+
+  return getGeneratedAssetModule(assets);
+}
+
+function getDevAssetUrl(entry, devOrigin) {
+  if (entry.projectRelativePath != null) {
+    return `${devOrigin}/${stripLeadingSlash(entry.projectRelativePath)}`;
+  }
+
+  return `${devOrigin}/@fs${entry.sourcePath}`;
+}
+
+function getResolvedDevOrigin(config, explicitDevOrigin) {
+  if (explicitDevOrigin != null) {
+    return normalizeDevOrigin(explicitDevOrigin);
+  }
+
+  if (config.server.origin != null) {
+    return normalizeDevOrigin(config.server.origin);
+  }
+
+  const protocol = config.server.https ? "https" : "http";
+  const host = normalizeDevHost(config.server.host);
+  const port = config.server.port || 5173;
+
+  return normalizeDevOrigin(`${protocol}://${host}:${port}`);
+}
+
+function getTransformedAssetFileName(output) {
+  const importedCss = output.viteMetadata?.importedCss.values().next().value;
+  if (importedCss != null) {
+    return normalizeEmittedFileName(importedCss.toString());
+  }
+
+  const importedAsset = output.viteMetadata?.importedAssets
+    .values()
+    .next().value;
+  if (importedAsset != null) {
+    return normalizeEmittedFileName(importedAsset.toString());
+  }
+
+  return normalizeEmittedFileName(output.fileName.toString());
+}
+
+function getClientEntryWrapperFileName(fieldName, entryFileName, cssFileNames) {
+  const hash = crypto
+    .createHash("sha256")
+    .update(entryFileName)
+    .update("\0")
+    .update(cssFileNames.join("\0"))
+    .digest("hex")
+    .slice(0, 8);
+
+  return path.posix.join("assets", `${fieldName}_loader-${hash}.js`);
+}
+
+function getWatchPaths({
+  assetDir,
+  publicDir,
+  clientDirs,
+  extraClientEntries,
+  projectRoot,
+}) {
+  return [
+    resolveConfiguredPath(projectRoot, assetDir),
+    resolveConfiguredPath(projectRoot, publicDir),
+    ...clientDirs.map(clientDir =>
+      resolveConfiguredPath(projectRoot, clientDir)
+    ),
+    ...Object.values(extraClientEntries).map(sourcePath =>
+      resolveConfiguredPath(projectRoot, sourcePath)
+    ),
+  ];
+}
+
+function getDevFsAllowPaths({
+  assetDir,
+  clientDirs,
+  extraClientEntries,
+  projectRoot,
+}) {
+  const allowPaths = [projectRoot];
+  const resolvedAssetDir = resolveConfiguredPath(projectRoot, assetDir);
+  if (!isWithinProjectRoot(projectRoot, resolvedAssetDir)) {
+    allowPaths.push(resolvedAssetDir);
+  }
+
+  clientDirs.forEach(clientDir => {
+    const resolvedClientDir = resolveConfiguredPath(projectRoot, clientDir);
+    if (!isWithinProjectRoot(projectRoot, resolvedClientDir)) {
+      allowPaths.push(resolvedClientDir);
     }
-    fs.writeFileSync(p, content);
+  });
+
+  Object.values(extraClientEntries).forEach(sourcePath => {
+    const resolvedSourcePath = resolveConfiguredPath(projectRoot, sourcePath);
+    const resolvedSourceDir = path.dirname(resolvedSourcePath);
+    if (!isWithinProjectRoot(projectRoot, resolvedSourceDir)) {
+      allowPaths.push(resolvedSourceDir);
+    }
+  });
+
+  return mergeUniquePaths([], allowPaths);
+}
+
+function mergeUniquePaths(existingPaths, nextPaths) {
+  const mergedPaths = new Set();
+  const values = [
+    ...normalizeStringArray(existingPaths),
+    ...normalizeStringArray(nextPaths),
+  ];
+
+  values.forEach(value => {
+    mergedPaths.add(normalizeFsPath(value));
+  });
+
+  return Array.from(mergedPaths);
+}
+
+function normalizeStringArray(values) {
+  if (values == null) {
+    return [];
+  }
+
+  return Array.isArray(values) ? values : [values];
+}
+
+function closeWatcher(stopWatching) {
+  if (stopWatching != null) {
+    stopWatching();
   }
 }
 
-function writeResTypeFile(assetDir, generated) {
-  const mapped = getManifestStructure(assetDir);
+function writeResTypeFile(projectRoot, generated, manifest) {
   let content = `// Generated by ResX, do not edit manually\n\n`;
 
-  content += `type assets = {\n  /** ResX Client Bundle */\n  resXClient_js: string,\n\n${Object.entries(
-    mapped
-  )
+  content += `type assets = {\n${manifest
     .map(
-      ([k, v], index) =>
-        `${index > 0 ? "\n" : ""}  /** \`${v}\` */\n  ${k}: string,`
+      (entry, index) =>
+        `${index > 0 ? "\n" : ""}  /** ${entry.comment} */\n  ${entry.fieldName}: string,`
     )
     .join("\n")}\n}\n\n`;
 
   content += `@module("./res-x-assets.js") external assets: assets = "assets"`;
   content += `\n\n@module("./res-x-static-routes.js") external staticAssetRoutes: Dict.t<Bun.routeHandlerObject> = "staticAssetRoutes"`;
 
-  const assetResFileLoc = getAssetResFileLoc(generated);
-  writeIfChanged(assetResFileLoc, content);
+  writeIfChanged(getAssetResFileLoc(projectRoot, generated), content);
 }
 
-function getDummyFile(assetDir, resXClientLocation) {
-  const content = getAssetDirContent(assetDir);
-  let text = [`// Generated by ResX, do not edit manually\n`];
-  content.forEach((c, i) => {
-    if (c.endsWith(".js")) return;
-    text.push(`import v${i} from "${path.resolve(assetDir, c)}"`);
-  });
-  text.push(`import "${path.resolve(resXClientLocation)}"`);
-  text.push(
-    `\nexport const assets = {\n${content
-      .map((c, i) => `  "${c}": v${i}`)
-      .join(",\n")}\n}`
-  );
+function writeIfChanged(filePath, content) {
+  let currentContent = "";
 
-  return text.join("\n");
+  try {
+    currentContent = fs.readFileSync(filePath, "utf8");
+  } catch {}
+
+  if (currentContent !== content) {
+    const dir = path.dirname(filePath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(filePath, content);
+  }
 }
 
-function getDummyDevFile(assetDir, resXClientLocation) {
-  const content = getAssetDirContent(assetDir);
-  let text = [`// Generated by ResX, do not edit manually\n`];
-  const mapped = Object.fromEntries(content.map(k => [k, k]));
+function getAssetJsFileLoc(projectRoot, generated) {
+  return path.resolve(projectRoot, generated, "res-x-assets.js");
+}
 
-  text.push(
-    `export const assets = {\n  "resXClient_js": "/${resXClientLocation}",\n${content
-      .map(c => {
-        const [_, transformed] = toRescriptFieldName(c, mapped);
-        return `  "${transformed}": "/assets/${c}"`;
-      })
-      .join(",\n")}\n}`
-  );
+function getStaticAssetRoutesJsFileLoc(projectRoot, generated) {
+  return path.resolve(projectRoot, generated, "res-x-static-routes.js");
+}
 
-  return text.join("\n");
+function getAssetResFileLoc(projectRoot, generated) {
+  return path.resolve(projectRoot, generated, "ResXAssets.res");
+}
+
+function resolveConfiguredPath(projectRoot, configuredPath) {
+  if (path.isAbsolute(configuredPath)) {
+    return normalizeFsPath(configuredPath);
+  }
+
+  return normalizeFsPath(path.resolve(projectRoot, configuredPath));
+}
+
+function getProjectRoot(configRoot) {
+  if (configRoot == null) {
+    return process.cwd();
+  }
+
+  return path.resolve(configRoot);
+}
+
+function getProjectRelativePath(projectRoot, sourcePath) {
+  const relativePath = path.relative(projectRoot, sourcePath);
+  if (
+    relativePath.startsWith("..") ||
+    path.isAbsolute(relativePath)
+  ) {
+    return null;
+  }
+
+  return toPosix(relativePath);
+}
+
+function isWithinProjectRoot(projectRoot, filePath) {
+  return getProjectRelativePath(projectRoot, filePath) != null;
+}
+
+function getSourceRootLabel(projectRoot, configuredPath, resolvedPath) {
+  if (!path.isAbsolute(configuredPath)) {
+    return stripTrailingSlash(toPosix(configuredPath));
+  }
+
+  const projectRelativePath = getProjectRelativePath(projectRoot, resolvedPath);
+  if (projectRelativePath != null) {
+    return stripTrailingSlash(projectRelativePath);
+  }
+
+  return path.basename(resolvedPath);
+}
+
+function normalizeRollupInput(input) {
+  if (input == null) {
+    return {};
+  }
+
+  if (typeof input === "string") {
+    return { app: input };
+  }
+
+  if (Array.isArray(input)) {
+    return input.reduce((acc, current, index) => {
+      acc[`app_${index}`] = current;
+      return acc;
+    }, {});
+  }
+
+  return input;
+}
+
+function getProjectFileForRequest(projectRoot, requestPath) {
+  if (requestPath == null || !requestPath.startsWith("/")) {
+    return null;
+  }
+
+  const resolvedPath = path.resolve(projectRoot, stripLeadingSlash(requestPath));
+  const projectRootWithSep = `${normalizeFsPath(projectRoot)}${path.sep}`;
+
+  if (
+    resolvedPath !== normalizeFsPath(projectRoot) &&
+    !resolvedPath.startsWith(projectRootWithSep)
+  ) {
+    return null;
+  }
+
+  try {
+    const stat = fs.statSync(resolvedPath);
+    return stat.isFile() ? resolvedPath : null;
+  } catch {
+    return null;
+  }
+}
+
+function getPathAliases(filePath) {
+  const aliases = new Set([normalizeFsPath(filePath)]);
+
+  try {
+    aliases.add(normalizeFsPath(fs.realpathSync(filePath)));
+  } catch {}
+
+  return Array.from(aliases);
+}
+
+function stripQuery(filePath) {
+  const strippedPath = filePath.split("?")[0];
+  if (isAssetVirtualModuleId(strippedPath)) {
+    return strippedPath;
+  }
+
+  return normalizeFsPath(strippedPath);
+}
+
+function isClientEntryFile(filePath, clientEntryExtensions) {
+  return clientEntryExtensions.includes(path.extname(filePath));
+}
+
+function isStylesheetFile(filePath) {
+  return [
+    ".css",
+    ".less",
+    ".pcss",
+    ".postcss",
+    ".sass",
+    ".scss",
+    ".styl",
+    ".stylus",
+  ].includes(path.extname(filePath));
 }
 
 function createStaticAssetRoutesConfig(staticAssetRoutes = {}) {
@@ -374,6 +920,8 @@ function getDummyStaticAssetRoutesFile(
   resXClientLocation,
   staticAssetRoutes
 ) {
+  const assetRouteBase = path.basename(normalizeFsPath(assetDir));
+
   return getStaticAssetRoutesFileContent({
     exactEntries: buildStaticAssetRouteEntries({
       publicEntries: getPublicRouteEntries({
@@ -381,40 +929,62 @@ function getDummyStaticAssetRoutesFile(
         fileDir: publicDir,
       }),
       assetEntries: getAssetDirContent(assetDir).map(assetPath => ({
-        routePath: toRoutePath(path.join("assets", assetPath)),
+        routePath: toRoutePath(path.join(assetRouteBase, assetPath)),
         filePath: toBunFilePath(path.join(assetDir, assetPath)),
       })),
-      exactEntries: [
-        {
-          routePath: toRoutePath(resXClientLocation),
-          filePath: toBunFilePath(resXClientLocation),
-        },
-      ],
+      exactEntries:
+        resXClientLocation == null
+          ? []
+          : [
+              {
+                routePath: toRoutePath(resXClientLocation),
+                filePath: toBunFilePath(resXClientLocation),
+              },
+            ],
       headers: staticAssetRoutes.headers,
     }),
   });
 }
 
 function getBuildStaticAssetRoutesFile(
-  assetMap,
-  publicDir,
-  outDir,
-  staticAssetRoutes
+  assetMapOrOptions,
+  publicDirArg,
+  outDirArg,
+  staticAssetRoutesArg
 ) {
-  return getStaticAssetRoutesFileContent({
-    exactEntries: buildStaticAssetRouteEntries({
-      publicEntries: getPublicRouteEntries({
-        baseDir: publicDir,
-        fileDir: outDir,
+  if (
+    typeof assetMapOrOptions === "object" &&
+    assetMapOrOptions != null &&
+    Array.isArray(assetMapOrOptions.bundleFileNames)
+  ) {
+    const { bundleFileNames, outDir, publicDir, staticAssetRoutes } =
+      assetMapOrOptions;
+
+    return getStaticAssetRoutesFileContent({
+      exactEntries: buildStaticAssetRouteEntries({
+        publicEntries: getPublicRouteEntries({
+          baseDir: publicDir,
+          fileDir: outDir,
+        }),
+        assetEntries: bundleFileNames.map(fileName => ({
+          routePath: toRoutePath(fileName),
+          filePath: toBunFilePath(path.join(outDir, fileName)),
+        })),
+        headers: staticAssetRoutes.headers,
       }),
-      assetEntries: Object.values(assetMap).map(assetUrl => ({
-        routePath: assetUrl,
-        filePath: toBunFilePath(
-          path.join(outDir, assetUrl.replace(/^\//, ""))
-        ),
-      })),
-      headers: staticAssetRoutes.headers,
-    }),
+    });
+  }
+
+  const assetMap = assetMapOrOptions;
+  const bundleFileNames = Object.values(assetMap).map(assetUrl =>
+    stripLeadingSlash(assetUrl)
+  );
+
+  return getBuildStaticAssetRoutesFile({
+    bundleFileNames,
+    outDir: outDirArg,
+    publicDir: publicDirArg,
+    staticAssetRoutes: staticAssetRoutesArg,
   });
 }
 
@@ -445,11 +1015,10 @@ function dedupeStaticAssetRouteEntries(entries) {
 }
 
 function getPublicRouteEntries({ baseDir, fileDir }) {
-  return getPublicDirContent(baseDir)
-    .map(publicPath => ({
-      routePath: toRoutePath(publicPath),
-      filePath: toBunFilePath(path.join(fileDir, publicPath)),
-    }));
+  return getPublicDirContent(baseDir).map(publicPath => ({
+    routePath: toRoutePath(publicPath),
+    filePath: toBunFilePath(path.join(fileDir, publicPath)),
+  }));
 }
 
 function getStaticAssetRouteHeaders(headers, routePath) {
@@ -560,19 +1129,17 @@ function getStaticAssetRoutesFileContent({ exactEntries }) {
 
   const exactRoutes = exactEntries
     .sort((left, right) => left.routePath.localeCompare(right.routePath))
-    .map(
-      ({ routePath, filePath, headers }) => {
-        const headerName = getHeaderName(headers);
-        const responseOptions =
-          headerName == null ? "" : `, { headers: ${headerName} }`;
+    .map(({ routePath, filePath, headers }) => {
+      const headerName = getHeaderName(headers);
+      const responseOptions =
+        headerName == null ? "" : `, { headers: ${headerName} }`;
 
-        return `  ${JSON.stringify(routePath)}: {\n    GET: new Response(Bun.file(${JSON.stringify(
-          filePath
-        )})${responseOptions}),\n    HEAD: new Response(Bun.file(${JSON.stringify(
-          filePath
-        )})${responseOptions}),\n  }`;
-      }
-    );
+      return `  ${JSON.stringify(routePath)}: {\n    GET: new Response(Bun.file(${JSON.stringify(
+        filePath
+      )})${responseOptions}),\n    HEAD: new Response(Bun.file(${JSON.stringify(
+        filePath
+      )})${responseOptions}),\n  }`;
+    });
 
   const headerConstants =
     headerDefinitions.length === 0
@@ -618,7 +1185,98 @@ function toRescriptFieldName(fieldName, existingObj) {
     transformedFieldName += "_";
   }
 
-  return [fieldName, transformedFieldName];
+  return transformedFieldName;
+}
+
+function validateExplicitFieldName(fieldName) {
+  if (!/^[a-z][A-Za-z0-9_]*$/.test(fieldName)) {
+    throw new Error(
+      `Invalid explicit ResX asset field name: ${fieldName}. Use a valid ReScript record field name.`
+    );
+  }
+}
+
+function normalizeDevOrigin(origin) {
+  return origin.replace(/\/$/, "");
+}
+
+function normalizeDevHost(host) {
+  if (
+    host == null ||
+    host === true ||
+    host === "0.0.0.0" ||
+    host === "::"
+  ) {
+    return "localhost";
+  }
+
+  return host;
+}
+
+function normalizeFsPath(filePath) {
+  return path.resolve(filePath);
+}
+
+function toPosix(filePath) {
+  return filePath.replace(/\\/g, "/");
+}
+
+function stripLeadingSlash(value) {
+  return value.replace(/^\/+/, "");
+}
+
+function stripUrlSearchHash(value) {
+  return value?.split(/[?#]/)[0] ?? null;
+}
+
+function stripTrailingSlash(value) {
+  return value.replace(/\/+$/, "");
+}
+
+function stripOutputPrefix(value) {
+  return value
+    .replace(new RegExp(`^${escapeForRegExp(assetVirtualModulePrefix)}`), "")
+    .replace(new RegExp(`^${assetInputPrefix}`), "")
+    .replace(new RegExp(`^${clientInputPrefix}`), "");
+}
+
+function escapeForRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function normalizeEmittedFileName(fileName) {
+  const parsedPath = path.posix.parse(toPosix(fileName));
+  const normalizedName = stripOutputPrefix(parsedPath.name);
+
+  return path.posix.join(
+    parsedPath.dir,
+    `${normalizedName}${parsedPath.ext}`
+  );
+}
+
+function toImportPath(fromFileName, toFileName) {
+  const relativePath = path.posix.relative(
+    path.posix.dirname(toPosix(fromFileName)),
+    toPosix(toFileName)
+  );
+
+  if (relativePath.startsWith(".")) {
+    return relativePath;
+  }
+
+  return `./${relativePath}`;
+}
+
+function getDefaultEntryGlobs(clientEntryExtensions) {
+  return clientEntryExtensions.map(extension => `*${extension}`);
+}
+
+function getAssetVirtualModuleId(fieldName) {
+  return `${assetVirtualModulePrefix}${fieldName}`;
+}
+
+function isAssetVirtualModuleId(id) {
+  return id.startsWith(assetVirtualModulePrefix);
 }
 
 export const __test = {

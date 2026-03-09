@@ -23,8 +23,17 @@ function Html(props) {
             src: "https://unpkg.com/htmx.org@1.9.5"
           }),
           Hjsx$ResX.Elements.jsx("script", {
+            src: ResXAssets.assets.analytics_js,
+            type: "module"
+          }),
+          Hjsx$ResX.Elements.jsx("script", {
+            src: ResXAssets.assets.client__admin_ts,
+            type: "module"
+          }),
+          Hjsx$ResX.Elements.jsx("script", {
             async: true,
-            src: ResXAssets.assets.resXClient_js
+            src: ResXAssets.assets.resXClient_js,
+            type: "module"
           })
         ],
         className: "bg-orange-200 p-10",

@@ -95,12 +95,12 @@ bootSocket()
 `
 
 @jsx.component
-let make = (~port=4444) => {
+let make = (~port=4444, ~viteOrigin="http://localhost:9000") => {
   if BunUtils.isDev {
     [
       <script dangerouslySetInnerHTML={{"__html": getScript(~port)}} />,
       <script src="https://unpkg.com/morphdom/dist/morphdom-umd.js" />,
-      <script type_="module" src="http://localhost:9000/@vite/client" />,
+      <script type_="module" src={`${viteOrigin}/@vite/client`} />,
     ]->Hjsx.array
   } else {
     Hjsx.null

@@ -4,17 +4,8 @@ type assets = {
   /** ResX Client Bundle */
   resXClient_js: string,
 
-  /** `styles.css` */
-  styles_css: string,
-
-  /** `test-image.jpeg` */
-  test_image_jpeg: string,
-
-  /** `images/test-image.jpeg` */
-  images__test_image_jpeg: string,
-
-  /** `images/test_img.jpeg` */
-  images__test_img_jpeg: string,
+  /** `analytics.js` */
+  analytics_js: string,
 
   /** `images/nested/test-image2.jpeg` */
   images__nested__test_image2_jpeg: string,
@@ -24,6 +15,21 @@ type assets = {
 
   /** `images/nested/test_image2.jpeg` */
   images__nested__test_image2_jpeg_: string,
+
+  /** `images/test-image.jpeg` */
+  images__test_image_jpeg: string,
+
+  /** `images/test_img.jpeg` */
+  images__test_img_jpeg: string,
+
+  /** `styles.css` */
+  styles_css: string,
+
+  /** `test-image.jpeg` */
+  test_image_jpeg: string,
+
+  /** `client/admin.ts` */
+  client__admin_ts: string,
 }
 
 @module("./res-x-assets.js") external assets: assets = "assets"
