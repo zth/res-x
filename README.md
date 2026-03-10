@@ -80,7 +80,7 @@ Let's set everything up. Start by setting up `vite.config.js`:
 
 ```javascript
 import { defineConfig } from "vite";
-import { resXVitePlugin } from "rescript-x";
+import resXVitePlugin from "rescript-x/res-x-vite-plugin.mjs";
 
 export default defineConfig({
   plugins: [
@@ -123,11 +123,11 @@ There! If you want, you can also set up a bunch of scripts in `package.json` tha
 {
   "scripts": {
     "start": "NODE_ENV=production bun run src/App.js",
-    "build": "NODE_ENV=production && bun run build:vite && bun run build:res",
+    "build": "NODE_ENV=production bun run build:vite && bun run build:res",
     "build:vite": "vite build",
     "build:res": "rescript",
     "clean:res": "rescript clean",
-    "dev:res": "rescript build -w",
+    "dev:res": "rescript watch",
     "dev:server": "bun --watch run src/App.js",
     "dev:vite": "vite",
     "dev": "concurrently 'bun:dev:*'"
@@ -207,7 +207,7 @@ let portString = server->Bun.Server.port->Int.toString
 
 Console.log(`Listening! on localhost:${portString}`)
 
-// Run the dev server, responsible for hot module reloading etc, when in dev mode.
+// Run the small dev socket server used to trigger page refreshes after backend restarts.
 if ResX.BunUtils.isDev {
   ResX.BunUtils.runDevServer(~port)
 }
@@ -215,7 +215,9 @@ if ResX.BunUtils.isDev {
 
 Note that there's plenty of more things you can configure here, but for the sake of keeping it simple we'll just go with the basics.
 
-You can now start up the dev environment: `bun run dev`. Open up `localhost:9000` and you should see your "Start page!" string.
+You can now start up the dev environment: `bun run dev`. Open the Vite URL, for example `http://localhost:9000`, and you should see your "Start page!" string.
+
+In dev, browse the app through the Vite server, not the raw Bun app server port. ResX serves dev assets with root-relative URLs from the Vite origin and performs a full page refresh after the backend restarts and reconnects.
 
 There's a ton more to ResX of course, but this should get you started.
 
@@ -373,7 +375,7 @@ Then, include it in your ReScript:
 </head>
 ```
 
-There! It's now available to you, and Vite will both transform and hot module reload the asset if it's possible.
+There! It's now available to you, and Vite will transform it for both dev and production builds. In dev, assets are served from the Vite origin using root-relative URLs.
 
 #### Thinking about client side JavaScript
 
@@ -1218,7 +1220,8 @@ render: async ({path}) => {
 ResX comes with its own Vite plugin that takes care of all configuration for you. It will:
 
 - Ensure all ResX assets are handled and included properly
-- Ensure that Hot Module Reloading works for all assets and that Vite dev mode is properly wired up to your local ResX dev server
+- Proxy your app server behind the Vite dev origin
+- Expose a same-origin dev socket so backend restarts trigger a hard page refresh once the app is ready again
 
 > Note: Right now, using ResX with more elaborate Vite config than what's preconfigured for you might be problematic. This will change in the future though so that ResX is just another part of your Vite config. Open issues please when you find use cases you'd like supported but that doesn't work now.
 

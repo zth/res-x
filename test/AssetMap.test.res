@@ -31,7 +31,7 @@ module PluginTestHelpers = {
 
   external requireModule: string => pluginModule = "require"
   @get external testHelpers: pluginModule => t = "__test"
-  @send external getGeneratedDevAssetMap: (t, array<manifestEntry>, string) => string = "getGeneratedDevAssetMap"
+  @send external getGeneratedDevAssetMap: (t, array<manifestEntry>) => string = "getGeneratedDevAssetMap"
   @send external getManifest: (t, manifestOptions) => array<manifestEntry> = "getManifest"
   @send external getResTypeFileContent: (t, array<manifestEntry>) => string = "getResTypeFileContent"
 
@@ -96,11 +96,8 @@ describe("asset map generation", () => {
       resTypeFile->expectContains("type_: string")
 
       let devAssetMap =
-        PluginTestHelpers.helpers->PluginTestHelpers.getGeneratedDevAssetMap(
-          manifest,
-          "http://localhost:5173",
-        )
-      devAssetMap->expectContains(`"type": "http://localhost:5173/assets/type"`)
+        PluginTestHelpers.helpers->PluginTestHelpers.getGeneratedDevAssetMap(manifest)
+      devAssetMap->expectContains(`"type": "/assets/type"`)
     })
   })
 
@@ -149,11 +146,8 @@ describe("asset map generation", () => {
       resTypeFile->expectContains("open_: string")
 
       let devAssetMap =
-        PluginTestHelpers.helpers->PluginTestHelpers.getGeneratedDevAssetMap(
-          manifest,
-          "http://localhost:5173",
-        )
-      devAssetMap->expectContains(`"open": "http://localhost:5173/client/open.js"`)
+        PluginTestHelpers.helpers->PluginTestHelpers.getGeneratedDevAssetMap(manifest)
+      devAssetMap->expectContains(`"open": "/client/open.js"`)
     })
   })
 })

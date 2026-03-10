@@ -19,6 +19,8 @@ cd demo
 bun run dev
 ```
 
+Open the Vite URL that it prints, typically `http://localhost:9000`. In dev, the browser should use the Vite server origin rather than the raw Bun app port.
+
 For a production-style local run:
 
 ```sh

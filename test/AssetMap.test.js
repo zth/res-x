@@ -85,8 +85,8 @@ Buntest.describe("asset map generation", () => {
     let resTypeFile = helpers.getResTypeFileContent(manifest);
     expectContains(resTypeFile, `@as("type")`);
     expectContains(resTypeFile, "type_: string");
-    let devAssetMap = helpers.getGeneratedDevAssetMap(manifest, "http://localhost:5173");
-    return expectContains(devAssetMap, `"type": "http://localhost:5173/assets/type"`);
+    let devAssetMap = helpers.getGeneratedDevAssetMap(manifest);
+    return expectContains(devAssetMap, `"type": "/assets/type"`);
   }));
   Buntest.test("keeps existing safe field labels when keyword aliases would collide", async () => await withTempDir(async tempDir => {
     Nodefs.mkdirSync(Nodepath.join(tempDir, "assets"), {
@@ -117,8 +117,8 @@ Buntest.describe("asset map generation", () => {
     let resTypeFile = helpers.getResTypeFileContent(manifest);
     expectContains(resTypeFile, `@as("open")`);
     expectContains(resTypeFile, "open_: string");
-    let devAssetMap = helpers.getGeneratedDevAssetMap(manifest, "http://localhost:5173");
-    return expectContains(devAssetMap, `"open": "http://localhost:5173/client/open.js"`);
+    let devAssetMap = helpers.getGeneratedDevAssetMap(manifest);
+    return expectContains(devAssetMap, `"open": "/client/open.js"`);
   }));
 });
 

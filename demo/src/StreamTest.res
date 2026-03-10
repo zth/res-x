@@ -22,9 +22,9 @@ let server = Bun.serve({
     let textEncoder = TextEncoder.make()
     writer
     ->WritableStream.WritableStreamDefaultWriter.write(textEncoder->TextEncoder.encode("Hello!"))
-    ->Promise.done
+    ->Promise.ignore
 
-    writer->WritableStream.WritableStreamDefaultWriter.close->Promise.done
+    writer->WritableStream.WritableStreamDefaultWriter.close->Promise.ignore
 
     let response = Response.makeFromReadableStream(readable)
     response->Response.headers->Headers.set("Content-Type", "text/html")

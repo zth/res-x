@@ -10,6 +10,7 @@ const defaultExtraClientEntries = {
 const assetInputPrefix = "__resx_asset__";
 const assetVirtualModulePrefix = "@res-x-asset-entry:";
 const clientInputPrefix = "__resx_client__";
+const defaultDevSocketPath = "/_resx_dev";
 // Keywords rejected by the ReScript compiler for record field labels.
 const rescriptRecordFieldKeywords = new Set([
   "and",
@@ -56,7 +57,7 @@ export default function resXVitePlugin(options = {}) {
     assetEntryGlobs = getDefaultEntryGlobs(clientEntryExtensions),
     clientEntryGlobs = getDefaultEntryGlobs(clientEntryExtensions),
     extraClientEntries = {},
-    devOrigin,
+    devSocketPath = defaultDevSocketPath,
   } = options;
 
   const staticAssetRoutes = createStaticAssetRoutesConfig(
@@ -74,7 +75,6 @@ export default function resXVitePlugin(options = {}) {
   let isBuild = false;
   let stopWatching = null;
   let manifest = [];
-  let resolvedDevOrigin = normalizeDevOrigin("http://localhost:9000");
 
   function regenerate(context) {
     manifest = getManifest({
@@ -91,7 +91,7 @@ export default function resXVitePlugin(options = {}) {
     if (!isBuild) {
       writeIfChanged(
         getAssetJsFileLoc(projectRoot, generated),
-        getGeneratedDevAssetMap(manifest, resolvedDevOrigin)
+        getGeneratedDevAssetMap(manifest)
       );
       writeIfChanged(
         getStaticAssetRoutesJsFileLoc(projectRoot, generated),
@@ -167,32 +167,46 @@ export default function resXVitePlugin(options = {}) {
           ...(config.server?.fs || {}),
           allow: mergeUniquePaths(config.server?.fs?.allow, devFsAllow),
         };
-        if (proxy["/"] != null) {
+        nextServer.hmr = false;
+
+        const nextProxy = {
+          ...proxy,
+        };
+
+        if (nextProxy[devSocketPath] != null) {
+          console.warn(`[WARN] Path \`${devSocketPath}\` is already proxied. Skipping.`);
+        } else {
+          nextProxy[devSocketPath] = {
+            target: getDevSocketProxyTarget(serverUri),
+            changeOrigin: true,
+            ws: true,
+          };
+        }
+
+        if (nextProxy["/"] != null) {
           console.warn("[WARN] Path `/` is already proxied. Skipping.");
         } else {
-          nextServer.proxy = {
-            ...proxy,
-            "/": {
-              target: serverUri,
-              changeOrigin: true,
-              bypass: req => {
-                const requestPath = stripUrlSearchHash(req.url);
-                if (
-                  requestPath?.startsWith(`/${stripLeadingSlash(assetDir)}/`) ||
-                  requestPath?.includes("@vite/client") ||
-                  requestPath?.includes("node_modules/") ||
-                  requestPath?.startsWith("/@fs/") ||
-                  getProjectFileForRequest(configProjectRoot, requestPath) !=
-                    null
-                ) {
-                  return req.url;
-                }
+          nextProxy["/"] = {
+            target: serverUri,
+            changeOrigin: true,
+            bypass: req => {
+              const requestPath = stripUrlSearchHash(req.url);
+              if (
+                requestPath?.startsWith(`/${stripLeadingSlash(assetDir)}/`) ||
+                requestPath?.includes("node_modules/") ||
+                requestPath?.startsWith("/@fs/") ||
+                getProjectFileForRequest(configProjectRoot, requestPath) !=
+                  null
+              ) {
+                return req.url;
+              }
 
-                return null;
-              },
+              return null;
             },
           };
         }
+
+        nextServer.proxy = nextProxy;
 
         nextConfig.server = nextServer;
       }
@@ -204,7 +218,6 @@ export default function resXVitePlugin(options = {}) {
       projectRoot = config.root;
       outDir = config.build.outDir || outDir;
       isBuild = config.command === "build";
-      resolvedDevOrigin = getResolvedDevOrigin(config, devOrigin);
       manifest = getManifest({
         assetDir,
         assetEntryGlobs,
@@ -245,7 +258,6 @@ export default function resXVitePlugin(options = {}) {
             server.watcher.add(filePath);
           },
         });
-        server.ws.send({ type: "full-reload" });
       };
 
       server.watcher.add(watchPaths);
@@ -620,37 +632,21 @@ function getClientEntryWrapperModule(
   return `const d=document,c=${JSON.stringify(relativeCssPaths)};for(const p of c){const h=new URL(p,import.meta.url).href;if(d.querySelector(\`link[rel="stylesheet"][href="\${h}"]\`)==null){const l=d.createElement("link");l.rel="stylesheet";l.href=h;d.head.appendChild(l)}}import(${JSON.stringify(relativeEntryPath)});`;
 }
 
-function getGeneratedDevAssetMap(manifest, devOrigin) {
+function getGeneratedDevAssetMap(manifest) {
   const assets = manifest.reduce((acc, entry) => {
-    acc[entry.fieldName] = getDevAssetUrl(entry, devOrigin);
+    acc[entry.fieldName] = getDevAssetUrl(entry);
     return acc;
   }, {});
 
   return getGeneratedAssetModule(assets);
 }
 
-function getDevAssetUrl(entry, devOrigin) {
+function getDevAssetUrl(entry) {
   if (entry.projectRelativePath != null) {
-    return `${devOrigin}/${stripLeadingSlash(entry.projectRelativePath)}`;
+    return `/${stripLeadingSlash(entry.projectRelativePath)}`;
   }
 
-  return `${devOrigin}/@fs${entry.sourcePath}`;
-}
-
-function getResolvedDevOrigin(config, explicitDevOrigin) {
-  if (explicitDevOrigin != null) {
-    return normalizeDevOrigin(explicitDevOrigin);
-  }
-
-  if (config.server.origin != null) {
-    return normalizeDevOrigin(config.server.origin);
-  }
-
-  const protocol = config.server.https ? "https" : "http";
-  const host = normalizeDevHost(config.server.host);
-  const port = config.server.port || 5173;
-
-  return normalizeDevOrigin(`${protocol}://${host}:${port}`);
+  return `/@fs${entry.sourcePath}`;
 }
 
 function getTransformedAssetFileName(output) {
@@ -1300,21 +1296,21 @@ function validateExplicitFieldName(fieldName) {
   }
 }
 
-function normalizeDevOrigin(origin) {
-  return origin.replace(/\/$/, "");
-}
+function getDevSocketProxyTarget(serverUri) {
+  const parsedServerUri = new URL(serverUri);
+  const currentPort =
+    parsedServerUri.port === ""
+      ? parsedServerUri.protocol === "https:"
+        ? 443
+        : 80
+      : Number(parsedServerUri.port);
 
-function normalizeDevHost(host) {
-  if (
-    host == null ||
-    host === true ||
-    host === "0.0.0.0" ||
-    host === "::"
-  ) {
-    return "localhost";
-  }
+  parsedServerUri.port = (currentPort + 1).toString();
+  parsedServerUri.pathname = "/";
+  parsedServerUri.search = "";
+  parsedServerUri.hash = "";
 
-  return host;
+  return parsedServerUri.toString();
 }
 
 function normalizeFsPath(filePath) {
@@ -1386,6 +1382,8 @@ function isAssetVirtualModuleId(id) {
 export const __test = {
   createStaticAssetRoutesConfig,
   buildStaticAssetRouteEntries,
+  getClientEntryWrapperModule,
+  getDevSocketProxyTarget,
   getGeneratedDevAssetMap,
   getManifest,
   getBuildStaticAssetRoutesFile,

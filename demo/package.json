@@ -8,7 +8,7 @@
     "build:res": "rescript",
     "build:sfe": "bun run build && mkdir -p build && NODE_ENV=production bun build --compile --outfile ./build/demo-app ./src/Demo.js",
     "clean:res": "rescript clean",
-    "dev:res": "rescript build -w",
+    "dev:res": "rescript watch",
     "dev:server": "bun --watch run src/Demo.js",
     "dev:vite": "vite",
     "dev": "concurrently 'bun:dev:*'",
@@ -24,12 +24,12 @@
     "concurrently": "^8.2.1",
     "fast-glob": "^3.3.1",
     "rescript": "12.0.0-rc.3",
-    "vite": "^4.4.11",
-    "rescript-bun": "2.1.0"
+    "rescript-bun": "2.1.0",
+    "vite": "^4.4.11"
   },
   "devDependencies": {
-    "autoprefixer": "^10.4.16",
-    "postcss": "^8.4.31",
-    "tailwindcss": "^3.3.3"
+    "autoprefixer": "^10.4.27",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^3.4.19"
   }
 }

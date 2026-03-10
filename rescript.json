@@ -11,7 +11,8 @@
     },
     {
       "dir": "test",
-      "type": "dev"
+      "type": "dev",
+      "public": ["TestUtils"]
     }
   ],
   "package-specs": {

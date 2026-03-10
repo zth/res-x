@@ -1,11 +1,11 @@
 {
   "name": "rescript-x",
-  "version": "1.2.1",
+  "version": "1.2.1-dev.9",
   "scripts": {
     "build:resx-client": "node scripts/build-resx-client.mjs",
     "res:build": "rescript",
     "res:clean": "rescript clean",
-    "res:dev": "rescript build -w",
+    "res:dev": "rescript watch",
     "test": "bun test ./test/*.test.js"
   },
   "keywords": [
@@ -27,7 +27,6 @@
     "rescript-bun": ">=2.1.0"
   },
   "devDependencies": {
-    "fast-glob": "^3.3.1",
     "rescript": "12.0.0-rc.3",
     "rescript-bun": "2.1.0"
   },
