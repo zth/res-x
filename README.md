@@ -40,6 +40,27 @@ In the demo:
 
 The Docker path is the safest default because it builds the Linux executable in-container and packages the executable together with the required `dist/` assets.
 
+## Publishing
+
+Publishing to npm is handled by GitHub Actions trusted publishing in `.github/workflows/publish.yml`.
+
+One-time npm setup:
+
+1. Open the `rescript-x` package settings on npm.
+2. Add a trusted publisher for GitHub Actions:
+   - owner: `zth`
+   - repository: `res-x`
+   - workflow file: `publish.yml`
+3. Save the trusted publisher.
+
+Release flow:
+
+1. Bump `package.json` to the version you want to publish.
+2. Commit the version bump and any generated artifact updates.
+3. Push a matching git tag. Both `1.2.2` and `v1.2.2` are accepted.
+
+The publish workflow rebuilds the package, regenerates `client/ResXClient.js`, runs the test suite, verifies that the build does not change tracked files, and then publishes to npm via OIDC. Pre-release versions publish under their pre-release identifier as the npm dist-tag, so `1.2.2-beta.1` publishes with the `beta` tag and `1.2.2-dev.1` publishes with the `dev` tag.
+
 ## Getting started
 
 First, make sure you have [`Bun`](https://bun.sh) installed and setup. Then, install `rescript-x` and the dependencies needed:
