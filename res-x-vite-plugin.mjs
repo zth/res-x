@@ -42,6 +42,7 @@ const rescriptRecordFieldKeywords = new Set([
 ]);
 
 const defaultStaticAssetRoutesConfig = Object.freeze({
+  mode: "filesystem",
   headers: Object.freeze({}),
 });
 
@@ -99,7 +100,8 @@ export default function resXVitePlugin(options = {}) {
           assetDir,
           publicDir,
           resolvedExtraClientEntries.resXClient_js,
-          staticAssetRoutes
+          staticAssetRoutes,
+          projectRoot
         )
       );
 
@@ -344,37 +346,35 @@ export default function resXVitePlugin(options = {}) {
         }
       });
 
-      const assets = manifest.reduce((acc, entry) => {
-        const generatedPath =
-          entry.kind === "asset"
-            ? assetFileNameByBuildId.get(entry.buildId)
-            : clientFileNameByFieldName.get(entry.fieldName);
-
-        if (generatedPath != null) {
-          acc[entry.fieldName] = `/${generatedPath}`;
-        }
-
-        return acc;
-      }, {});
-
       assetWrapperChunkFileNames.forEach(fileName => {
         delete bundle[fileName];
       });
 
+      const resolvedOutDir = resolveConfiguredPath(projectRoot, outDir);
+      const resolvedPublicDir = resolveConfiguredPath(projectRoot, publicDir);
       const bundleFileNames = Object.values(bundle)
         .map(output => output.fileName)
         .filter(Boolean);
+      const generatedBuildManifest = getGeneratedBuildManifest({
+        assetFileNameByBuildId,
+        bundleFileNames,
+        clientFileNameByFieldName,
+        manifest,
+        outDir: resolvedOutDir,
+        publicDir: resolvedPublicDir,
+        staticAssetRoutes,
+      });
 
       writeIfChanged(
         getAssetJsFileLoc(projectRoot, generated),
-        getGeneratedAssetModule(assets)
+        getGeneratedAssetModule(generatedBuildManifest.assets)
       );
       writeIfChanged(
         getStaticAssetRoutesJsFileLoc(projectRoot, generated),
         getBuildStaticAssetRoutesFile({
-          bundleFileNames,
-          outDir,
-          publicDir,
+          generatedFilePath: getStaticAssetRoutesJsFileLoc(projectRoot, generated),
+          projectRoot,
+          serverAssetEntries: generatedBuildManifest.serverAssetEntries,
           staticAssetRoutes,
         })
       );
@@ -949,6 +949,13 @@ function createStaticAssetRoutesConfig(staticAssetRoutes = {}) {
     );
   }
 
+  const mode = staticAssetRoutes.mode ?? defaultStaticAssetRoutesConfig.mode;
+  if (mode !== "filesystem" && mode !== "embedded") {
+    throw new Error(
+      "`staticAssetRoutes.mode` must be either \"filesystem\" or \"embedded\"."
+    );
+  }
+
   const headers = staticAssetRoutes.headers || {};
 
   if (typeof headers !== "object" || Array.isArray(headers)) {
@@ -970,6 +977,7 @@ function createStaticAssetRoutesConfig(staticAssetRoutes = {}) {
   });
 
   return {
+    mode,
     headers,
   };
 }
@@ -978,73 +986,107 @@ function getDummyStaticAssetRoutesFile(
   assetDir,
   publicDir,
   resXClientLocation,
-  staticAssetRoutes
+  staticAssetRoutes,
+  projectRoot = process.cwd()
 ) {
+  const resolvedAssetDir = resolveConfiguredPath(projectRoot, assetDir);
+  const resolvedPublicDir = resolveConfiguredPath(projectRoot, publicDir);
   const assetRouteBase = path.basename(normalizeFsPath(assetDir));
 
   return getStaticAssetRoutesFileContent({
     exactEntries: buildStaticAssetRouteEntries({
       publicEntries: getPublicRouteEntries({
-        baseDir: publicDir,
-        fileDir: publicDir,
+        baseDir: resolvedPublicDir,
+        fileDir: resolvedPublicDir,
       }),
-      assetEntries: getAssetDirContent(assetDir).map(assetPath => ({
+      assetEntries: getAssetDirContent(resolvedAssetDir).map(assetPath => ({
+        kind: "asset",
         routePath: toRoutePath(path.join(assetRouteBase, assetPath)),
-        filePath: toBunFilePath(path.join(assetDir, assetPath)),
+        sourcePath: path.resolve(resolvedAssetDir, assetPath),
       })),
       exactEntries:
         resXClientLocation == null
           ? []
           : [
               {
+                kind: "client",
                 routePath: toRoutePath(resXClientLocation),
-                filePath: toBunFilePath(resXClientLocation),
+                sourcePath: resolveConfiguredPath(projectRoot, resXClientLocation),
               },
             ],
       headers: staticAssetRoutes.headers,
     }),
+    projectRoot,
   });
 }
 
-function getBuildStaticAssetRoutesFile(
-  assetMapOrOptions,
-  publicDirArg,
-  outDirArg,
-  staticAssetRoutesArg
-) {
-  if (
-    typeof assetMapOrOptions === "object" &&
-    assetMapOrOptions != null &&
-    Array.isArray(assetMapOrOptions.bundleFileNames)
-  ) {
-    const { bundleFileNames, outDir, publicDir, staticAssetRoutes } =
-      assetMapOrOptions;
+function getGeneratedBuildManifest({
+  assetFileNameByBuildId,
+  bundleFileNames,
+  clientFileNameByFieldName,
+  manifest,
+  outDir,
+  publicDir,
+  staticAssetRoutes,
+}) {
+  const exposedAssetEntries = manifest.flatMap(entry => {
+    const generatedPath =
+      entry.kind === "asset"
+        ? assetFileNameByBuildId.get(entry.buildId)
+        : clientFileNameByFieldName.get(entry.fieldName);
 
-    return getStaticAssetRoutesFileContent({
-      exactEntries: buildStaticAssetRouteEntries({
-        publicEntries: getPublicRouteEntries({
-          baseDir: publicDir,
-          fileDir: outDir,
-        }),
-        assetEntries: bundleFileNames.map(fileName => ({
-          routePath: toRoutePath(fileName),
-          filePath: toBunFilePath(path.join(outDir, fileName)),
-        })),
-        headers: staticAssetRoutes.headers,
-      }),
-    });
-  }
+    if (generatedPath == null) {
+      return [];
+    }
 
-  const assetMap = assetMapOrOptions;
-  const bundleFileNames = Object.values(assetMap).map(assetUrl =>
-    stripLeadingSlash(assetUrl)
-  );
+    return [
+      {
+        fieldName: entry.fieldName,
+        kind: entry.kind,
+        routePath: toRoutePath(generatedPath),
+        sourcePath: path.resolve(outDir, generatedPath),
+      },
+    ];
+  });
 
-  return getBuildStaticAssetRoutesFile({
-    bundleFileNames,
-    outDir: outDirArg,
-    publicDir: publicDirArg,
-    staticAssetRoutes: staticAssetRoutesArg,
+  const serverAssetEntries = buildStaticAssetRouteEntries({
+    publicEntries: getPublicRouteEntries({
+      baseDir: publicDir,
+      fileDir: outDir,
+    }),
+    assetEntries: bundleFileNames.map(fileName => ({
+      kind: "bundle",
+      routePath: toRoutePath(fileName),
+      sourcePath: path.resolve(outDir, fileName),
+    })),
+    exactEntries: exposedAssetEntries,
+    headers: staticAssetRoutes.headers,
+  });
+  const assets = serverAssetEntries.reduce((acc, entry) => {
+    if (entry.fieldName != null) {
+      acc[entry.fieldName] = entry.routePath;
+    }
+
+    return acc;
+  }, {});
+
+  return {
+    assets,
+    serverAssetEntries,
+  };
+}
+
+function getBuildStaticAssetRoutesFile({
+  generatedFilePath,
+  projectRoot,
+  serverAssetEntries,
+  staticAssetRoutes,
+}) {
+  return getStaticAssetRoutesFileContent({
+    exactEntries: serverAssetEntries,
+    generatedFilePath,
+    mode: staticAssetRoutes.mode,
+    projectRoot,
   });
 }
 
@@ -1056,8 +1098,8 @@ function buildStaticAssetRouteEntries({
 }) {
   return dedupeStaticAssetRouteEntries([
     ...publicEntries,
-    ...exactEntries,
     ...assetEntries,
+    ...exactEntries,
   ]).map(entry => ({
     ...entry,
     headers: getStaticAssetRouteHeaders(headers, entry.routePath),
@@ -1076,8 +1118,9 @@ function dedupeStaticAssetRouteEntries(entries) {
 
 function getPublicRouteEntries({ baseDir, fileDir }) {
   return getPublicDirContent(baseDir).map(publicPath => ({
+    kind: "public",
     routePath: toRoutePath(publicPath),
-    filePath: toBunFilePath(path.join(fileDir, publicPath)),
+    sourcePath: path.resolve(fileDir, publicPath),
   }));
 }
 
@@ -1160,10 +1203,18 @@ function splitStaticAssetRoutePath(routePath) {
     .filter(segment => segment.length > 0);
 }
 
-function getStaticAssetRoutesFileContent({ exactEntries }) {
+function getStaticAssetRoutesFileContent({
+  exactEntries,
+  generatedFilePath,
+  mode = defaultStaticAssetRoutesConfig.mode,
+  projectRoot = process.cwd(),
+}) {
   const sharedHeaderNames = new Map();
   const headerDefinitions = [];
   let nextHeaderId = 0;
+  const sharedImportNames = new Map();
+  const importDefinitions = [];
+  let nextImportId = 0;
 
   const getHeaderName = headers => {
     if (headers == null) {
@@ -1187,20 +1238,62 @@ function getStaticAssetRoutesFileContent({ exactEntries }) {
     return headerName;
   };
 
+  const getImportName = sourcePath => {
+    const importKey = JSON.stringify([
+      resolveAssetSourcePath(sourcePath, projectRoot),
+      generatedFilePath,
+    ]);
+    const existingImportName = sharedImportNames.get(importKey);
+
+    if (existingImportName != null) {
+      return existingImportName;
+    }
+
+    if (generatedFilePath == null) {
+      throw new Error(
+        "`generatedFilePath` is required when generating embedded static asset routes."
+      );
+    }
+
+    const importName = `staticAssetFile${nextImportId}`;
+    nextImportId += 1;
+    sharedImportNames.set(importKey, importName);
+    importDefinitions.push({
+      name: importName,
+      specifier: toFileImportSpecifier({
+        fromFilePath: generatedFilePath,
+        projectRoot,
+        toFilePath: sourcePath,
+      }),
+    });
+    return importName;
+  };
+
   const exactRoutes = exactEntries
     .sort((left, right) => left.routePath.localeCompare(right.routePath))
-    .map(({ routePath, filePath, headers }) => {
+    .map(({ routePath, sourcePath, headers }) => {
       const headerName = getHeaderName(headers);
       const responseOptions =
         headerName == null ? "" : `, { headers: ${headerName} }`;
+      const fileExpression =
+        mode === "embedded"
+          ? `Bun.file(${getImportName(sourcePath)})`
+          : `Bun.file(${JSON.stringify(
+              toRuntimeBunFilePath(sourcePath, projectRoot)
+            )})`;
 
-      return `  ${JSON.stringify(routePath)}: {\n    GET: new Response(Bun.file(${JSON.stringify(
-        filePath
-      )})${responseOptions}),\n    HEAD: new Response(Bun.file(${JSON.stringify(
-        filePath
-      )})${responseOptions}),\n  }`;
+      return `  ${JSON.stringify(routePath)}: {\n    GET: new Response(${fileExpression}${responseOptions}),\n    HEAD: new Response(${fileExpression}${responseOptions}),\n  }`;
     });
 
+  const importStatements =
+    importDefinitions.length === 0
+      ? ""
+      : `${importDefinitions
+          .map(
+            ({ name, specifier }) =>
+              `import ${name} from ${JSON.stringify(specifier)} with { type: "file" };`
+          )
+          .join("\n")}\n\n`;
   const headerConstants =
     headerDefinitions.length === 0
       ? ""
@@ -1213,10 +1306,38 @@ function getStaticAssetRoutesFileContent({ exactEntries }) {
 
   return `// Generated by ResX, do not edit manually
 
-${headerConstants}export const staticAssetRoutes = {
+${importStatements}${headerConstants}export const staticAssetRoutes = {
 ${exactRoutes.join(",\n")}
 }
 `;
+}
+
+function resolveAssetSourcePath(sourcePath, projectRoot) {
+  if (path.isAbsolute(sourcePath)) {
+    return normalizeFsPath(sourcePath);
+  }
+
+  return resolveConfiguredPath(projectRoot, sourcePath);
+}
+
+function toRuntimeBunFilePath(sourcePath, projectRoot) {
+  if (!path.isAbsolute(sourcePath)) {
+    return toBunFilePath(sourcePath);
+  }
+
+  const projectRelativePath = getProjectRelativePath(projectRoot, sourcePath);
+  if (projectRelativePath != null) {
+    return toBunFilePath(projectRelativePath);
+  }
+
+  return toBunFilePath(sourcePath);
+}
+
+function toFileImportSpecifier({ fromFilePath, projectRoot, toFilePath }) {
+  return toImportSpecifier(
+    resolveConfiguredPath(projectRoot, fromFilePath),
+    resolveAssetSourcePath(toFilePath, projectRoot)
+  );
 }
 
 function normalizePath(filePath) {
@@ -1225,7 +1346,15 @@ function normalizePath(filePath) {
 
 function toBunFilePath(filePath) {
   const normalized = normalizePath(filePath);
-  return path.isAbsolute(filePath) ? normalized : "./" + normalized;
+  if (path.isAbsolute(filePath)) {
+    return normalized;
+  }
+
+  if (normalized.startsWith("./") || normalized.startsWith("../")) {
+    return normalized;
+  }
+
+  return "./" + normalized;
 }
 
 function toRoutePath(filePath) {
@@ -1367,6 +1496,18 @@ function toImportPath(fromFileName, toFileName) {
   return `./${relativePath}`;
 }
 
+function toImportSpecifier(fromFilePath, toFilePath) {
+  const relativePath = toPosix(
+    path.relative(path.dirname(fromFilePath), toFilePath)
+  );
+
+  if (relativePath.startsWith(".")) {
+    return relativePath;
+  }
+
+  return `./${relativePath}`;
+}
+
 function getDefaultEntryGlobs(clientEntryExtensions) {
   return clientEntryExtensions.map(extension => `*${extension}`);
 }
@@ -1384,6 +1525,7 @@ export const __test = {
   buildStaticAssetRouteEntries,
   getClientEntryWrapperModule,
   getDevSocketProxyTarget,
+  getGeneratedBuildManifest,
   getGeneratedDevAssetMap,
   getManifest,
   getBuildStaticAssetRoutesFile,

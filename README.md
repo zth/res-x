@@ -29,7 +29,10 @@ With ResX and Bun, the practical options are:
 
 The demo app in `demo/` contains a working example of the first option. It includes a minimal Docker setup that builds a Bun single-file executable and runs it from a small Alpine image.
 
-Important detail: if you use the ResX asset pipeline, the executable is not completely standalone. The generated static asset routes serve files from `./dist`, so you need to deploy the built `dist/` directory alongside the executable and run the process from the directory that contains that `dist/` folder.
+If you use the ResX asset pipeline, there are now two deploy modes:
+
+- `staticAssetRoutes.mode: "filesystem"` is the default. Generated static routes read from `./dist`, so you need to deploy the built `dist/` directory alongside the executable and run the process from the directory that contains that `dist/` folder.
+- `staticAssetRoutes.mode: "embedded"` generates Bun embedded-file imports instead. That mode is intended for `bun build --compile`, and lets the executable serve generated ResX assets without a sidecar `dist/` tree at runtime.
 
 In the demo:
 
@@ -38,7 +41,101 @@ In the demo:
 - `demo/Dockerfile` shows the minimal Alpine image setup
 - `demo/README.md` documents the full Docker and direct-SFE flow
 
-The Docker path is the safest default because it builds the Linux executable in-container and packages the executable together with the required `dist/` assets.
+The Docker path is still the safest default because it builds the Linux executable in-container. In filesystem mode it also packages the required `dist/` assets; in embedded mode the executable can stand on its own.
+
+## Bun Single-File Executables
+
+ResX works well with Bun single-file executables built via `bun build --compile`.
+
+The important detail is that ResX has two static-asset deployment modes:
+
+- `staticAssetRoutes.mode: "filesystem"` is the default. Generated static routes read from `./dist` at runtime.
+- `staticAssetRoutes.mode: "embedded"` generates `with { type: "file" }` imports instead, so Bun can embed the generated assets into the executable itself.
+
+If you want a truly standalone executable, use `"embedded"`.
+
+### 1. Configure the Vite Plugin
+
+```js
+// vite.config.js
+import { defineConfig } from "vite";
+import resXVitePlugin from "rescript-x/res-x-vite-plugin.mjs";
+
+export default defineConfig(({ command }) => {
+  const staticAssetRouteMode =
+    command === "build" ? "embedded" : "filesystem";
+
+  return {
+    plugins: [
+      resXVitePlugin({
+        clientDirs: ["client"],
+        staticAssetRoutes: {
+          mode: staticAssetRouteMode,
+        },
+      }),
+    ],
+  };
+});
+```
+
+This is the most ergonomic setup for Bun SFEs: production builds switch to `embedded`, while local `vite serve` stays on the familiar filesystem-backed setup.
+
+### 2. Build the App Normally First
+
+Build the Vite output and ReScript output before compiling the executable:
+
+```json
+{
+  "scripts": {
+    "start": "NODE_ENV=production bun run src/App.js",
+    "build": "NODE_ENV=production bun run build:vite && bun run build:res",
+    "build:vite": "vite build",
+    "build:res": "rescript",
+    "build:sfe": "bun run build && mkdir -p build && NODE_ENV=production bun build --compile --outfile ./build/app ./src/App.js"
+  }
+}
+```
+
+Important details:
+
+- Compile the generated JavaScript server entrypoint such as `src/App.js`, not the `.res` source file.
+- Run the normal build first so ResX has already generated the final asset URLs and static route module.
+- `staticAssetRoutes.mode` only affects build output. Dev mode stays on the normal filesystem-backed workflow.
+
+### 3. Build the Executable
+
+```sh
+bun run build:sfe
+```
+
+That produces an executable such as:
+
+- `build/app`
+
+In filesystem mode you should also expect to deploy:
+
+- `dist/`
+
+### 4. Deploy It
+
+For `staticAssetRoutes.mode: "embedded"`:
+
+- Deploy the executable by itself.
+- Start it with something like `PORT=4444 NODE_ENV=production ./build/app`.
+- The generated ResX static assets are served from the executable, so the original `dist/` tree does not need to be present at runtime.
+
+For `staticAssetRoutes.mode: "filesystem"`:
+
+- Deploy the executable together with `dist/`.
+- Start the executable from the directory that contains `dist/`, or configure your service working directory accordingly.
+- ResX will serve generated static assets from the files in `dist/`.
+
+### 5. Practical Notes
+
+- Bun single-file executables are target-platform specific. Build on the same OS/architecture you plan to deploy, or build inside a matching container.
+- Docker is still a good default when you want a reproducible Linux build artifact.
+- `embedded` only changes generated static asset routes. Your application server code still mounts `ResXAssets.staticAssetRoutes` the same way.
+- Browser-facing asset URLs such as `ResXAssets.assets.resXClient_js` still work the same way from application code.
 
 ## Publishing
 
@@ -147,6 +244,7 @@ There! If you want, you can also set up a bunch of scripts in `package.json` tha
     "build": "NODE_ENV=production bun run build:vite && bun run build:res",
     "build:vite": "vite build",
     "build:res": "rescript",
+    "build:sfe": "bun run build && mkdir -p build && NODE_ENV=production bun build --compile --outfile ./build/app ./src/App.js",
     "clean:res": "rescript clean",
     "dev:res": "rescript watch",
     "dev:server": "bun --watch run src/App.js",
@@ -279,6 +377,8 @@ let server = Bun.serve({
 })
 ```
 
+In build output, `ResXAssets.assets.*` always resolves to normal browser-facing URLs. That includes package-owned browser assets like `ResXAssets.assets.resXClient_js`, which are emitted under your asset namespace instead of leaking raw `/node_modules/...` paths.
+
 If you want to add your own Bun static routes, `staticAssetRoutes` is a regular `Dict.t`, so you can merge it the same way you would merge any other ReScript dict:
 
 ```rescript
@@ -307,10 +407,11 @@ If you want to configure how these generated static asset routes behave, pass `s
 import { defineConfig } from "vite";
 import resXVitePlugin from "rescript-x/res-x-vite-plugin.mjs";
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [
     resXVitePlugin({
       staticAssetRoutes: {
+        mode: command === "build" ? "embedded" : "filesystem",
         headers: {
           "/assets/**": {
             "Cache-Control": "public, max-age=31536000, immutable",
@@ -322,8 +423,17 @@ export default defineConfig({
       },
     }),
   ],
-});
+}));
 ```
+
+`staticAssetRoutes.mode` controls how ResX materializes generated server-side asset routes:
+
+- `"filesystem"` is the default and keeps the current `Bun.file("./dist/...")` behavior.
+- `"embedded"` generates `with { type: "file" }` imports so the routes work with `bun build --compile`.
+
+If you are building a Bun single-file executable and want it to run without the original `dist/` tree on disk, use `"embedded"`.
+
+Using `command === "build" ? "embedded" : "filesystem"` is a good default convention. It keeps the production build standalone-friendly while making the dev intent explicit, even though ResX already keeps dev on the normal filesystem-backed path.
 
 `staticAssetRoutes.headers` is an object where:
 
@@ -810,7 +920,7 @@ These functions should only be used in exceptional cases where you need to:
 
 ResX also ships with a tiny client side library that will help you do basic client side tasks fully declaratively. It's quite basic at the moment, but will be extended (tastefully) as we discover more places where it can help you avoid having to use a full blown client side framework to accomplish fairly basic tasks.
 
-The browser bundle for this is shipped with `rescript-x`, so you can reference `ResXAssets.assets.resXClient_js` directly without adding your own `extraClientEntries` config.
+The browser bundle for this is shipped with `rescript-x`, so you can reference `ResXAssets.assets.resXClient_js` directly without adding your own `extraClientEntries` config. In production builds that URL is emitted as a normal generated asset URL under `/assets/...`, not as a raw package path.
 
 To use ResX client, make sure you include its script:
 
