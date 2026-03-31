@@ -350,8 +350,6 @@ export default function resXVitePlugin(options = {}) {
         delete bundle[fileName];
       });
 
-      const resolvedOutDir = resolveConfiguredPath(projectRoot, outDir);
-      const resolvedPublicDir = resolveConfiguredPath(projectRoot, publicDir);
       const bundleFileNames = Object.values(bundle)
         .map(output => output.fileName)
         .filter(Boolean);
@@ -360,8 +358,9 @@ export default function resXVitePlugin(options = {}) {
         bundleFileNames,
         clientFileNameByFieldName,
         manifest,
-        outDir: resolvedOutDir,
-        publicDir: resolvedPublicDir,
+        outDir,
+        projectRoot,
+        publicDir,
         staticAssetRoutes,
       });
 
@@ -997,12 +996,12 @@ function getDummyStaticAssetRoutesFile(
     exactEntries: buildStaticAssetRouteEntries({
       publicEntries: getPublicRouteEntries({
         baseDir: resolvedPublicDir,
-        fileDir: resolvedPublicDir,
+        fileDir: publicDir,
       }),
       assetEntries: getAssetDirContent(resolvedAssetDir).map(assetPath => ({
         kind: "asset",
         routePath: toRoutePath(path.join(assetRouteBase, assetPath)),
-        sourcePath: path.resolve(resolvedAssetDir, assetPath),
+        sourcePath: path.join(assetDir, assetPath),
       })),
       exactEntries:
         resXClientLocation == null
@@ -1011,7 +1010,7 @@ function getDummyStaticAssetRoutesFile(
               {
                 kind: "client",
                 routePath: toRoutePath(resXClientLocation),
-                sourcePath: resolveConfiguredPath(projectRoot, resXClientLocation),
+                sourcePath: resXClientLocation,
               },
             ],
       headers: staticAssetRoutes.headers,
@@ -1026,9 +1025,11 @@ function getGeneratedBuildManifest({
   clientFileNameByFieldName,
   manifest,
   outDir,
+  projectRoot,
   publicDir,
   staticAssetRoutes,
 }) {
+  const resolvedPublicDir = resolveConfiguredPath(projectRoot, publicDir);
   const exposedAssetEntries = manifest.flatMap(entry => {
     const generatedPath =
       entry.kind === "asset"
@@ -1044,20 +1045,20 @@ function getGeneratedBuildManifest({
         fieldName: entry.fieldName,
         kind: entry.kind,
         routePath: toRoutePath(generatedPath),
-        sourcePath: path.resolve(outDir, generatedPath),
+        sourcePath: path.join(outDir, generatedPath),
       },
     ];
   });
 
   const serverAssetEntries = buildStaticAssetRouteEntries({
     publicEntries: getPublicRouteEntries({
-      baseDir: publicDir,
+      baseDir: resolvedPublicDir,
       fileDir: outDir,
     }),
     assetEntries: bundleFileNames.map(fileName => ({
       kind: "bundle",
       routePath: toRoutePath(fileName),
-      sourcePath: path.resolve(outDir, fileName),
+      sourcePath: path.join(outDir, fileName),
     })),
     exactEntries: exposedAssetEntries,
     headers: staticAssetRoutes.headers,
@@ -1120,7 +1121,7 @@ function getPublicRouteEntries({ baseDir, fileDir }) {
   return getPublicDirContent(baseDir).map(publicPath => ({
     kind: "public",
     routePath: toRoutePath(publicPath),
-    sourcePath: path.resolve(fileDir, publicPath),
+    sourcePath: path.join(fileDir, publicPath),
   }));
 }
 

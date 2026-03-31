@@ -506,6 +506,7 @@ describe("static asset routes", () => {
           },
         ],
         outDir,
+        projectRoot: tempDir,
         publicDir,
         staticAssetRoutes: createStaticAssetRoutesConfig({
           headers: {
@@ -618,6 +619,7 @@ describe("static asset routes", () => {
           },
         ],
         outDir,
+        projectRoot: tempDir,
         publicDir,
         staticAssetRoutes,
       });
@@ -716,6 +718,56 @@ console.log(server.port);
         releasePort();
         fs.rmSync(runtimeDir, { recursive: true, force: true });
       }
+    });
+  });
+
+  test("filesystem build routes keep outside-root outDir relative", async () => {
+    const {
+      createStaticAssetRoutesConfig,
+      getBuildStaticAssetRoutesFile,
+      getGeneratedBuildManifest,
+    } = await getPluginTestHelpers();
+
+    await withTempDir(async tempDir => {
+      const projectRoot = path.join(tempDir, "app");
+      const outDir = "../dist";
+      const publicDir = "public";
+      const generatedDir = path.join(projectRoot, "src", "__generated__");
+      const modulePath = path.join(generatedDir, "res-x-static-routes.js");
+
+      fs.mkdirSync(path.join(projectRoot, publicDir), { recursive: true });
+      fs.mkdirSync(path.join(tempDir, "dist", "assets"), { recursive: true });
+      fs.mkdirSync(generatedDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(projectRoot, publicDir, "robots.txt"),
+        "User-agent: *"
+      );
+      fs.writeFileSync(
+        path.join(tempDir, "dist", "assets", "app.css"),
+        "body { color: red; }"
+      );
+
+      const staticAssetRoutes = createStaticAssetRoutesConfig();
+      const generatedBuildManifest = getGeneratedBuildManifest({
+        assetFileNameByBuildId: new Map(),
+        bundleFileNames: ["assets/app.css"],
+        clientFileNameByFieldName: new Map(),
+        manifest: [],
+        outDir,
+        projectRoot,
+        publicDir,
+        staticAssetRoutes,
+      });
+      const content = getBuildStaticAssetRoutesFile({
+        generatedFilePath: modulePath,
+        projectRoot,
+        serverAssetEntries: generatedBuildManifest.serverAssetEntries,
+        staticAssetRoutes,
+      });
+
+      expect(content.includes('Bun.file("../dist/assets/app.css")')).toBe(true);
+      expect(content.includes('Bun.file("/')).toBe(false);
+      expect(content.includes('Bun.file("../dist/robots.txt")')).toBe(true);
     });
   });
 });
