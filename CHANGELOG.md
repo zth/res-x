@@ -1,5 +1,9 @@
 # master
 
+- Add Bun single-file executable support to the Vite plugin via `staticAssetRoutes.mode`, including an `embedded` mode for `bun build --compile` and normalized build-time asset URLs for generated browser assets like `resXClient_js`.
+
+# 1.3.0
+
 - Fix dev reload experience of the Vite dev setup.
 - Expose `RequestController` and `Handlers` as record-of-functions APIs so user code can migrate from `requestController->RequestController.setStatus(404)` to `requestController.setStatus(404)` and from `handler->ResX.Handlers.handleRequest({...})` to `handler.handleRequest({...})`; the old free-function surface is still available but deprecated.
 - BREAKING: Remove `ResX.BunUtils.serveStaticFile`; static assets now go through generated `ResXAssets.staticAssetRoutes`.

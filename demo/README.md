@@ -67,7 +67,7 @@ That produces:
 - `build/demo-app`
 - `dist/`
 
-Deploy both of those together. The executable is not fully self-contained because the generated static routes serve files from `./dist`.
+Deploy both of those together. This demo currently uses the default `staticAssetRoutes.mode: "filesystem"`, so the executable is not fully self-contained and still serves generated assets from `./dist`.
 
 Run it like this:
 
@@ -82,6 +82,8 @@ Important runtime notes:
 - Files from `demo/assets/` are fingerprinted into `dist/assets/`.
 - Files from `demo/public/` are also emitted into `dist/`, so you do not need to deploy `public/` separately.
 - If you want to offload assets to a CDN or another static host, you need to change the generated asset URLs and static route strategy. The current setup expects the app process to serve `dist/` itself.
+
+If you want a truly standalone executable instead, switch the demo Vite config to `staticAssetRoutes: { mode: "embedded" }` before building. That makes ResX generate embedded-file-backed static routes for `bun build --compile`, so the resulting executable can serve its generated assets without a sidecar `dist/` tree.
 
 Platform note:
 
