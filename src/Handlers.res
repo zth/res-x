@@ -20,6 +20,11 @@ type formActionConfig<'ctx, 'securityPolicyData> = {
   context: 'ctx,
   securityPolicyData: 'securityPolicyData,
 }
+type endpointConfig<'ctx, 'securityPolicyData> = {
+  request: Request.t,
+  context: 'ctx,
+  securityPolicyData: 'securityPolicyData,
+}
 
 type htmxHandler<'ctx, 'securityPolicyData> = htmxHandlerConfig<
   'ctx,
@@ -29,18 +34,23 @@ type formActionHandler<'ctx, 'securityPolicyData> = formActionConfig<
   'ctx,
   'securityPolicyData,
 > => promise<Response.t>
+type endpointHandler<'ctx, 'securityPolicyData> = endpointConfig<
+  'ctx,
+  'securityPolicyData,
+> => promise<Response.t>
 
+type responseRunConfig<'ctx> = {
+  request: Request.t,
+  context: 'ctx,
+}
 type htmxRunConfig<'ctx> = {
   request: Request.t,
   context: 'ctx,
   headers: Headers.t,
   requestController: RequestController.t,
 }
-
-type formActionRunConfig<'ctx> = {
-  request: Request.t,
-  context: 'ctx,
-}
+type formActionRunConfig<'ctx> = responseRunConfig<'ctx>
+type endpointRunConfig<'ctx> = responseRunConfig<'ctx>
 
 type htmxRegistration<'ctx> = {
   method: method,
@@ -54,6 +64,21 @@ type formActionRegistration<'ctx> = {
   csrfCheckOpt: option<bool>,
   run: formActionRunConfig<'ctx> => promise<Response.t>,
 }
+
+type endpointRegistration<'ctx> = {
+  method: method,
+  path: string,
+  csrfCheckOpt: option<bool>,
+  run: endpointRunConfig<'ctx> => promise<Response.t>,
+}
+
+type apiRegistration<'ctx> =
+  | HtmxRegistration(htmxRegistration<'ctx>)
+  | EndpointRegistration(endpointRegistration<'ctx>)
+
+type apiHandlerKind =
+  | HtmxApiHandler
+  | EndpointApiHandler
 
 type renderConfig<'ctx> = {
   request: Request.t,
@@ -75,7 +100,7 @@ type defaultCsrfCheck =
     })
 
 type state<'ctx> = {
-  mutable htmxHandlersByRoute: Belt.Map.String.t<htmxRegistration<'ctx>>,
+  mutable apiHandlersByRoute: Belt.Map.String.t<apiRegistration<'ctx>>,
   mutable formActionHandlersByPath: Belt.Map.String.t<formActionRegistration<'ctx>>,
   requestToContext: Request.t => promise<'ctx>,
   asyncLocalStorage: AsyncHooks.AsyncLocalStorage.t<renderConfig<'ctx>>,
@@ -89,6 +114,11 @@ type hxPost = string
 type hxPut = string
 type hxPatch = string
 type hxDelete = string
+type endpointGet = string
+type endpointPost = string
+type endpointPut = string
+type endpointPatch = string
+type endpointDelete = string
 
 type options = {
   htmxApiPrefix?: string,
@@ -102,37 +132,78 @@ let warnDuplicateFormActionHandler = path => {
   Console.warn(`[ResX.Handlers] Duplicate form action registration ignored for ${path}.`)
 }
 
-let warnDuplicateHtmxHandler = (method: method, path) => {
-  Console.warn(
-    `[ResX.Handlers] Duplicate HTMX handler registration ignored for ${(method :> string)} ${path}.`,
-  )
-}
-
-let warnFormActionShadowsHtmxHandler = (method: method, path) => {
-  Console.warn(
-    `[ResX.Handlers] Form action registration for ${path} shadows an existing HTMX handler for ${(method :> string)} ${path}.`,
-  )
-}
-
-let warnHtmxHandlerShadowedByFormAction = (method: method, path) => {
-  Console.warn(
-    `[ResX.Handlers] HTMX handler registration for ${(method :> string)} ${path} is shadowed by an existing form action route on the same path.`,
-  )
-}
-
-let warnIfFormActionShadowsHtmxHandler = (state: state<_>, path) => {
-  if state.htmxHandlersByRoute->Belt.Map.String.has(getHtmxRouteKey(GET, path)) {
-    warnFormActionShadowsHtmxHandler(GET, path)
+let apiHandlerKindLabel = kind =>
+  switch kind {
+  | HtmxApiHandler => "HTMX handler"
+  | EndpointApiHandler => "endpoint"
   }
-  if state.htmxHandlersByRoute->Belt.Map.String.has(getHtmxRouteKey(POST, path)) {
-    warnFormActionShadowsHtmxHandler(POST, path)
+
+let getApiHandlerKind = registration =>
+  switch registration {
+  | HtmxRegistration(_) => HtmxApiHandler
+  | EndpointRegistration(_) => EndpointApiHandler
+  }
+
+let getApiRegistrationPathAndMethod = registration =>
+  switch registration {
+  | HtmxRegistration(registration) => (registration.path, registration.method)
+  | EndpointRegistration(registration) => (registration.path, registration.method)
+  }
+
+let warnDuplicateApiHandler = (~incomingKind, ~existingKind, method: method, path) => {
+  switch (incomingKind, existingKind) {
+  | (HtmxApiHandler, HtmxApiHandler) =>
+    Console.warn(
+      `[ResX.Handlers] Duplicate HTMX handler registration ignored for ${(method :> string)} ${path}.`,
+    )
+  | (EndpointApiHandler, EndpointApiHandler) =>
+    Console.warn(
+      `[ResX.Handlers] Duplicate endpoint registration ignored for ${(method :> string)} ${path}.`,
+    )
+  | _ =>
+    Console.warn(
+      `[ResX.Handlers] ${incomingKind->apiHandlerKindLabel} registration ignored for ${(method :> string)} ${path} because that API route is already registered by an existing ${existingKind->apiHandlerKindLabel}.`,
+    )
   }
 }
 
-let warnIfHtmxHandlerIsShadowedByFormAction = (state: state<_>, method: method, path) =>
+let warnFormActionShadowsApiHandler = (~kind, method: method, path) => {
+  Console.warn(
+    `[ResX.Handlers] Form action registration for ${path} shadows an existing ${kind->apiHandlerKindLabel} for ${(method :> string)} ${path}.`,
+  )
+}
+
+let warnApiHandlerShadowedByFormAction = (~kind, method: method, path) => {
+  Console.warn(
+    `[ResX.Handlers] ${kind->apiHandlerKindLabel} registration for ${(method :> string)} ${path} is shadowed by an existing form action route on the same path.`,
+  )
+}
+
+let warnIfFormActionShadowsApiHandler = (state: state<_>, path) => {
+  let warnIfShadowed = method =>
+    switch state.apiHandlersByRoute->Belt.Map.String.get(getHtmxRouteKey(method, path)) {
+    | Some(registration) =>
+      warnFormActionShadowsApiHandler(
+        ~kind=registration->getApiHandlerKind,
+        method,
+        path,
+      )
+    | None => ()
+    }
+
+  warnIfShadowed(GET)
+  warnIfShadowed(POST)
+}
+
+let warnIfApiHandlerIsShadowedByFormAction = (
+  state: state<_>,
+  ~kind,
+  method: method,
+  path,
+) =>
   switch method {
   | GET | POST if state.formActionHandlersByPath->Belt.Map.String.has(path) =>
-    warnHtmxHandlerShadowedByFormAction(method, path)
+    warnApiHandlerShadowedByFormAction(~kind, method, path)
   | _ => ()
   }
 
@@ -141,7 +212,7 @@ let registerFormActionHandler = (
   registration: formActionRegistration<'ctx>,
 ) => {
   if !(state.formActionHandlersByPath->Belt.Map.String.has(registration.path)) {
-    state->warnIfFormActionShadowsHtmxHandler(registration.path)
+    state->warnIfFormActionShadowsApiHandler(registration.path)
     state.formActionHandlersByPath = state.formActionHandlersByPath->Belt.Map.String.set(
       registration.path,
       registration,
@@ -151,16 +222,25 @@ let registerFormActionHandler = (
   }
 }
 
-let registerHtmxHandler = (state: state<'ctx>, registration: htmxRegistration<'ctx>) => {
-  let routeKey = getHtmxRouteKey(registration.method, registration.path)
-  if !(state.htmxHandlersByRoute->Belt.Map.String.has(routeKey)) {
-    state->warnIfHtmxHandlerIsShadowedByFormAction(registration.method, registration.path)
-    state.htmxHandlersByRoute = state.htmxHandlersByRoute->Belt.Map.String.set(
+let registerApiHandler = (state: state<'ctx>, registration: apiRegistration<'ctx>) => {
+  let kind = registration->getApiHandlerKind
+  let (path, method) = registration->getApiRegistrationPathAndMethod
+  let routeKey = getHtmxRouteKey(method, path)
+
+  switch state.apiHandlersByRoute->Belt.Map.String.get(routeKey) {
+  | Some(existingRegistration) =>
+    warnDuplicateApiHandler(
+      ~incomingKind=kind,
+      ~existingKind=existingRegistration->getApiHandlerKind,
+      method,
+      path,
+    )
+  | None =>
+    state->warnIfApiHandlerIsShadowedByFormAction(~kind, method, path)
+    state.apiHandlersByRoute = state.apiHandlersByRoute->Belt.Map.String.set(
       routeKey,
       registration,
     )
-  } else {
-    warnDuplicateHtmxHandler(registration.method, registration.path)
   }
 }
 
@@ -170,8 +250,8 @@ let getTargetFormActionHandler = (state: state<_>, requestMethod, pathname) =>
   | _ => None
   }
 
-let getTargetHtmxHandler = (state: state<_>, requestMethod, pathname) =>
-  state.htmxHandlersByRoute->Belt.Map.String.get(getHtmxRouteKey(requestMethod, pathname))
+let getTargetApiHandler = (state: state<_>, requestMethod, pathname) =>
+  state.apiHandlersByRoute->Belt.Map.String.get(getHtmxRouteKey(requestMethod, pathname))
 
 let isCsrfEnabledFor = (state: state<_>, m: method) =>
   switch state.defaultCsrfCheck {
@@ -227,7 +307,7 @@ let renderWithDocType = async (
 }
 let defaultHeaders = [("Content-Type", "text/html")]
 
-type responseType = Default | FormActionHandler | HtmxHandler
+type responseType = Default | FormActionHandler | HtmxHandler | EndpointHandler
 
 type onBeforeSendResponse<'ctx> = {
   request: Request.t,
@@ -270,6 +350,71 @@ type t<'ctx> = {
     ~handler: formActionHandler<'ctx, 'securityPolicyData>,
     ~csrfCheck: bool=?,
   ) => FormAction.t,
+  endpointGet: 'securityPolicyData. (
+    string,
+    ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+    ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+    ~csrfCheck: bool=?,
+  ) => endpointGet,
+  endpointGetRef: string => endpointGet,
+  endpointGetDefine: 'securityPolicyData. (
+    endpointGet,
+    ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+    ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+    ~csrfCheck: bool=?,
+  ) => unit,
+  endpointPost: 'securityPolicyData. (
+    string,
+    ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+    ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+    ~csrfCheck: bool=?,
+  ) => endpointPost,
+  endpointPostRef: string => endpointPost,
+  endpointPostDefine: 'securityPolicyData. (
+    endpointPost,
+    ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+    ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+    ~csrfCheck: bool=?,
+  ) => unit,
+  endpointPut: 'securityPolicyData. (
+    string,
+    ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+    ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+    ~csrfCheck: bool=?,
+  ) => endpointPut,
+  endpointPutRef: string => endpointPut,
+  endpointPutDefine: 'securityPolicyData. (
+    endpointPut,
+    ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+    ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+    ~csrfCheck: bool=?,
+  ) => unit,
+  endpointDelete: 'securityPolicyData. (
+    string,
+    ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+    ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+    ~csrfCheck: bool=?,
+  ) => endpointDelete,
+  endpointDeleteRef: string => endpointDelete,
+  endpointDeleteDefine: 'securityPolicyData. (
+    endpointDelete,
+    ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+    ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+    ~csrfCheck: bool=?,
+  ) => unit,
+  endpointPatch: 'securityPolicyData. (
+    string,
+    ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+    ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+    ~csrfCheck: bool=?,
+  ) => endpointPatch,
+  endpointPatchRef: string => endpointPatch,
+  endpointPatchDefine: 'securityPolicyData. (
+    endpointPatch,
+    ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+    ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+    ~csrfCheck: bool=?,
+  ) => unit,
   hxGet: 'securityPolicyData. (
     string,
     ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
@@ -354,7 +499,7 @@ let handleRequestWithState = async (
   let pathname = url->URL.pathname
 
   let targetFormActionHandler = t->getTargetFormActionHandler(request->Request.method, pathname)
-  let targetHtmxHandler = t->getTargetHtmxHandler(request->Request.method, pathname)
+  let targetApiHandler = t->getTargetApiHandler(request->Request.method, pathname)
 
   let ctx = await t.requestToContext(request)
   let requestController = RequestController.make()
@@ -376,12 +521,10 @@ let handleRequestWithState = async (
   }
 
   await t.asyncLocalStorage->AsyncHooks.AsyncLocalStorage.run(renderConfig, async _token => {
-    let isFormAction = targetFormActionHandler->Option.isSome
-
-    let content = switch (targetFormActionHandler, targetHtmxHandler) {
+    let content = switch (targetFormActionHandler, targetApiHandler) {
     | (Some(_), _) => null
     | (None, None) => await render(renderConfig)
-    | (None, Some(reg)) =>
+    | (None, Some(HtmxRegistration(reg))) =>
       let csrfEnabled = reg.csrfCheckOpt->Option.getOr(t->isCsrfEnabledFor(reg.method))
       let csrfOk = switch csrfEnabled {
       | true => await CSRF.verifyRequest(request)
@@ -398,11 +541,13 @@ let handleRequestWithState = async (
           requestController,
         })
       }
+    | (None, Some(EndpointRegistration(_))) => null
     }
 
-    let responseType = switch (targetFormActionHandler, targetHtmxHandler) {
+    let responseType = switch (targetFormActionHandler, targetApiHandler) {
     | (Some(_), _) => FormActionHandler
-    | (None, Some(_)) => HtmxHandler
+    | (None, Some(HtmxRegistration(_))) => HtmxHandler
+    | (None, Some(EndpointRegistration(_))) => EndpointHandler
     | (None, None) => Default
     }
 
@@ -418,7 +563,7 @@ let handleRequestWithState = async (
       })
     }
 
-    if isFormAction {
+    if targetFormActionHandler->Option.isSome {
       let reg = targetFormActionHandler->Option.getOrThrow
       let csrfEnabled = reg.csrfCheckOpt->Option.getOr(t->isCsrfEnabledFor(request->Request.method))
       let csrfOk = switch csrfEnabled {
@@ -440,74 +585,98 @@ let handleRequestWithState = async (
         })
       | None => response
       }
-    } else if stream {
-      let {readable, writable} = TransformStream.make({
-        transform: (chunk, controller) => {
-          controller->TransformStream.Controller.enqueue(chunk)
-        },
-      })
-      let writer = writable->WritableStream.getWriter
-      let textEncoder = TextEncoder.make()
-
-      H.renderToStream(content, ~onChunk=chunk => {
-        let encoded = textEncoder->TextEncoder.encode(chunk)
-        writer->WritableStream.WritableStreamDefaultWriter.write(encoded)->Promise.ignore
-      })
-      ->Promise.thenResolve(_ => {
-        writer->WritableStream.WritableStreamDefaultWriter.close
-      })
-      ->Promise.ignore
-
-      let response = Response.makeFromReadableStream(
-        readable,
-        ~options={
-          status: 200,
-          headers: FromArray([("Content-Type", "text/html")]),
-        },
-      )
-
-      switch onBeforeSendResponse {
-      | Some(onBeforeSendResponse) =>
-        await onBeforeSendResponse({
-          response,
-          context: ctx,
-          request,
-          responseType,
-        })
-      | None => response
-      }
     } else {
-      let onAfterRender: option<unit => promise<unit>> = switch onAfterBuildResponse {
-      | Some(onAfterBuildResponse) =>
-        Some(
-          async () =>
-            await onAfterBuildResponse({
-              context: ctx,
-              request,
-              responseType,
-              requestController,
-            }),
-        )
-      | None => None
-      }
+      switch targetApiHandler {
+      | Some(EndpointRegistration(reg)) =>
+        let csrfEnabled = reg.csrfCheckOpt->Option.getOr(t->isCsrfEnabledFor(reg.method))
+        let csrfOk = switch csrfEnabled {
+        | true => await CSRF.verifyRequest(request)
+        | false => true
+        }
+        let response = if !csrfOk {
+          Response.make("Invalid CSRF token.", ~options={status: 403})
+        } else {
+          await reg.run({context: ctx, request})
+        }
+        switch onBeforeSendResponse {
+        | Some(onBeforeSendResponse) =>
+          await onBeforeSendResponse({
+            response,
+            context: ctx,
+            request,
+            responseType,
+          })
+        | None => response
+        }
+      | _ if stream =>
+        let {readable, writable} = TransformStream.make({
+          transform: (chunk, controller) => {
+            controller->TransformStream.Controller.enqueue(chunk)
+          },
+        })
+        let writer = writable->WritableStream.getWriter
+        let textEncoder = TextEncoder.make()
 
-      let content = await renderWithDocType(
-        content,
-        ~requestController,
-        ~renderTitle=?config.renderTitle,
-        ~onAfterRender?,
-      )
-      let response = switch (
-        requestController.getCurrentRedirect(),
-        requestController.getCurrentStatus(),
-      ) {
-      | (Some(url, status), _) => Response.makeRedirect(url, ~status?)
-      | (None, status) => Response.makeWithHeaders(content, ~options={headers, status})
-      }
-      switch onBeforeSendResponse {
-      | Some(onBeforeSendResponse) =>
-        await onBeforeSendResponse({response, context: ctx, request, responseType})
-      | None => response
+        H.renderToStream(content, ~onChunk=chunk => {
+          let encoded = textEncoder->TextEncoder.encode(chunk)
+          writer->WritableStream.WritableStreamDefaultWriter.write(encoded)->Promise.ignore
+        })
+        ->Promise.thenResolve(_ => {
+          writer->WritableStream.WritableStreamDefaultWriter.close
+        })
+        ->Promise.ignore
+
+        let response = Response.makeFromReadableStream(
+          readable,
+          ~options={
+            status: 200,
+            headers: FromArray([("Content-Type", "text/html")]),
+          },
+        )
+
+        switch onBeforeSendResponse {
+        | Some(onBeforeSendResponse) =>
+          await onBeforeSendResponse({
+            response,
+            context: ctx,
+            request,
+            responseType,
+          })
+        | None => response
+        }
+      | _ =>
+        let onAfterRender: option<unit => promise<unit>> = switch onAfterBuildResponse {
+        | Some(onAfterBuildResponse) =>
+          Some(
+            async () =>
+              await onAfterBuildResponse({
+                context: ctx,
+                request,
+                responseType,
+                requestController,
+              }),
+          )
+        | None => None
+        }
+
+        let content = await renderWithDocType(
+          content,
+          ~requestController,
+          ~renderTitle=?config.renderTitle,
+          ~onAfterRender?,
+        )
+        let response = switch (
+          requestController.getCurrentRedirect(),
+          requestController.getCurrentStatus(),
+        ) {
+        | (Some(url, status), _) => Response.makeRedirect(url, ~status?)
+        | (None, status) => Response.makeWithHeaders(content, ~options={headers, status})
+        }
+        switch onBeforeSendResponse {
+        | Some(onBeforeSendResponse) =>
+          await onBeforeSendResponse({response, context: ctx, request, responseType})
+        | None => response
+        }
       }
     }
   })
@@ -535,7 +704,26 @@ let makeHtmxRunner: (
 let makeFormActionRunner: (
   SecurityPolicy.handler<'ctx, 'securityPolicyData>,
   formActionHandler<'ctx, 'securityPolicyData>,
-) => formActionRunConfig<'ctx> => promise<Response.t> = (securityPolicy, handler) =>
+) => responseRunConfig<'ctx> => promise<Response.t> = (securityPolicy, handler) =>
+  async ({request, context}) =>
+    switch await securityPolicy({request, context}) {
+    | SecurityPolicy.Allow(meta) =>
+      await handler({
+        request,
+        context,
+        securityPolicyData: meta,
+      })
+    | SecurityPolicy.Block({message, code}) =>
+      Response.make(
+        message->Option.getOr("Not Allowed."),
+        ~options={status: code->Option.getOr(403)},
+      )
+    }
+
+let makeEndpointRunner: (
+  SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+  endpointHandler<'ctx, 'securityPolicyData>,
+) => responseRunConfig<'ctx> => promise<Response.t> = (securityPolicy, handler) =>
   async ({request, context}) =>
     switch await securityPolicy({request, context}) {
     | SecurityPolicy.Allow(meta) =>
@@ -562,22 +750,29 @@ let formAction = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?
   path
 }
 
-let getHtmxPath = (state: state<_>, path) => {
+let getApiPath = (state: state<_>, path) => {
   state.htmxApiPrefix ++ path
 }
 
-let registerHtmxPath = (state: state<_>, ~httpMethod, ~path, ~securityPolicy, ~handler, ~csrfCheck=?) => {
+let registerHtmxPath = (
+  state: state<_>,
+  ~httpMethod,
+  ~path,
+  ~securityPolicy,
+  ~handler,
+  ~csrfCheck=?,
+) => {
   let run = makeHtmxRunner(securityPolicy, handler)
-  state->registerHtmxHandler({
+  state->registerApiHandler(HtmxRegistration({
     method: httpMethod,
     path,
     csrfCheckOpt: csrfCheck,
     run,
-  })
+  }))
 }
 
 let createHtmxRoute = (state: state<_>, ~httpMethod, path, ~securityPolicy, ~handler, ~csrfCheck=?) => {
-  let routePath = state->getHtmxPath(path)
+  let routePath = state->getApiPath(path)
   state->registerHtmxPath(
     ~httpMethod,
     ~path=routePath,
@@ -591,44 +786,124 @@ let createHtmxRoute = (state: state<_>, ~httpMethod, path, ~securityPolicy, ~han
 let defineHtmxRoute = (state: state<_>, ~httpMethod, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
   state->registerHtmxPath(~httpMethod, ~path, ~securityPolicy, ~handler, ~csrfCheck?)
 
+let registerEndpointPath = (
+  state: state<_>,
+  ~httpMethod,
+  ~path,
+  ~securityPolicy,
+  ~handler,
+  ~csrfCheck=?,
+) => {
+  let run = makeEndpointRunner(securityPolicy, handler)
+  state->registerApiHandler(EndpointRegistration({
+    method: httpMethod,
+    path,
+    csrfCheckOpt: csrfCheck,
+    run,
+  }))
+}
+
+let createEndpointRoute = (
+  state: state<_>,
+  ~httpMethod,
+  path,
+  ~securityPolicy,
+  ~handler,
+  ~csrfCheck=?,
+) => {
+  let routePath = state->getApiPath(path)
+  state->registerEndpointPath(
+    ~httpMethod,
+    ~path=routePath,
+    ~securityPolicy,
+    ~handler,
+    ~csrfCheck?,
+  )
+  routePath
+}
+
+let defineEndpointRoute = (
+  state: state<_>,
+  ~httpMethod,
+  path,
+  ~securityPolicy,
+  ~handler,
+  ~csrfCheck=?,
+) => state->registerEndpointPath(~httpMethod, ~path, ~securityPolicy, ~handler, ~csrfCheck?)
+
+let endpointGet = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  state->createEndpointRoute(~httpMethod=GET, path, ~securityPolicy, ~handler, ~csrfCheck?)
+let endpointGetRef = (state: state<_>, path) => state->getApiPath(path)
+let endpointGetDefine = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  state->defineEndpointRoute(~httpMethod=GET, path, ~securityPolicy, ~handler, ~csrfCheck?)
+let endpointGetToEndpointURL = s => s
+
+let endpointPost = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  state->createEndpointRoute(~httpMethod=POST, path, ~securityPolicy, ~handler, ~csrfCheck?)
+let endpointPostRef = (state: state<_>, path) => state->getApiPath(path)
+let endpointPostDefine = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  state->defineEndpointRoute(~httpMethod=POST, path, ~securityPolicy, ~handler, ~csrfCheck?)
+let endpointPostToEndpointURL = s => s
+
+let endpointPut = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  state->createEndpointRoute(~httpMethod=PUT, path, ~securityPolicy, ~handler, ~csrfCheck?)
+let endpointPutRef = (state: state<_>, path) => state->getApiPath(path)
+let endpointPutDefine = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  state->defineEndpointRoute(~httpMethod=PUT, path, ~securityPolicy, ~handler, ~csrfCheck?)
+let endpointPutToEndpointURL = s => s
+
+let endpointDelete = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  state->createEndpointRoute(~httpMethod=DELETE, path, ~securityPolicy, ~handler, ~csrfCheck?)
+let endpointDeleteRef = (state: state<_>, path) => state->getApiPath(path)
+let endpointDeleteDefine = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  state->defineEndpointRoute(~httpMethod=DELETE, path, ~securityPolicy, ~handler, ~csrfCheck?)
+let endpointDeleteToEndpointURL = s => s
+
+let endpointPatch = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  state->createEndpointRoute(~httpMethod=PATCH, path, ~securityPolicy, ~handler, ~csrfCheck?)
+let endpointPatchRef = (state: state<_>, path) => state->getApiPath(path)
+let endpointPatchDefine = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  state->defineEndpointRoute(~httpMethod=PATCH, path, ~securityPolicy, ~handler, ~csrfCheck?)
+let endpointPatchToEndpointURL = s => s
+
 let hxGet = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
   state->createHtmxRoute(~httpMethod=GET, path, ~securityPolicy, ~handler, ~csrfCheck?)
-let hxGetRef = (state: state<_>, path) => state->getHtmxPath(path)
+let hxGetRef = (state: state<_>, path) => state->getApiPath(path)
 let hxGetDefine = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
   state->defineHtmxRoute(~httpMethod=GET, path, ~securityPolicy, ~handler, ~csrfCheck?)
 let hxGetToEndpointURL = s => s
 
 let hxPost = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
   state->createHtmxRoute(~httpMethod=POST, path, ~securityPolicy, ~handler, ~csrfCheck?)
-let hxPostRef = (state: state<_>, path) => state->getHtmxPath(path)
+let hxPostRef = (state: state<_>, path) => state->getApiPath(path)
 let hxPostDefine = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
   state->defineHtmxRoute(~httpMethod=POST, path, ~securityPolicy, ~handler, ~csrfCheck?)
 let hxPostToEndpointURL = s => s
 
 let hxPut = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
   state->createHtmxRoute(~httpMethod=PUT, path, ~securityPolicy, ~handler, ~csrfCheck?)
-let hxPutRef = (state: state<_>, path) => state->getHtmxPath(path)
+let hxPutRef = (state: state<_>, path) => state->getApiPath(path)
 let hxPutDefine = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
   state->defineHtmxRoute(~httpMethod=PUT, path, ~securityPolicy, ~handler, ~csrfCheck?)
 let hxPutToEndpointURL = s => s
 
 let hxDelete = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
   state->createHtmxRoute(~httpMethod=DELETE, path, ~securityPolicy, ~handler, ~csrfCheck?)
-let hxDeleteRef = (state: state<_>, path) => state->getHtmxPath(path)
+let hxDeleteRef = (state: state<_>, path) => state->getApiPath(path)
 let hxDeleteDefine = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
   state->defineHtmxRoute(~httpMethod=DELETE, path, ~securityPolicy, ~handler, ~csrfCheck?)
 let hxDeleteToEndpointURL = s => s
 
 let hxPatch = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
   state->createHtmxRoute(~httpMethod=PATCH, path, ~securityPolicy, ~handler, ~csrfCheck?)
-let hxPatchRef = (state: state<_>, path) => state->getHtmxPath(path)
+let hxPatchRef = (state: state<_>, path) => state->getApiPath(path)
 let hxPatchDefine = (state: state<_>, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
   state->defineHtmxRoute(~httpMethod=PATCH, path, ~securityPolicy, ~handler, ~csrfCheck?)
 let hxPatchToEndpointURL = s => s
 
 let make = (~requestToContext, ~options=?): t<'ctx> => {
   let state: state<'ctx> = {
-    htmxHandlersByRoute: Belt.Map.String.empty,
+    apiHandlersByRoute: Belt.Map.String.empty,
     formActionHandlersByPath: Belt.Map.String.empty,
     requestToContext,
     asyncLocalStorage: AsyncHooks.AsyncLocalStorage.make(),
@@ -652,6 +927,31 @@ let make = (~requestToContext, ~options=?): t<'ctx> => {
     handleRequest,
     formAction: (path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
       state->formAction(path, ~securityPolicy, ~handler, ~csrfCheck?),
+    endpointGet: (path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+      state->endpointGet(path, ~securityPolicy, ~handler, ~csrfCheck?),
+    endpointGetRef: path => state->endpointGetRef(path),
+    endpointGetDefine: (path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+      state->endpointGetDefine(path, ~securityPolicy, ~handler, ~csrfCheck?),
+    endpointPost: (path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+      state->endpointPost(path, ~securityPolicy, ~handler, ~csrfCheck?),
+    endpointPostRef: path => state->endpointPostRef(path),
+    endpointPostDefine: (path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+      state->endpointPostDefine(path, ~securityPolicy, ~handler, ~csrfCheck?),
+    endpointPut: (path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+      state->endpointPut(path, ~securityPolicy, ~handler, ~csrfCheck?),
+    endpointPutRef: path => state->endpointPutRef(path),
+    endpointPutDefine: (path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+      state->endpointPutDefine(path, ~securityPolicy, ~handler, ~csrfCheck?),
+    endpointDelete: (path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+      state->endpointDelete(path, ~securityPolicy, ~handler, ~csrfCheck?),
+    endpointDeleteRef: path => state->endpointDeleteRef(path),
+    endpointDeleteDefine: (path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+      state->endpointDeleteDefine(path, ~securityPolicy, ~handler, ~csrfCheck?),
+    endpointPatch: (path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+      state->endpointPatch(path, ~securityPolicy, ~handler, ~csrfCheck?),
+    endpointPatchRef: path => state->endpointPatchRef(path),
+    endpointPatchDefine: (path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+      state->endpointPatchDefine(path, ~securityPolicy, ~handler, ~csrfCheck?),
     hxGet: (path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
       state->hxGet(path, ~securityPolicy, ~handler, ~csrfCheck?),
     hxGetRef: path => state->hxGetRef(path),
@@ -689,6 +989,61 @@ let handleRequest = (t, config) => t.handleRequest(config)
 @deprecated("Use handler.formAction(...)")
 let formAction = (t, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
   t.formAction(path, ~securityPolicy, ~handler, ~csrfCheck?)
+
+@deprecated("Use handler.endpointGet(...)")
+let endpointGet = (t, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  t.endpointGet(path, ~securityPolicy, ~handler, ~csrfCheck?)
+
+@deprecated("Use handler.endpointGetRef(...)")
+let endpointGetRef = (t, path) => t.endpointGetRef(path)
+
+@deprecated("Use handler.endpointGetDefine(...)")
+let endpointGetDefine = (t, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  t.endpointGetDefine(path, ~securityPolicy, ~handler, ~csrfCheck?)
+
+@deprecated("Use handler.endpointPost(...)")
+let endpointPost = (t, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  t.endpointPost(path, ~securityPolicy, ~handler, ~csrfCheck?)
+
+@deprecated("Use handler.endpointPostRef(...)")
+let endpointPostRef = (t, path) => t.endpointPostRef(path)
+
+@deprecated("Use handler.endpointPostDefine(...)")
+let endpointPostDefine = (t, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  t.endpointPostDefine(path, ~securityPolicy, ~handler, ~csrfCheck?)
+
+@deprecated("Use handler.endpointPut(...)")
+let endpointPut = (t, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  t.endpointPut(path, ~securityPolicy, ~handler, ~csrfCheck?)
+
+@deprecated("Use handler.endpointPutRef(...)")
+let endpointPutRef = (t, path) => t.endpointPutRef(path)
+
+@deprecated("Use handler.endpointPutDefine(...)")
+let endpointPutDefine = (t, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  t.endpointPutDefine(path, ~securityPolicy, ~handler, ~csrfCheck?)
+
+@deprecated("Use handler.endpointDelete(...)")
+let endpointDelete = (t, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  t.endpointDelete(path, ~securityPolicy, ~handler, ~csrfCheck?)
+
+@deprecated("Use handler.endpointDeleteRef(...)")
+let endpointDeleteRef = (t, path) => t.endpointDeleteRef(path)
+
+@deprecated("Use handler.endpointDeleteDefine(...)")
+let endpointDeleteDefine = (t, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  t.endpointDeleteDefine(path, ~securityPolicy, ~handler, ~csrfCheck?)
+
+@deprecated("Use handler.endpointPatch(...)")
+let endpointPatch = (t, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  t.endpointPatch(path, ~securityPolicy, ~handler, ~csrfCheck?)
+
+@deprecated("Use handler.endpointPatchRef(...)")
+let endpointPatchRef = (t, path) => t.endpointPatchRef(path)
+
+@deprecated("Use handler.endpointPatchDefine(...)")
+let endpointPatchDefine = (t, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>
+  t.endpointPatchDefine(path, ~securityPolicy, ~handler, ~csrfCheck?)
 
 @deprecated("Use handler.hxGet(...)")
 let hxGet = (t, path, ~securityPolicy, ~handler, ~csrfCheck=?) =>

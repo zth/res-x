@@ -192,7 +192,7 @@ let server = Bun.serve({
   ),
   fetch: async (request, _server) => {
     // Handle the request using the ResX handler if this wasn't a static route.
-    // Note: By default, all HTMX handler routes are prefixed with "_api", and all form action routes are prefixed with "_form".
+    // Note: By default, HTMX handler routes and regular endpoint routes are prefixed with "_api", and form action routes are prefixed with "_form".
     await Handler.handler.handleRequest({
       request,
       setupHeaders: () => {
@@ -617,7 +617,7 @@ Notice how `hxSwap` and `hxTarget` are passed things from `Htmx.Something.make`?
 
 ### Security policies
 
-All HTMX handlers and form actions require a `securityPolicy` parameter. This allows you to control access to your endpoints by evaluating each request before the handler is executed, and forces you to consider security for each endpoint you expose.
+All HTMX handlers, regular endpoints, and form actions require a `securityPolicy` parameter. This allows you to control access to your endpoints by evaluating each request before the handler is executed, and forces you to consider security for each endpoint you expose.
 
 A security policy is a function that takes the request and context, and returns either `Allow(meta)` or `Block` with optional error details:
 
@@ -654,9 +654,9 @@ When a request is blocked by a security policy, a response is returned with (opt
 
 ### CSRF protection
 
-ResX has built‑in CSRF support for both HTMX handlers and regular form actions using Bun.CSRF.
+ResX has built‑in CSRF support for HTMX handlers, regular endpoints, and form actions using Bun.CSRF.
 
-- Per‑route: enable with `~csrfCheck=true` on any `hx` or `formAction`.
+- Per‑route: enable with `~csrfCheck=true` on any `hx`, `endpoint`, or `formAction`.
 - Global default: enable for all routes via `Handlers.make(~options={defaultCsrfCheck: true})`.
 - Token verification happens before `securityPolicy` when enabled.
 
@@ -690,6 +690,14 @@ let onForm = Handler.handler.hxPost(
     // ...
     Hjsx.string("ok")
   },
+)
+
+// Endpoint with CSRF enabled
+let createUser = Handler.handler.endpointPost(
+  "/api/users",
+  ~securityPolicy=ResX.SecurityPolicy.allow,
+  ~csrfCheck=true,
+  ~handler=async _ => Response.make("ok"),
 )
 
 // Form action with CSRF enabled
@@ -770,9 +778,30 @@ Form actions have access to your `context` object, as well as the full `request`
 
 You control whether you want the form method to be `POST` or `GET` via the `method` attribute on `<form>`, just like you normally do.
 
+### Regular API endpoints
+
+Sometimes you want a co-located route under the same API prefix as HTMX handlers, but you want to return a raw `Response.t` instead of JSX. For that, use `endpointGet`, `endpointPost`, `endpointPut`, `endpointDelete`, or `endpointPatch`.
+
+```rescript
+let createUser = Handler.handler.endpointPost(
+  "/api/users",
+  ~securityPolicy=ResX.SecurityPolicy.allow,
+  ~handler=async ({request, context}) => {
+    Response.make(
+      `{"ok":true}`,
+      ~options={
+        headers: HeadersInit.FromArray([("Content-Type", "application/json")]),
+      },
+    )
+  },
+)
+```
+
+These endpoints use the same API prefix as HTMX handlers (`/_api` by default, or whatever you configure via `htmxApiPrefix`), and they receive the same `request`, `context`, `securityPolicyData`, and optional `~csrfCheck` handling. The difference is that they bypass JSX rendering entirely and send back the `Response.t` you return.
+
 ### Getting endpoint URLs (Advanced)
 
-> Note: This is an advanced feature for exceptional use cases. In most situations, you should pass HTMX handlers and form actions directly to their respective HTML attributes instead of extracting their URLs.
+> Note: This is an advanced feature for exceptional use cases. In most situations, you should pass HTMX handlers and form actions directly to their respective HTML attributes, and keep endpoint refs abstract until you truly need the raw URL string.
 
 In rare cases where you need programmatic access to the actual URL string for your handlers, ResX provides helper functions:
 
@@ -789,6 +818,15 @@ let endpointUrl = getHandler->ResX.Handlers.hxGetToEndpointURL
 // Similar functions exist for all HTTP methods:
 // hxPostToEndpointURL, hxPutToEndpointURL, hxDeleteToEndpointURL, hxPatchToEndpointURL
 
+// For regular endpoints
+let createUser = Handler.handler.endpointPost("/api/users", ~securityPolicy=ResX.SecurityPolicy.allow, ~handler=async _ => {
+  Response.make("ok")
+})
+
+let apiUrl = createUser->ResX.Handlers.endpointPostToEndpointURL
+// Similar functions exist for all endpoint HTTP methods:
+// endpointGetToEndpointURL, endpointPutToEndpointURL, endpointDeleteToEndpointURL, endpointPatchToEndpointURL
+
 // For form actions
 let submitAction = Handler.handler.formAction("/submit-form", ~securityPolicy=ResX.SecurityPolicy.allow, ~handler=async _ => {
   // handler implementation
@@ -804,7 +842,7 @@ These functions should only be used in exceptional cases where you need to:
 - Create dynamic redirects or navigation logic that can't use the handlers directly
 - Generate API documentation or debugging tools
 
-**In the vast majority of cases, you should use the handlers directly with HTML attributes instead of extracting their URLs.**
+**In the vast majority of cases, you should use the handlers directly with HTML attributes, or keep endpoint refs abstract, instead of extracting their URLs.**
 
 ### ResX Client
 

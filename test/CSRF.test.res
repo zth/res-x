@@ -108,6 +108,44 @@ describe("CSRF", () => {
     expect(text)->Expect.toBe(`<!DOCTYPE html>Ada`)
   })
 
+  testAsync("endpointPost blocks without token when csrfCheck is true", async () => {
+    let _handler =
+      Handler.testHandler.endpointPost(
+        "/csrf-endpoint-post",
+        ~securityPolicy=SecurityPolicy.allow,
+        ~csrfCheck=true,
+        ~handler=async _ => Response.make("ok"),
+      )
+
+    let response = await getResponseWithInit(
+      ~url="/_api/csrf-endpoint-post",
+      ~init={method: "POST"},
+    )
+    let text = await response->Response.text
+    expect(response->Response.status)->Expect.toBe(403)
+    expect(text)->Expect.toBe("Invalid CSRF token.")
+  })
+
+  testAsync("endpointPost passes with valid token when csrfCheck is true", async () => {
+    let _handler =
+      Handler.testHandler.endpointPost(
+        "/csrf-endpoint-post-valid",
+        ~securityPolicy=SecurityPolicy.allow,
+        ~csrfCheck=true,
+        ~handler=async _ => Response.make("ok"),
+      )
+
+    let token = Bun.CSRF.generate()
+    let headers: HeadersInit.t = HeadersInit.FromArray([("X-CSRF-Token", token)])
+    let response = await getResponseWithInit(
+      ~url="/_api/csrf-endpoint-post-valid",
+      ~init={method: "POST", headers},
+    )
+    let text = await response->Response.text
+    expect(response->Response.status)->Expect.toBe(200)
+    expect(text)->Expect.toBe("ok")
+  })
+
   testAsync("formAction blocks without token when csrfCheck is true", async () => {
     let _fa =
       Handler.testHandler.formAction(

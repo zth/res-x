@@ -73,6 +73,30 @@ Buntest.describe("CSRF", () => {
     Buntest.expect(response.status).toBe(200);
     Buntest.expect(text).toBe(`<!DOCTYPE html>Ada`);
   });
+  Buntest.test("endpointPost blocks without token when csrfCheck is true", async () => {
+    TestUtils$ResX.Handler.testHandler.endpointPost("/csrf-endpoint-post", SecurityPolicy$ResX.allow, async param => new Response("ok"), true);
+    let response = await TestUtils$ResX.getResponseWithInit("/_api/csrf-endpoint-post", {
+      method: "POST"
+    });
+    let text = await response.text();
+    Buntest.expect(response.status).toBe(403);
+    Buntest.expect(text).toBe("Invalid CSRF token.");
+  });
+  Buntest.test("endpointPost passes with valid token when csrfCheck is true", async () => {
+    TestUtils$ResX.Handler.testHandler.endpointPost("/csrf-endpoint-post-valid", SecurityPolicy$ResX.allow, async param => new Response("ok"), true);
+    let token = $$Bun.CSRF.generate();
+    let headers = [[
+        "X-CSRF-Token",
+        token
+      ]];
+    let response = await TestUtils$ResX.getResponseWithInit("/_api/csrf-endpoint-post-valid", {
+      headers: headers,
+      method: "POST"
+    });
+    let text = await response.text();
+    Buntest.expect(response.status).toBe(200);
+    Buntest.expect(text).toBe("ok");
+  });
   Buntest.test("formAction blocks without token when csrfCheck is true", async () => {
     TestUtils$ResX.Handler.testHandler.formAction("/csrf-form", SecurityPolicy$ResX.allow, async param => new Response("ok"), true);
     let headers = [[
