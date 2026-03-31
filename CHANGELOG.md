@@ -1,5 +1,7 @@
 # master
 
+# 1.4.0
+
 - Add Bun single-file executable support to the Vite plugin via `staticAssetRoutes.mode`, including an `embedded` mode for `bun build --compile` and normalized build-time asset URLs for generated browser assets like `resXClient_js`.
 
 # 1.3.0
