@@ -40,6 +40,46 @@ Buntest.describe("route collisions", () => {
     Buntest.expect(getText).toBe("FORM");
     Buntest.expect(postText).toBe("FORM");
   });
+  Buntest.test("formAction takes precedence over endpoint GET and POST routes on the same path", async () => {
+    let handler = makeCollisionHandler();
+    handler.endpointGet("/collision-form-after-endpoint", SecurityPolicy$ResX.allow, async param => new Response("ENDPOINT GET"), undefined);
+    handler.endpointPost("/collision-form-after-endpoint", SecurityPolicy$ResX.allow, async param => new Response("ENDPOINT POST"), undefined);
+    handler.formAction("/collision-form-after-endpoint", SecurityPolicy$ResX.allow, async param => new Response("FORM"), undefined);
+    let getResponse = await TestUtils$ResX.getResponseForHandler(handler, undefined, undefined, undefined, undefined, undefined, "/_shared/collision-form-after-endpoint");
+    let postResponse = await TestUtils$ResX.getResponseForHandler(handler, "POST", undefined, undefined, undefined, undefined, "/_shared/collision-form-after-endpoint");
+    let getText = await getResponse.text();
+    let postText = await postResponse.text();
+    Buntest.expect(getText).toBe("FORM");
+    Buntest.expect(postText).toBe("FORM");
+  });
+  Buntest.test("existing formAction route takes precedence when endpoint routes are added later", async () => {
+    let handler = makeCollisionHandler();
+    handler.formAction("/collision-endpoint-after-form", SecurityPolicy$ResX.allow, async param => new Response("FORM"), undefined);
+    handler.endpointGet("/collision-endpoint-after-form", SecurityPolicy$ResX.allow, async param => new Response("ENDPOINT GET"), undefined);
+    handler.endpointPost("/collision-endpoint-after-form", SecurityPolicy$ResX.allow, async param => new Response("ENDPOINT POST"), undefined);
+    let getResponse = await TestUtils$ResX.getResponseForHandler(handler, undefined, undefined, undefined, undefined, undefined, "/_shared/collision-endpoint-after-form");
+    let postResponse = await TestUtils$ResX.getResponseForHandler(handler, "POST", undefined, undefined, undefined, undefined, "/_shared/collision-endpoint-after-form");
+    let getText = await getResponse.text();
+    let postText = await postResponse.text();
+    Buntest.expect(getText).toBe("FORM");
+    Buntest.expect(postText).toBe("FORM");
+  });
+  Buntest.test("existing HTMX route keeps the API path when an endpoint is added later", async () => {
+    let handler = makeCollisionHandler();
+    handler.hxGet("/collision-api-kind-first", SecurityPolicy$ResX.allow, async param => "HTMX", undefined);
+    handler.endpointGet("/collision-api-kind-first", SecurityPolicy$ResX.allow, async param => new Response("ENDPOINT"), undefined);
+    let response = await TestUtils$ResX.getResponseForHandler(handler, undefined, undefined, undefined, undefined, undefined, "/_shared/collision-api-kind-first");
+    let text = await response.text();
+    Buntest.expect(text).toBe(`<!DOCTYPE html>HTMX`);
+  });
+  Buntest.test("existing endpoint route keeps the API path when HTMX is added later", async () => {
+    let handler = makeCollisionHandler();
+    handler.endpointGet("/collision-api-kind-second", SecurityPolicy$ResX.allow, async param => new Response("ENDPOINT"), undefined);
+    handler.hxGet("/collision-api-kind-second", SecurityPolicy$ResX.allow, async param => "HTMX", undefined);
+    let response = await TestUtils$ResX.getResponseForHandler(handler, undefined, undefined, undefined, undefined, undefined, "/_shared/collision-api-kind-second");
+    let text = await response.text();
+    Buntest.expect(text).toBe("ENDPOINT");
+  });
 });
 
 exports.makeCollisionHandler = makeCollisionHandler;

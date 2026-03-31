@@ -1,5 +1,6 @@
 # master
 
+- Add co-located raw API endpoints with `endpointGet`, `endpointPost`, `endpointPut`, `endpointDelete`, and `endpointPatch`, including `Ref`/`Define` helpers, URL helper functions, shared `/_api` prefixing, and collision handling alongside HTMX handlers.
 - Fix dev reload experience of the Vite dev setup.
 - Expose `RequestController` and `Handlers` as record-of-functions APIs so user code can migrate from `requestController->RequestController.setStatus(404)` to `requestController.setStatus(404)` and from `handler->ResX.Handlers.handleRequest({...})` to `handler.handleRequest({...})`; the old free-function surface is still available but deprecated.
 - BREAKING: Remove `ResX.BunUtils.serveStaticFile`; static assets now go through generated `ResXAssets.staticAssetRoutes`.

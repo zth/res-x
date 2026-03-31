@@ -28,20 +28,44 @@ function getHtmxRouteKey(method, path) {
   return method + `:` + path;
 }
 
-function warnFormActionShadowsHtmxHandler(method, path) {
-  console.warn(`[ResX.Handlers] Form action registration for ` + path + ` shadows an existing HTMX handler for ` + method + ` ` + path + `.`);
-}
-
-function warnIfFormActionShadowsHtmxHandler(state, path) {
-  if (Belt_MapString.has(state.htmxHandlersByRoute, getHtmxRouteKey("GET", path))) {
-    warnFormActionShadowsHtmxHandler("GET", path);
-  }
-  if (Belt_MapString.has(state.htmxHandlersByRoute, getHtmxRouteKey("POST", path))) {
-    return warnFormActionShadowsHtmxHandler("POST", path);
+function apiHandlerKindLabel(kind) {
+  if (kind === "HtmxApiHandler") {
+    return "HTMX handler";
+  } else {
+    return "endpoint";
   }
 }
 
-function warnIfHtmxHandlerIsShadowedByFormAction(state, method, path) {
+function getApiHandlerKind(registration) {
+  if (registration.TAG === "HtmxRegistration") {
+    return "HtmxApiHandler";
+  } else {
+    return "EndpointApiHandler";
+  }
+}
+
+function getApiRegistrationPathAndMethod(registration) {
+  let registration$1 = registration._0;
+  return [
+    registration$1.path,
+    registration$1.method
+  ];
+}
+
+function warnIfFormActionShadowsApiHandler(state, path) {
+  let warnIfShadowed = method => {
+    let registration = Belt_MapString.get(state.apiHandlersByRoute, getHtmxRouteKey(method, path));
+    if (registration !== undefined) {
+      let kind = getApiHandlerKind(registration);
+      console.warn(`[ResX.Handlers] Form action registration for ` + path + ` shadows an existing ` + apiHandlerKindLabel(kind) + ` for ` + method + ` ` + path + `.`);
+      return;
+    }
+  };
+  warnIfShadowed("GET");
+  warnIfShadowed("POST");
+}
+
+function warnIfApiHandlerIsShadowedByFormAction(state, kind, method, path) {
   switch (method) {
     case "GET" :
     case "POST" :
@@ -50,7 +74,7 @@ function warnIfHtmxHandlerIsShadowedByFormAction(state, method, path) {
       return;
   }
   if (Belt_MapString.has(state.formActionHandlersByPath, path)) {
-    console.warn(`[ResX.Handlers] HTMX handler registration for ` + method + ` ` + path + ` is shadowed by an existing form action route on the same path.`);
+    console.warn(`[ResX.Handlers] ` + apiHandlerKindLabel(kind) + ` registration for ` + method + ` ` + path + ` is shadowed by an existing form action route on the same path.`);
     return;
   }
 }
@@ -61,8 +85,35 @@ function registerFormActionHandler(state, registration) {
     console.warn(`[ResX.Handlers] Duplicate form action registration ignored for ` + path + `.`);
     return;
   } else {
-    warnIfFormActionShadowsHtmxHandler(state, registration.path);
+    warnIfFormActionShadowsApiHandler(state, registration.path);
     state.formActionHandlersByPath = Belt_MapString.set(state.formActionHandlersByPath, registration.path, registration);
+    return;
+  }
+}
+
+function registerApiHandler(state, registration) {
+  let kind = getApiHandlerKind(registration);
+  let match = getApiRegistrationPathAndMethod(registration);
+  let method = match[1];
+  let path = match[0];
+  let routeKey = getHtmxRouteKey(method, path);
+  let existingRegistration = Belt_MapString.get(state.apiHandlersByRoute, routeKey);
+  if (existingRegistration !== undefined) {
+    let existingKind = getApiHandlerKind(existingRegistration);
+    if (kind === "HtmxApiHandler") {
+      if (existingKind === "HtmxApiHandler") {
+        console.warn(`[ResX.Handlers] Duplicate HTMX handler registration ignored for ` + method + ` ` + path + `.`);
+        return;
+      }
+    } else if (existingKind !== "HtmxApiHandler") {
+      console.warn(`[ResX.Handlers] Duplicate endpoint registration ignored for ` + method + ` ` + path + `.`);
+      return;
+    }
+    console.warn(`[ResX.Handlers] ` + apiHandlerKindLabel(kind) + ` registration ignored for ` + method + ` ` + path + ` because that API route is already registered by an existing ` + apiHandlerKindLabel(existingKind) + `.`);
+    return;
+  } else {
+    warnIfApiHandlerIsShadowedByFormAction(state, kind, method, path);
+    state.apiHandlersByRoute = Belt_MapString.set(state.apiHandlersByRoute, routeKey, registration);
     return;
   }
 }
@@ -77,8 +128,8 @@ function getTargetFormActionHandler(state, requestMethod, pathname) {
   }
 }
 
-function getTargetHtmxHandler(state, requestMethod, pathname) {
-  return Belt_MapString.get(state.htmxHandlersByRoute, getHtmxRouteKey(requestMethod, pathname));
+function getTargetApiHandler(state, requestMethod, pathname) {
+  return Belt_MapString.get(state.apiHandlersByRoute, getHtmxRouteKey(requestMethod, pathname));
 }
 
 function isCsrfEnabledFor(state, m) {
@@ -145,7 +196,7 @@ async function handleRequestWithState(t, config) {
   let url = new URL(request.url);
   let pathname = url.pathname;
   let targetFormActionHandler = getTargetFormActionHandler(t, request.method, pathname);
-  let targetHtmxHandler = getTargetHtmxHandler(t, request.method, pathname);
+  let targetApiHandler = getTargetApiHandler(t, request.method, pathname);
   let ctx = await t.requestToContext(request);
   let requestController = RequestController$ResX.make();
   let setupHeaders = config.setupHeaders;
@@ -160,29 +211,35 @@ async function handleRequestWithState(t, config) {
     requestController: requestController
   };
   return await t.asyncLocalStorage.run(renderConfig, async _token => {
-    let isFormAction = Stdlib_Option.isSome(targetFormActionHandler);
     let content;
     if (targetFormActionHandler !== undefined) {
       content = null;
-    } else if (targetHtmxHandler !== undefined) {
-      let csrfEnabled = Stdlib_Option.getOr(targetHtmxHandler.csrfCheckOpt, isCsrfEnabledFor(t, targetHtmxHandler.method));
-      let csrfOk = csrfEnabled ? await CSRF$ResX.verifyRequest(request) : true;
-      if (csrfOk) {
-        content = await targetHtmxHandler.run({
-          request: request,
-          context: ctx,
-          headers: headers,
-          requestController: requestController
-        });
+    } else if (targetApiHandler !== undefined) {
+      if (targetApiHandler.TAG === "HtmxRegistration") {
+        let reg = targetApiHandler._0;
+        let csrfEnabled = Stdlib_Option.getOr(reg.csrfCheckOpt, isCsrfEnabledFor(t, reg.method));
+        let csrfOk = csrfEnabled ? await CSRF$ResX.verifyRequest(request) : true;
+        if (csrfOk) {
+          content = await reg.run({
+            request: request,
+            context: ctx,
+            headers: headers,
+            requestController: requestController
+          });
+        } else {
+          requestController.setStatus(403);
+          content = "Invalid CSRF token.";
+        }
       } else {
-        requestController.setStatus(403);
-        content = "Invalid CSRF token.";
+        content = null;
       }
     } else {
       content = await render(renderConfig);
     }
     let responseType = targetFormActionHandler !== undefined ? "FormActionHandler" : (
-        targetHtmxHandler !== undefined ? "HtmxHandler" : "Default"
+        targetApiHandler !== undefined ? (
+            targetApiHandler.TAG === "HtmxRegistration" ? "HtmxHandler" : "EndpointHandler"
+          ) : "Default"
       );
     if (onBeforeBuildResponse !== undefined) {
       await onBeforeBuildResponse({
@@ -192,11 +249,11 @@ async function handleRequestWithState(t, config) {
         requestController: requestController
       });
     }
-    if (isFormAction) {
-      let reg = Stdlib_Option.getOrThrow(targetFormActionHandler, undefined);
-      let csrfEnabled$1 = Stdlib_Option.getOr(reg.csrfCheckOpt, isCsrfEnabledFor(t, request.method));
+    if (Stdlib_Option.isSome(targetFormActionHandler)) {
+      let reg$1 = Stdlib_Option.getOrThrow(targetFormActionHandler, undefined);
+      let csrfEnabled$1 = Stdlib_Option.getOr(reg$1.csrfCheckOpt, isCsrfEnabledFor(t, request.method));
       let csrfOk$1 = csrfEnabled$1 ? await CSRF$ResX.verifyRequest(request) : true;
-      let response = csrfOk$1 ? await reg.run({
+      let response = csrfOk$1 ? await reg$1.run({
           request: request,
           context: ctx
         }) : new Response("Invalid CSRF token.", {
@@ -213,6 +270,27 @@ async function handleRequestWithState(t, config) {
         return response;
       }
     }
+    if (targetApiHandler !== undefined && targetApiHandler.TAG !== "HtmxRegistration") {
+      let reg$2 = targetApiHandler._0;
+      let csrfEnabled$2 = Stdlib_Option.getOr(reg$2.csrfCheckOpt, isCsrfEnabledFor(t, reg$2.method));
+      let csrfOk$2 = csrfEnabled$2 ? await CSRF$ResX.verifyRequest(request) : true;
+      let response$1 = csrfOk$2 ? await reg$2.run({
+          request: request,
+          context: ctx
+        }) : new Response("Invalid CSRF token.", {
+          status: 403
+        });
+      if (onBeforeSendResponse !== undefined) {
+        return await onBeforeSendResponse({
+          request: request,
+          response: response$1,
+          context: ctx,
+          responseType: responseType
+        });
+      } else {
+        return response$1;
+      }
+    }
     if (stream) {
       let match = new TransformStream({
         transform: (chunk, controller) => {
@@ -225,7 +303,7 @@ async function handleRequestWithState(t, config) {
         let encoded = textEncoder.encode(chunk);
         writer.write(encoded);
       }).then(() => writer.close());
-      let response$1 = new Response(match.readable, {
+      let response$2 = new Response(match.readable, {
         status: 200,
         headers: [[
             "Content-Type",
@@ -235,12 +313,12 @@ async function handleRequestWithState(t, config) {
       if (onBeforeSendResponse !== undefined) {
         return await onBeforeSendResponse({
           request: request,
-          response: response$1,
+          response: response$2,
           context: ctx,
           responseType: responseType
         });
       } else {
-        return response$1;
+        return response$2;
       }
     }
     let onAfterRender = onAfterBuildResponse !== undefined ? async () => await onAfterBuildResponse({
@@ -252,19 +330,19 @@ async function handleRequestWithState(t, config) {
     let content$1 = await renderWithDocType(content, requestController, config.renderTitle, onAfterRender);
     let match$1 = requestController.getCurrentRedirect();
     let match$2 = requestController.getCurrentStatus();
-    let response$2 = match$1 !== undefined ? Response.redirect(match$1[0], Primitive_option.toUndefined(match$1[1])) : new Response(content$1, {
+    let response$3 = match$1 !== undefined ? Response.redirect(match$1[0], Primitive_option.toUndefined(match$1[1])) : new Response(content$1, {
         status: match$2,
         headers: Primitive_option.some(headers)
       });
     if (onBeforeSendResponse !== undefined) {
       return await onBeforeSendResponse({
         request: request,
-        response: response$2,
+        response: response$3,
         context: ctx,
         responseType: responseType
       });
     } else {
-      return response$2;
+      return response$3;
     }
   });
 }
@@ -314,25 +392,39 @@ function makeFormActionRunner(securityPolicy, handler) {
   };
 }
 
+function makeEndpointRunner(securityPolicy, handler) {
+  return async param => {
+    let context = param.context;
+    let request = param.request;
+    let meta = await securityPolicy({
+      request: request,
+      context: context
+    });
+    if (meta.TAG === "Allow") {
+      return await handler({
+        request: request,
+        context: context,
+        securityPolicyData: meta._0
+      });
+    } else {
+      return new Response(Stdlib_Option.getOr(meta.message, "Not Allowed."), {
+        status: Stdlib_Option.getOr(meta.code, 403)
+      });
+    }
+  };
+}
+
 function registerHtmxPath(state, httpMethod, path, securityPolicy, handler, csrfCheck) {
   let run = makeHtmxRunner(securityPolicy, handler);
-  let registration = {
-    method: httpMethod,
-    path: path,
-    csrfCheckOpt: csrfCheck,
-    run: run
-  };
-  let routeKey = getHtmxRouteKey(registration.method, registration.path);
-  if (Belt_MapString.has(state.htmxHandlersByRoute, routeKey)) {
-    let method = registration.method;
-    let path$1 = registration.path;
-    console.warn(`[ResX.Handlers] Duplicate HTMX handler registration ignored for ` + method + ` ` + path$1 + `.`);
-    return;
-  } else {
-    warnIfHtmxHandlerIsShadowedByFormAction(state, registration.method, registration.path);
-    state.htmxHandlersByRoute = Belt_MapString.set(state.htmxHandlersByRoute, routeKey, registration);
-    return;
-  }
+  registerApiHandler(state, {
+    TAG: "HtmxRegistration",
+    _0: {
+      method: httpMethod,
+      path: path,
+      csrfCheckOpt: csrfCheck,
+      run: run
+    }
+  });
 }
 
 function createHtmxRoute(state, httpMethod, path, securityPolicy, handler, csrfCheck) {
@@ -342,6 +434,47 @@ function createHtmxRoute(state, httpMethod, path, securityPolicy, handler, csrfC
 }
 
 let defineHtmxRoute = registerHtmxPath;
+
+function registerEndpointPath(state, httpMethod, path, securityPolicy, handler, csrfCheck) {
+  let run = makeEndpointRunner(securityPolicy, handler);
+  registerApiHandler(state, {
+    TAG: "EndpointRegistration",
+    _0: {
+      method: httpMethod,
+      path: path,
+      csrfCheckOpt: csrfCheck,
+      run: run
+    }
+  });
+}
+
+function createEndpointRoute(state, httpMethod, path, securityPolicy, handler, csrfCheck) {
+  let routePath = state.htmxApiPrefix + path;
+  registerEndpointPath(state, httpMethod, routePath, securityPolicy, handler, csrfCheck);
+  return routePath;
+}
+
+let defineEndpointRoute = registerEndpointPath;
+
+function endpointGetToEndpointURL(s) {
+  return s;
+}
+
+function endpointPostToEndpointURL(s) {
+  return s;
+}
+
+function endpointPutToEndpointURL(s) {
+  return s;
+}
+
+function endpointDeleteToEndpointURL(s) {
+  return s;
+}
+
+function endpointPatchToEndpointURL(s) {
+  return s;
+}
 
 function hxGetToEndpointURL(s) {
   return s;
@@ -365,7 +498,7 @@ function hxPatchToEndpointURL(s) {
 
 function make(requestToContext, options) {
   let state = {
-    htmxHandlersByRoute: undefined,
+    apiHandlersByRoute: undefined,
     formActionHandlersByPath: undefined,
     requestToContext: requestToContext,
     asyncLocalStorage: new Nodeasync_hooks.AsyncLocalStorage(),
@@ -391,6 +524,21 @@ function make(requestToContext, options) {
       });
       return path$1;
     },
+    endpointGet: (path, securityPolicy, handler, csrfCheck) => createEndpointRoute(state, "GET", path, securityPolicy, handler, csrfCheck),
+    endpointGetRef: path => state.htmxApiPrefix + path,
+    endpointGetDefine: (path, securityPolicy, handler, csrfCheck) => defineEndpointRoute(state, "GET", path, securityPolicy, handler, csrfCheck),
+    endpointPost: (path, securityPolicy, handler, csrfCheck) => createEndpointRoute(state, "POST", path, securityPolicy, handler, csrfCheck),
+    endpointPostRef: path => state.htmxApiPrefix + path,
+    endpointPostDefine: (path, securityPolicy, handler, csrfCheck) => defineEndpointRoute(state, "POST", path, securityPolicy, handler, csrfCheck),
+    endpointPut: (path, securityPolicy, handler, csrfCheck) => createEndpointRoute(state, "PUT", path, securityPolicy, handler, csrfCheck),
+    endpointPutRef: path => state.htmxApiPrefix + path,
+    endpointPutDefine: (path, securityPolicy, handler, csrfCheck) => defineEndpointRoute(state, "PUT", path, securityPolicy, handler, csrfCheck),
+    endpointDelete: (path, securityPolicy, handler, csrfCheck) => createEndpointRoute(state, "DELETE", path, securityPolicy, handler, csrfCheck),
+    endpointDeleteRef: path => state.htmxApiPrefix + path,
+    endpointDeleteDefine: (path, securityPolicy, handler, csrfCheck) => defineEndpointRoute(state, "DELETE", path, securityPolicy, handler, csrfCheck),
+    endpointPatch: (path, securityPolicy, handler, csrfCheck) => createEndpointRoute(state, "PATCH", path, securityPolicy, handler, csrfCheck),
+    endpointPatchRef: path => state.htmxApiPrefix + path,
+    endpointPatchDefine: (path, securityPolicy, handler, csrfCheck) => defineEndpointRoute(state, "PATCH", path, securityPolicy, handler, csrfCheck),
     hxGet: (path, securityPolicy, handler, csrfCheck) => createHtmxRoute(state, "GET", path, securityPolicy, handler, csrfCheck),
     hxGetRef: path => state.htmxApiPrefix + path,
     hxGetDefine: (path, securityPolicy, handler, csrfCheck) => defineHtmxRoute(state, "GET", path, securityPolicy, handler, csrfCheck),
@@ -419,6 +567,66 @@ function handleRequest(t, config) {
 
 function formAction(t, path, securityPolicy, handler, csrfCheck) {
   return t.formAction(path, securityPolicy, handler, csrfCheck);
+}
+
+function endpointGet(t, path, securityPolicy, handler, csrfCheck) {
+  return t.endpointGet(path, securityPolicy, handler, csrfCheck);
+}
+
+function endpointGetRef(t, path) {
+  return t.endpointGetRef(path);
+}
+
+function endpointGetDefine(t, path, securityPolicy, handler, csrfCheck) {
+  t.endpointGetDefine(path, securityPolicy, handler, csrfCheck);
+}
+
+function endpointPost(t, path, securityPolicy, handler, csrfCheck) {
+  return t.endpointPost(path, securityPolicy, handler, csrfCheck);
+}
+
+function endpointPostRef(t, path) {
+  return t.endpointPostRef(path);
+}
+
+function endpointPostDefine(t, path, securityPolicy, handler, csrfCheck) {
+  t.endpointPostDefine(path, securityPolicy, handler, csrfCheck);
+}
+
+function endpointPut(t, path, securityPolicy, handler, csrfCheck) {
+  return t.endpointPut(path, securityPolicy, handler, csrfCheck);
+}
+
+function endpointPutRef(t, path) {
+  return t.endpointPutRef(path);
+}
+
+function endpointPutDefine(t, path, securityPolicy, handler, csrfCheck) {
+  t.endpointPutDefine(path, securityPolicy, handler, csrfCheck);
+}
+
+function endpointDelete(t, path, securityPolicy, handler, csrfCheck) {
+  return t.endpointDelete(path, securityPolicy, handler, csrfCheck);
+}
+
+function endpointDeleteRef(t, path) {
+  return t.endpointDeleteRef(path);
+}
+
+function endpointDeleteDefine(t, path, securityPolicy, handler, csrfCheck) {
+  t.endpointDeleteDefine(path, securityPolicy, handler, csrfCheck);
+}
+
+function endpointPatch(t, path, securityPolicy, handler, csrfCheck) {
+  return t.endpointPatch(path, securityPolicy, handler, csrfCheck);
+}
+
+function endpointPatchRef(t, path) {
+  return t.endpointPatchRef(path);
+}
+
+function endpointPatchDefine(t, path, securityPolicy, handler, csrfCheck) {
+  t.endpointPatchDefine(path, securityPolicy, handler, csrfCheck);
 }
 
 function hxGet(t, path, securityPolicy, handler, csrfCheck) {
@@ -484,6 +692,26 @@ function hxPatchDefine(t, path, securityPolicy, handler, csrfCheck) {
 exports.FormAction = FormAction;
 exports.make = make;
 exports.formAction = formAction;
+exports.endpointGet = endpointGet;
+exports.endpointGetRef = endpointGetRef;
+exports.endpointGetDefine = endpointGetDefine;
+exports.endpointGetToEndpointURL = endpointGetToEndpointURL;
+exports.endpointPost = endpointPost;
+exports.endpointPostRef = endpointPostRef;
+exports.endpointPostDefine = endpointPostDefine;
+exports.endpointPostToEndpointURL = endpointPostToEndpointURL;
+exports.endpointPut = endpointPut;
+exports.endpointPutRef = endpointPutRef;
+exports.endpointPutDefine = endpointPutDefine;
+exports.endpointPutToEndpointURL = endpointPutToEndpointURL;
+exports.endpointDelete = endpointDelete;
+exports.endpointDeleteRef = endpointDeleteRef;
+exports.endpointDeleteDefine = endpointDeleteDefine;
+exports.endpointDeleteToEndpointURL = endpointDeleteToEndpointURL;
+exports.endpointPatch = endpointPatch;
+exports.endpointPatchRef = endpointPatchRef;
+exports.endpointPatchDefine = endpointPatchDefine;
+exports.endpointPatchToEndpointURL = endpointPatchToEndpointURL;
 exports.hxGet = hxGet;
 exports.hxGetRef = hxGetRef;
 exports.hxGetDefine = hxGetDefine;

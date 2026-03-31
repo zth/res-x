@@ -18,6 +18,11 @@ type formActionConfig<'ctx, 'securityPolicyData> = {
   context: 'ctx,
   securityPolicyData: 'securityPolicyData,
 }
+type endpointConfig<'ctx, 'securityPolicyData> = {
+  request: Request.t,
+  context: 'ctx,
+  securityPolicyData: 'securityPolicyData,
+}
 
 type htmxHandler<'ctx, 'securityPolicyData> = htmxHandlerConfig<
   'ctx,
@@ -27,12 +32,21 @@ type formActionHandler<'ctx, 'securityPolicyData> = formActionConfig<
   'ctx,
   'securityPolicyData,
 > => promise<Response.t>
+type endpointHandler<'ctx, 'securityPolicyData> = endpointConfig<
+  'ctx,
+  'securityPolicyData,
+> => promise<Response.t>
 
 type hxGet
 type hxPost
 type hxPut
 type hxPatch
 type hxDelete
+type endpointGet
+type endpointPost
+type endpointPut
+type endpointPatch
+type endpointDelete
 
 type defaultCsrfCheck =
   | ForAllMethods(bool)
@@ -46,7 +60,7 @@ type defaultCsrfCheck =
 
 type options = {
   /** 
-   Prefix for the API routes of any HTMX handlers. 
+   Prefix for the API routes of any HTMX handlers and regular endpoints. 
    This is opaque to your code, and serves as a guard against accidentally overwriting other routes with your handlers.
 
    @default "/_api"
@@ -77,7 +91,7 @@ type renderConfig<'ctx> = {
   requestController: RequestController.t,
 }
 
-type responseType = Default | FormActionHandler | HtmxHandler
+type responseType = Default | FormActionHandler | HtmxHandler | EndpointHandler
 
 type onBeforeSendResponse<'ctx> = {
   request: Request.t,
@@ -120,6 +134,71 @@ type t<'ctx> = {
     ~handler: formActionHandler<'ctx, 'securityPolicyData>,
     ~csrfCheck: bool=?,
   ) => FormAction.t,
+  endpointGet: 'securityPolicyData. (
+    string,
+    ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+    ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+    ~csrfCheck: bool=?,
+  ) => endpointGet,
+  endpointGetRef: string => endpointGet,
+  endpointGetDefine: 'securityPolicyData. (
+    endpointGet,
+    ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+    ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+    ~csrfCheck: bool=?,
+  ) => unit,
+  endpointPost: 'securityPolicyData. (
+    string,
+    ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+    ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+    ~csrfCheck: bool=?,
+  ) => endpointPost,
+  endpointPostRef: string => endpointPost,
+  endpointPostDefine: 'securityPolicyData. (
+    endpointPost,
+    ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+    ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+    ~csrfCheck: bool=?,
+  ) => unit,
+  endpointPut: 'securityPolicyData. (
+    string,
+    ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+    ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+    ~csrfCheck: bool=?,
+  ) => endpointPut,
+  endpointPutRef: string => endpointPut,
+  endpointPutDefine: 'securityPolicyData. (
+    endpointPut,
+    ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+    ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+    ~csrfCheck: bool=?,
+  ) => unit,
+  endpointDelete: 'securityPolicyData. (
+    string,
+    ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+    ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+    ~csrfCheck: bool=?,
+  ) => endpointDelete,
+  endpointDeleteRef: string => endpointDelete,
+  endpointDeleteDefine: 'securityPolicyData. (
+    endpointDelete,
+    ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+    ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+    ~csrfCheck: bool=?,
+  ) => unit,
+  endpointPatch: 'securityPolicyData. (
+    string,
+    ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+    ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+    ~csrfCheck: bool=?,
+  ) => endpointPatch,
+  endpointPatchRef: string => endpointPatch,
+  endpointPatchDefine: 'securityPolicyData. (
+    endpointPatch,
+    ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+    ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+    ~csrfCheck: bool=?,
+  ) => unit,
   hxGet: 'securityPolicyData. (
     string,
     ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
@@ -210,6 +289,111 @@ let formAction: (
   ~handler: formActionHandler<'ctx, 'securityPolicyData>,
   ~csrfCheck: bool=?,
 ) => FormAction.t
+
+@deprecated("Use handler.endpointGet(...)")
+let endpointGet: (
+  t<'ctx>,
+  string,
+  ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+  ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+  ~csrfCheck: bool=?,
+) => endpointGet
+@deprecated("Use handler.endpointGetRef(...)")
+let endpointGetRef: (t<_>, string) => endpointGet
+@deprecated("Use handler.endpointGetDefine(...)")
+let endpointGetDefine: (
+  t<'ctx>,
+  endpointGet,
+  ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+  ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+  ~csrfCheck: bool=?,
+) => unit
+/** Returns the actual endpoint URL string for this endpointGet handler. Most of the time you should pass the endpointGet directly to the client code that needs it instead of extracting the URL. */
+let endpointGetToEndpointURL: endpointGet => string
+
+@deprecated("Use handler.endpointPost(...)")
+let endpointPost: (
+  t<'ctx>,
+  string,
+  ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+  ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+  ~csrfCheck: bool=?,
+) => endpointPost
+@deprecated("Use handler.endpointPostRef(...)")
+let endpointPostRef: (t<_>, string) => endpointPost
+@deprecated("Use handler.endpointPostDefine(...)")
+let endpointPostDefine: (
+  t<'ctx>,
+  endpointPost,
+  ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+  ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+  ~csrfCheck: bool=?,
+) => unit
+/** Returns the actual endpoint URL string for this endpointPost handler. Most of the time you should pass the endpointPost directly to the client code that needs it instead of extracting the URL. */
+let endpointPostToEndpointURL: endpointPost => string
+
+@deprecated("Use handler.endpointPut(...)")
+let endpointPut: (
+  t<'ctx>,
+  string,
+  ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+  ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+  ~csrfCheck: bool=?,
+) => endpointPut
+@deprecated("Use handler.endpointPutRef(...)")
+let endpointPutRef: (t<_>, string) => endpointPut
+@deprecated("Use handler.endpointPutDefine(...)")
+let endpointPutDefine: (
+  t<'ctx>,
+  endpointPut,
+  ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+  ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+  ~csrfCheck: bool=?,
+) => unit
+/** Returns the actual endpoint URL string for this endpointPut handler. Most of the time you should pass the endpointPut directly to the client code that needs it instead of extracting the URL. */
+let endpointPutToEndpointURL: endpointPut => string
+
+@deprecated("Use handler.endpointDelete(...)")
+let endpointDelete: (
+  t<'ctx>,
+  string,
+  ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+  ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+  ~csrfCheck: bool=?,
+) => endpointDelete
+@deprecated("Use handler.endpointDeleteRef(...)")
+let endpointDeleteRef: (t<_>, string) => endpointDelete
+@deprecated("Use handler.endpointDeleteDefine(...)")
+let endpointDeleteDefine: (
+  t<'ctx>,
+  endpointDelete,
+  ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+  ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+  ~csrfCheck: bool=?,
+) => unit
+/** Returns the actual endpoint URL string for this endpointDelete handler. Most of the time you should pass the endpointDelete directly to the client code that needs it instead of extracting the URL. */
+let endpointDeleteToEndpointURL: endpointDelete => string
+
+@deprecated("Use handler.endpointPatch(...)")
+let endpointPatch: (
+  t<'ctx>,
+  string,
+  ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+  ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+  ~csrfCheck: bool=?,
+) => endpointPatch
+@deprecated("Use handler.endpointPatchRef(...)")
+let endpointPatchRef: (t<_>, string) => endpointPatch
+@deprecated("Use handler.endpointPatchDefine(...)")
+let endpointPatchDefine: (
+  t<'ctx>,
+  endpointPatch,
+  ~securityPolicy: SecurityPolicy.handler<'ctx, 'securityPolicyData>,
+  ~handler: endpointHandler<'ctx, 'securityPolicyData>,
+  ~csrfCheck: bool=?,
+) => unit
+/** Returns the actual endpoint URL string for this endpointPatch handler. Most of the time you should pass the endpointPatch directly to the client code that needs it instead of extracting the URL. */
+let endpointPatchToEndpointURL: endpointPatch => string
 
 @deprecated("Use handler.hxGet(...)")
 let hxGet: (
