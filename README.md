@@ -160,6 +160,8 @@ The publish workflow rebuilds the package, regenerates `client/ResXClient.js`, r
 
 ## Getting started
 
+For a new ResX app, start from the [ResX template](https://github.com/zth/resx-template). The rest of this section documents the manual setup if you want to wire things together yourself.
+
 First, make sure you have [`Bun`](https://bun.sh) installed and setup. Then, install `rescript-x` and the dependencies needed:
 
 ```bash
