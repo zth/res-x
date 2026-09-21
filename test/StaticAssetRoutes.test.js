@@ -27,10 +27,9 @@ async function importGeneratedModule(modulePath) {
 }
 
 async function withStaticAssetServer(routes, run) {
-  const [port, releasePort] = TestUtils.getPort();
   const server = Bun.serve({
     development: true,
-    port,
+    port: 0,
     routes,
     fetch: async request =>
       new Response(`app:${new URL(request.url).pathname}`, {
@@ -40,11 +39,10 @@ async function withStaticAssetServer(routes, run) {
 
   try {
     return await run({
-      baseUrl: `http://localhost:${port}`,
+      baseUrl: `http://localhost:${server.port}`,
     });
   } finally {
     server.stop(true);
-    releasePort();
   }
 }
 
