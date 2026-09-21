@@ -54,3 +54,13 @@ Routes use dictionaries instead of persistent balanced trees: registration mutat
 See [RESULTS.md](RESULTS.md) for the first pass, [ROUND2.md](ROUND2.md) for further gains against that PR, and [RENDERER-RESEARCH.md](RENDERER-RESEARCH.md) for techniques investigated in KitaJS, Hono and Preact.
 
 For buffered-rendering comparisons without streaming, set `BENCH_EXCLUDE=stream`. This applies to individual runs and the comparison command.
+
+## Isolated workload comparison
+
+When earlier workloads change the renderer's JIT/type profile enough to destabilize later results, use a fresh process for each workload:
+
+```sh
+BENCH_EXCLUDE=stream bun bench/compare-isolated.mjs ../res-x-performance-round1 ../res-x-performance-round2 bench/results/round2 3
+```
+
+This runs each workload three times per version in neighboring, alternating baseline/candidate pairs. Each child still warms up for one second and records nine samples. Six aggregate JSON files retain the samples and per-workload timestamps, along with an `isolation: "workload"` marker. Source revisions and hashes must remain constant throughout. Use detached worktree snapshots as targets so publishing further commits does not invalidate in-progress measurements. This controls cross-workload JIT history; it does not eliminate GC or shared-host noise, nor measure cold startup.

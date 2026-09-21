@@ -48,7 +48,8 @@ if (import.meta.main) {
   const root = resolve(process.env.BENCH_ROOT || new URL('..', import.meta.url).pathname);
   const results = [];
   const exclude = process.env.BENCH_EXCLUDE;
-  for (const benchmark of createCases().filter(c => c.name.includes(filter) && (!exclude || !c.name.includes(exclude)))) {
+  const exactCase = process.env.BENCH_CASE;
+  for (const benchmark of createCases().filter(c => c.name.includes(filter) && (!exclude || !c.name.includes(exclude)) && (!exactCase || c.name === exactCase))) {
     const result = await measure(benchmark, smoke ? {samples: 3, targetMs: 2, warmupMs: 5} : {});
     results.push(result);
     console.log(`${result.name.padEnd(38)} ${(result.medianNs / 1000).toFixed(3).padStart(10)} us/op`);
@@ -60,7 +61,8 @@ if (import.meta.main) {
     revision: execFileSync('git', ['rev-parse', 'HEAD'], {cwd: root, encoding: 'utf8'}).trim(),
     dirty: Boolean(execFileSync('git', ['status', '--porcelain', '--untracked-files=no'], {cwd: root, encoding: 'utf8'}).trim()),
     workloadHash: createHash('sha256').update(readFileSync(new URL('./fixtures.mjs', import.meta.url))).update(readFileSync(import.meta.filename)).digest('hex'),
-    sourceHashes: Object.fromEntries(['src/vendor/hyperons.js', 'src/Handlers.js', 'src/RequestController.js'].map(path => [path, createHash('sha256').update(readFileSync(resolve(root, path))).digest('hex')])),
+    sourceHashes: Object.fromEntries(['src/vendor/hyperons.js', 'src/Handlers.js', 'src/RequestController.js', 'src/Hjsx.js'].map(path => [path, createHash('sha256').update(readFileSync(resolve(root, path))).digest('hex')])),
+    isolation: exactCase ? 'workload' : 'suite',
     mode: smoke ? 'smoke' : 'measurement', results, sink,
   };
   if (outputIndex >= 0) {

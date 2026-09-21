@@ -18,7 +18,7 @@ export function compareReports(baseline, candidate) {
   const names = first.results.map(r => r.name);
   assert(names.length && new Set(names).size === names.length, 'Expected unique, nonempty workloads');
   for (const report of [...baseline, ...candidate]) {
-    for (const key of ['schemaVersion', 'runtime', 'platform', 'arch', 'cpu', 'mode', 'workloadHash']) {
+    for (const key of ['schemaVersion', 'runtime', 'platform', 'arch', 'cpu', 'mode', 'workloadHash', 'isolation']) {
       assert.equal(report[key], first[key], `Incompatible ${key}`);
     }
     assert(report.results.every(r => Number.isFinite(r.medianNs) && r.medianNs > 0), 'Expected finite, positive timings');
