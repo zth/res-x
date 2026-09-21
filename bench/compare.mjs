@@ -5,12 +5,23 @@ import {summarize} from './runner.mjs';
 
 export function compareReports(baseline, candidate) {
   assert(baseline.length && baseline.length === candidate.length, 'Use equally many baseline and candidate runs');
+  assert(baseline.length % 2 === 1, 'Use an odd number of runs for an unambiguous middle sample');
+  for (const group of [baseline, candidate]) {
+    assert(group[0].sourceHashes && Object.keys(group[0].sourceHashes).length, 'Missing source hashes');
+    for (const report of group) {
+      assert.equal(report.revision, group[0].revision, 'Revision changed within a version');
+      assert.deepEqual(report.sourceHashes, group[0].sourceHashes, 'Sources changed within a version');
+    }
+  }
   const first = baseline[0];
+  assert.equal(first.schemaVersion, 1, 'Unsupported report schema');
   const names = first.results.map(r => r.name);
+  assert(names.length && new Set(names).size === names.length, 'Expected unique, nonempty workloads');
   for (const report of [...baseline, ...candidate]) {
     for (const key of ['schemaVersion', 'runtime', 'platform', 'arch', 'cpu', 'mode', 'workloadHash']) {
       assert.equal(report[key], first[key], `Incompatible ${key}`);
     }
+    assert(report.results.every(r => Number.isFinite(r.medianNs) && r.medianNs > 0), 'Expected finite, positive timings');
     assert.equal(report.mode, 'measurement', 'Smoke runs are not performance evidence');
     assert.deepEqual(report.results.map(r => r.name), names, 'Workload sets differ');
   }
@@ -28,7 +39,7 @@ if (import.meta.main) {
   const [baselineRoot, candidateRoot, outputDir = 'bench/results/comparison', repeatsArg = '3'] = process.argv.slice(2);
   if (!baselineRoot || !candidateRoot) throw new Error('Usage: bun bench/compare.mjs BASELINE_ROOT CANDIDATE_ROOT [OUTPUT_DIR] [REPEATS]');
   const repeats = Number(repeatsArg);
-  assert(Number.isInteger(repeats) && repeats >= 3, 'Use at least three independent processes per version');
+  assert(Number.isInteger(repeats) && repeats >= 3 && repeats % 2 === 1, 'Use an odd number of independent processes per version (at least three)');
   const directory = resolve(outputDir);
   mkdirSync(directory, {recursive: true});
   const reports = {baseline: [], candidate: []};
