@@ -47,7 +47,8 @@ if (import.meta.main) {
   const filter = filterIndex < 0 ? '' : process.argv[filterIndex + 1];
   const root = resolve(process.env.BENCH_ROOT || new URL('..', import.meta.url).pathname);
   const results = [];
-  for (const benchmark of createCases().filter(c => c.name.includes(filter))) {
+  const exclude = process.env.BENCH_EXCLUDE;
+  for (const benchmark of createCases().filter(c => c.name.includes(filter) && (!exclude || !c.name.includes(exclude)))) {
     const result = await measure(benchmark, smoke ? {samples: 3, targetMs: 2, warmupMs: 5} : {});
     results.push(result);
     console.log(`${result.name.padEnd(38)} ${(result.medianNs / 1000).toFixed(3).padStart(10)} us/op`);

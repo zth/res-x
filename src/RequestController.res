@@ -2,9 +2,9 @@ type state = {
   mutable status: int,
   mutable redirect: option<(string, option<int>)>,
   mutable docHeader: option<string>,
-  headContent: array<Jsx.element>,
-  bodyEndContent: array<Jsx.element>,
-  titleSegments: array<string>,
+  mutable headContent: option<array<Jsx.element>>,
+  mutable bodyEndContent: option<array<Jsx.element>>,
+  mutable titleSegments: option<array<string>>,
 }
 
 type t = {
@@ -27,13 +27,22 @@ type t = {
 @val external null: Jsx.element = "null"
 external array: array<Jsx.element> => Jsx.element = "%identity"
 
+// Most requests never append metadata. Allocate each collection on first use.
+let append = (items, item) => switch items {
+| None => [item]
+| Some(items) => {
+    items->Array.push(item)
+    items
+  }
+}
+
 let make = (): t => {
   let state: state = {
     status: 200,
     redirect: None,
-    headContent: [],
-    bodyEndContent: [],
-    titleSegments: [],
+    headContent: None,
+    bodyEndContent: None,
+    titleSegments: None,
     docHeader: Some("<!DOCTYPE html>"),
   }
 
@@ -45,24 +54,29 @@ let make = (): t => {
     },
     getCurrentStatus: () => state.status,
     getCurrentRedirect: () => state.redirect,
-    getTitleSegments: () => state.titleSegments->Array.copy,
+    getTitleSegments: () => switch state.titleSegments {
+    | None => []
+    | Some(segments) => segments->Array.copy
+    },
     getDocHeader: () => state.docHeader->Option.getOr(""),
     setDocHeader: docHeader => state.docHeader = docHeader,
-    appendToHead: content => state.headContent->Array.push(content),
-    appendBeforeBodyEnd: content => state.bodyEndContent->Array.push(content),
-    appendTitleSegment: segment => state.titleSegments->Array.push(segment),
-    prependTitleSegment: segment => state.titleSegments->Array.unshift(segment),
-    setFullTitle: title =>
-      state.titleSegments->Array.splice(~insert=[title], ~start=0, ~remove={state.titleSegments->Array.length}),
+    appendToHead: content => state.headContent = Some(append(state.headContent, content)),
+    appendBeforeBodyEnd: content => state.bodyEndContent = Some(append(state.bodyEndContent, content)),
+    appendTitleSegment: segment => state.titleSegments = Some(append(state.titleSegments, segment)),
+    prependTitleSegment: segment => switch state.titleSegments {
+    | None => state.titleSegments = Some([segment])
+    | Some(segments) => segments->Array.unshift(segment)
+    },
+    setFullTitle: title => state.titleSegments = Some([title]),
     getAppendedHeadContent: async () =>
       switch state.headContent {
-      | [] => None
-      | headContent => Some(await headContent->array->H.renderToString)
+      | None => None
+      | Some(headContent) => Some(await headContent->array->H.renderToString)
       },
     getAppendedBeforeBodyEndContent: async () =>
       switch state.bodyEndContent {
-      | [] => None
-      | bodyEndContent => Some(await bodyEndContent->array->H.renderToString)
+      | None => None
+      | Some(bodyEndContent) => Some(await bodyEndContent->array->H.renderToString)
       },
   }
 }

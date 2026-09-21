@@ -1,10 +1,10 @@
-# Measured results
+# First-pass measured results
 
 Measured on 2026-09-21 against main commit `9dd19d2693e82d2f979c8d54fe682237d78b72ae`.
 
 Environment: Bun 1.3.14, linux/x64, AMD RYZEN AI MAX+ 395 w/ Radeon 8060S. This is a shared development host, not a dedicated performance machine.
 
-Each result below is the median of three independent process medians. Each process uses one second of warmup per workload and nine approximately 60 ms samples. Baseline/candidate order alternates. Both versions use the same workload and runner files, and identical installed dependencies. All three candidate source hashes match the files delivered in this worktree.
+Each result below is the median of three independent process medians. Each process uses one second of warmup per workload and nine approximately 60 ms samples. Baseline/candidate order alternates. Both versions use the same workload and runner files, and identical installed dependencies. All three candidate source hashes match the first-pass implementation in commit `435c607`. See [ROUND2.md](ROUND2.md) for the subsequent changes.
 
 ## Results
 

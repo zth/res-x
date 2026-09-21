@@ -15,7 +15,7 @@ bun run bench:smoke
 
 ## What is measured
 
-The 26 workloads cover safe and escaped text, attributes/raw attributes, styles, raw HTML, a 100-row list, list construction plus rendering, UTF-8 encoding, function components, nested provider contexts, the async API on synchronous trees, sparse/dense/nested async trees, streaming, AsyncLocalStorage run/read/await, request controller operations, minimal requests, full pages, request-context consumers, head/title/body injection, and route hits/misses with 1,000 registered routes.
+The 28 workloads cover safe and escaped text, attributes/raw attributes, styles, raw HTML, a 100-row list, list construction plus rendering, UTF-8 encoding, function components, nested provider contexts, the async API on small and large synchronous trees, a single resolved promise, sparse/dense/nested async trees, streaming, AsyncLocalStorage run/read/await, request controller operations, minimal requests, full pages, request-context consumers, head/title/body injection, and route hits/misses with 1,000 registered routes.
 
 Rendering-only cases reuse immutable trees; `create-and-render` includes tree creation. Async workloads create fresh promises each iteration. Request workloads create a fresh Request, execute `Handlers.handleRequest`, and consume `Response.text()`. They include context creation, routing, rendering, response construction and body consumption, but no sockets, TLS, database or external I/O. Route registration happens outside timing. They are **in-process request costs**, not HTTP server throughput.
 
@@ -47,8 +47,10 @@ Run comparisons on an otherwise idle machine using the deployment Bun version. A
 
 The renderer accumulates static spans as strings, handles primitive children without recursive dispatch, and allocates pending work only for asynchronous subtrees. It updates provider context when invoking components rather than on every text/DOM node. Promise results fill their original positions, preserving document order.
 
-The streaming callback receives the ready prefix before the first async subtree, then the ordered remainder after pending work completes. This fixes prior corruption with multiple async siblings/nested promises, but deliberately buffers content after the first async boundary. Error boundaries render their fallback without appending an internal array length. The pre-existing `h()` behavior that drops a direct numeric zero child remains outside this optimization; fixtures use an array for numeric children where needed.
+The streaming callback receives the ready prefix before the first async subtree, then the ordered remainder after pending work completes. This fixes prior corruption with multiple async siblings/nested promises, but deliberately buffers content after the first async boundary. Error boundaries render their fallback without appending an internal array length. The legacy `h()` factory retains its behavior; compiled ReScript JSX now uses a dedicated factory that preserves numeric zero. Comparison fixtures use arrays for numeric children so old and new code render identical output.
 
 Routes use dictionaries instead of persistent balanced trees: registration mutates internal tables, and request lookup performs direct property access. Route matching, method separation, first-registration-wins behavior and form-action precedence remain covered by tests. Response construction skips awaiting a default no-op callback when no after-render hook is supplied.
 
-See [RESULTS.md](RESULTS.md) for the measured comparison and limitations.
+See [RESULTS.md](RESULTS.md) for the first pass, [ROUND2.md](ROUND2.md) for further gains against that PR, and [RENDERER-RESEARCH.md](RENDERER-RESEARCH.md) for techniques investigated in KitaJS, Hono and Preact.
+
+For buffered-rendering comparisons without streaming, set `BENCH_EXCLUDE=stream`. This applies to individual runs and the comparison command.

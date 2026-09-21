@@ -228,7 +228,7 @@ let renderWithDocType = async (
 
   requestController.getDocHeader() ++ content
 }
-let defaultHeaders = [("Content-Type", "text/html")]
+let defaultHeaders = dict{"Content-Type": "text/html"}
 
 type responseType = Default | FormActionHandler | HtmxHandler
 
@@ -364,7 +364,7 @@ let handleRequestWithState = async (
 
   let headers = switch config.setupHeaders {
   | Some(setupHeaders) => setupHeaders()
-  | None => Headers.make(~init=FromArray(defaultHeaders))
+  | None => Headers.make(~init=FromDict(defaultHeaders))
   }
   let renderConfig = {
     context: ctx,

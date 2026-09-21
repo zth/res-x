@@ -12,10 +12,10 @@ type fragmentProps = {children?: element}
 external dangerouslyOutputUnescapedContent: string => Jsx.element = "createRaw"
 
 @module("./vendor/hyperons.js")
-external jsx: (component<'props>, 'props) => Jsx.element = "h"
+external jsx: (component<'props>, 'props) => Jsx.element = "jsx"
 
 @module("./vendor/hyperons.js")
-external jsxs: (component<'props>, 'props) => element = "h"
+external jsxs: (component<'props>, 'props) => element = "jsx"
 
 @val external null: Jsx.element = "null"
 
@@ -623,8 +623,8 @@ module Elements = {
   }
 
   @module("./vendor/hyperons.js")
-  external jsx: (string, props) => Jsx.element = "h"
+  external jsx: (string, props) => Jsx.element = "jsx"
 
   @module("./vendor/hyperons.js")
-  external jsxs: (string, props) => Jsx.element = "h"
+  external jsxs: (string, props) => Jsx.element = "jsx"
 }

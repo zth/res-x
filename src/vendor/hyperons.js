@@ -31,6 +31,12 @@ function createElement(type, props, ...children) {
     children.length === 0 && props.children ? props.children : children;
   return { type, props };
 }
+// ReScript JSX already supplies children in props. Unlike the legacy h()
+// API this path needs no rest arguments, child arrays, or props mutation.
+// Components remain deferred so providers and request context work as before.
+function jsx(type, props) {
+  return { type, props };
+}
 const Fragment = Symbol("Fragment");
 const UPPERCASE = /([A-Z])/g;
 const MS = /^ms-/;
@@ -315,10 +321,22 @@ function makeController(onChunk) {
   };
   return controller;
 }
+function renderAsyncItem(item) {
+  return item.promise.then(element => {
+    const child = makeController();
+    renderToString(element, item.context, child);
+    return renderController(child);
+  });
+}
 function renderController(controller) {
   if (!controller.hasAsync) return controller.content;
   const content = controller.pending;
   content.push(controller.content);
+  // One async child is common (for example a page with an async footer).
+  // There is no fan-out to coordinate in this case.
+  if (content.length === 3) {
+    return renderAsyncItem(content[1]).then(html => content[0] + html + content[2]);
+  }
   const pending = [];
   for (let i = 0; i < content.length; i++) {
     const item = content[i];
@@ -341,6 +359,9 @@ function renderController(controller) {
 async function render(element, onChunk) {
   const controller = makeController(onChunk);
   renderToString(element, {}, controller);
+  // Preserve the promise-returning API without suspending for a sync tree.
+  // Callback rendering still crosses the await boundary as before.
+  if (!controller.hasAsync && onChunk == null) return controller.content;
   const res = await renderController(controller);
   if (onChunk != null) {
     onChunk(res);
@@ -364,6 +385,7 @@ export {
   Fragment,
   createContext,
   createElement as h,
+  jsx,
   render,
   renderSync,
   useContext,

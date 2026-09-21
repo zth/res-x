@@ -9,7 +9,8 @@ const load = path => import(pathToFileURL(resolve(root, path)).href);
 export const renderer = await load('src/vendor/hyperons.js');
 export const handlers = await load('src/Handlers.js');
 const controllers = await load('src/RequestController.js');
-const {h, Fragment, createRaw, render, renderSync, createContext, useContext} = renderer;
+const h = renderer.jsx ?? renderer.h;
+const {Fragment, createRaw, render, renderSync, createContext, useContext} = renderer;
 const rowHTML = i => `<li class="item" data-index="${i}"><a href="/items/${i}">Item ${i} &amp; details</a><span>${i}</span></li>`;
 export const listHTML = count => `<ul>${Array.from({length: count}, (_, i) => rowHTML(i)).join('')}</ul>`;
 export const list = count => h('ul', {children: Array.from({length: count}, (_, i) => h('li', {
@@ -58,6 +59,8 @@ export function createCases() {
     sync('html/components-100', () => renderSync(componentTree), componentHTML),
     sync('html/context-depth-20', () => renderSync(contextTree), '<span>level-0</span>'),
     sync('html/raw-4k', () => renderSync(createRaw(text)), text),
+    asynchronous('html/small-sync-async-api', () => render(h('p', {children: 'hello'})), '<p>hello</p>'),
+    asynchronous('html/single-promise', () => render(Promise.resolve('hello')), 'hello'),
     asynchronous('html/async-api-sync-tree', () => render(tree), listHTML(100)),
     asynchronous('html/async-sparse', () => render(sparse()), `<main>${listHTML(100)}<footer>done</footer></main>`),
     asynchronous('html/stream-async-tail', async () => {const chunks = []; await render(sparse(), c => chunks.push(c)); return chunks.join('');}, `<main>${listHTML(100)}<footer>done</footer></main>`),

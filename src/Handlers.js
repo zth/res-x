@@ -130,10 +130,9 @@ async function renderWithDocType(el, requestController, renderTitleOpt, onAfterR
   return requestController.getDocHeader() + content$2;
 }
 
-let defaultHeaders = [[
-    "Content-Type",
-    "text/html"
-  ]];
+let defaultHeaders = {
+  "Content-Type": "text/html"
+};
 
 async function handleRequestWithState(t, config) {
   let onAfterBuildResponse = config.onAfterBuildResponse;

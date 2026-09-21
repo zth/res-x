@@ -139,3 +139,79 @@ test('request context is restored after a rejected render', async () => {
   });
   expect(await response.text()).toBe('<!DOCTYPE html>context');
 });
+
+test('element creation preserves props children and variadic child overrides', () => {
+  const props = {id: 'test', children: ['from props']};
+  const element = h('div', props);
+  expect(element.props).toBe(props);
+  expect(renderSync(element)).toBe('<div id="test">from props</div>');
+  expect(renderSync(h('p', {children: 'ignored'}, 'a', 0, 'b'))).toBe('<p>a0b</p>');
+  expect(renderSync(h('p', {children: 'ignored'}, undefined))).toBe('<p></p>');
+  expect(renderSync(h('p', null, 'child'))).toBe('<p>child</p>');
+  expect(renderSync(h('p'))).toBe('<p></p>');
+});
+
+test('sync async-API results remain promises and callbacks remain deferred', async () => {
+  const result = render('hello');
+  expect(result).toBeInstanceOf(Promise);
+  expect(await result).toBe('hello');
+  let called = false;
+  const streaming = render('hello', () => {called = true;});
+  expect(called).toBe(false);
+  await streaming;
+  expect(called).toBe(true);
+});
+
+test('default response headers are independent per request', async () => {
+  const handler = make(async () => null);
+  const first = await handler.handleRequest({
+    request: new Request('http://localhost/first'), render: async ({headers}) => {
+      headers.set('Content-Type', 'text/plain');
+      headers.set('x-request-only', 'first');
+      return 'hello';
+    },
+  });
+  const second = await handler.handleRequest({
+    request: new Request('http://localhost/second'), render: async () => 'hello',
+  });
+  expect(first.headers.get('Content-Type')).toBe('text/plain');
+  expect(second.headers.get('Content-Type')).toBe('text/html');
+  expect(second.headers.has('x-request-only')).toBe(false);
+});
+
+import {jsx} from '../src/vendor/hyperons.js';
+import {make as makeController} from '../src/RequestController.js';
+test('compiler JSX factory does not mutate props or eagerly invoke components', async () => {
+  let calls = 0;
+  const props = Object.freeze({children: 0});
+  const tree = jsx(({children}) => {calls++; return jsx('p', {children});}, props);
+  expect(calls).toBe(0);
+  expect(tree.props).toBe(props);
+  expect(renderSync(tree)).toBe('<p>0</p>');
+  expect(calls).toBe(1);
+  expect(await render(tree)).toBe('<p>0</p>');
+  const empty = {};
+  jsx('br', empty);
+  expect(empty).toEqual({});
+});
+
+test('lazy controller collections preserve copies, ordering, and repeated rendering', async () => {
+  const c = makeController();
+  expect(await c.getAppendedHeadContent()).toBeUndefined();
+  expect(await c.getAppendedBeforeBodyEndContent()).toBeUndefined();
+  const empty = c.getTitleSegments();
+  empty.push('not shared');
+  expect(c.getTitleSegments()).toEqual([]);
+  c.appendTitleSegment('A'); c.prependTitleSegment('B'); c.appendTitleSegment('C');
+  const snapshot = c.getTitleSegments();
+  c.setFullTitle('D'); c.appendTitleSegment('E');
+  expect(snapshot).toEqual(['B', 'A', 'C']);
+  expect(c.getTitleSegments()).toEqual(['D', 'E']);
+  c.appendToHead(jsx('meta', {name: 'one'}));
+  c.appendToHead(Promise.resolve(jsx('meta', {name: 'two'})));
+  c.appendBeforeBodyEnd('end');
+  expect(await c.getAppendedHeadContent()).toBe('<meta name="one"/><meta name="two"/>');
+  expect(await c.getAppendedHeadContent()).toBe('<meta name="one"/><meta name="two"/>');
+  expect(await c.getAppendedBeforeBodyEndContent()).toBe('end');
+  expect(await makeController().getAppendedHeadContent()).toBeUndefined();
+});
