@@ -44,6 +44,14 @@ export function createCases() {
   const request = (body, extras = {}) => handler.handleRequest({
     request: new Request('http://localhost/bench/items?id=42'), render: async () => body(), ...extras,
   }).then(response => response.text());
+  const requestPath = () => handler.handleRequest({
+    request: new Request('http://localhost/bench/items?id=42'),
+    render: async config => {
+      let value = '';
+      for (let path = config.path; path !== 0; path = path.tl) value += path.hd;
+      return value;
+    },
+  }).then(response => response.text());
   const allow = async () => ({TAG: 'Allow', _0: undefined});
   const routed = handlers.make(async () => null);
   for (let i = 0; i < 1000; i++) routed.hxGet(`/item-${i}`, allow, async () => h('p', {children: 'route'}), false);
@@ -72,6 +80,7 @@ export function createCases() {
     asynchronous('context/als-await', () => storage.run(store, async () => {await Promise.resolve(); return storage.getStore().value;}), 7),
     sync('request/controller', () => {const c = controllers.make(); c.setStatus(201); c.appendTitleSegment('A'); c.prependTitleSegment('B'); return `${c.getCurrentStatus()}:${c.getTitleSegments().join('|')}`;}, '201:B|A'),
     asynchronous('request/minimal', () => request(() => 'hello'), '<!DOCTYPE html>hello'),
+    asynchronous('request/path-read', requestPath, '<!DOCTYPE html>benchitems'),
     asynchronous('request/page-100', () => request(() => page(list(100))), `<!DOCTYPE html>${pageHTML(listHTML(100))}`),
     asynchronous('request/context-components-100', () => request(() => h(Fragment, {children: Array.from({length: 100}, () => h(() => handler.useContext().context.id, {}))})), '<!DOCTYPE html>' + '42'.repeat(100)),
     asynchronous('request/head-title-body', () => request(() => page('body'), {onAfterBuildResponse: async ({requestController: c}) => {

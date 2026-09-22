@@ -192,6 +192,19 @@ let defaultRenderTitle = segments => segments->Array.join(" | ")
 @module("./vendor/hyperons.js")
 external escapeString: string => string = "escapeString"
 
+let getPath = pathname => {
+  let segments = pathname->String.split("/")
+  let rec build = (index, path) => {
+    if index < 0 {
+      path
+    } else {
+      let segment = segments->Array.getUnsafe(index)
+      build(index - 1, if segment->String.trim === "" {path} else {list{segment, ...path}})
+    }
+  }
+  build(segments->Array.length - 1, list{})
+}
+
 let renderWithDocType = async (
   el,
   ~requestController: RequestController.t,
@@ -370,10 +383,7 @@ let handleRequestWithState = async (
     context: ctx,
     headers,
     request,
-    path: pathname
-    ->String.split("/")
-    ->Array.filter(s => s->String.trim !== "")
-    ->List.fromArray,
+    path: getPath(pathname),
     url,
     requestController,
   }

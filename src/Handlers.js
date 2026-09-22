@@ -3,7 +3,6 @@
 
 let H$ResX = require("./H.js");
 let CSRF$ResX = require("./CSRF.js");
-let Stdlib_List = require("@rescript/runtime/lib/js/Stdlib_List.js");
 let Stdlib_Option = require("@rescript/runtime/lib/js/Stdlib_Option.js");
 let Primitive_option = require("@rescript/runtime/lib/js/Primitive_option.js");
 let Nodeasync_hooks = require("node:async_hooks");
@@ -105,6 +104,26 @@ function defaultRenderTitle(segments) {
   return segments.join(" | ");
 }
 
+function getPath(pathname) {
+  let segments = pathname.split("/");
+  let _index = segments.length - 1 | 0;
+  let _path = /* [] */0;
+  while (true) {
+    let path = _path;
+    let index = _index;
+    if (index < 0) {
+      return path;
+    }
+    let segment = segments[index];
+    _path = segment.trim() === "" ? path : ({
+        hd: segment,
+        tl: path
+      });
+    _index = index - 1 | 0;
+    continue;
+  };
+}
+
 async function renderWithDocType(el, requestController, renderTitleOpt, onAfterRender) {
   let renderTitle = renderTitleOpt !== undefined ? renderTitleOpt : defaultRenderTitle;
   let content = await H$ResX.renderToString(el);
@@ -149,7 +168,7 @@ async function handleRequestWithState(t, config) {
   let requestController = RequestController$ResX.make();
   let setupHeaders = config.setupHeaders;
   let headers = setupHeaders !== undefined ? setupHeaders() : new Headers(defaultHeaders);
-  let renderConfig_path = Stdlib_List.fromArray(pathname.split("/").filter(s => s.trim() !== ""));
+  let renderConfig_path = getPath(pathname);
   let renderConfig = {
     request: request,
     headers: headers,

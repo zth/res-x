@@ -179,6 +179,40 @@ test('default response headers are independent per request', async () => {
   expect(second.headers.has('x-request-only')).toBe(false);
 });
 
+test('request path preserves segment values, identity, and assignment behavior', async () => {
+  const handler = make(async () => null);
+  let renderConfig;
+  const response = await handler.handleRequest({
+    request: new Request('http://localhost/one//two%20words/'),
+    render: async config => {
+      renderConfig = config;
+      return 'ok';
+    },
+  });
+  expect(await response.text()).toBe('<!DOCTYPE html>ok');
+  const path = [];
+  for (let segment = renderConfig.path; segment !== 0; segment = segment.tl) {
+    path.push(segment.hd);
+  }
+  expect(path).toEqual(['one', 'two%20words']);
+  expect(renderConfig.path).toBe(renderConfig.path);
+  expect(Object.keys(renderConfig)).toEqual([
+    'request', 'headers', 'context', 'path', 'url', 'requestController',
+  ]);
+  const replacementPath = ['replacement'];
+  renderConfig.path = replacementPath;
+  expect(renderConfig.path).toBe(replacementPath);
+
+  await handler.handleRequest({
+    request: new Request('http://localhost/original'),
+    render: async config => {
+      config.path = replacementPath;
+      expect(config.path).toBe(replacementPath);
+      return 'ok';
+    },
+  });
+});
+
 import {jsx} from '../src/vendor/hyperons.js';
 import {make as makeController} from '../src/RequestController.js';
 test('compiler JSX factory does not mutate props or eagerly invoke components', async () => {
