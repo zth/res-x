@@ -15,6 +15,7 @@ execFileSync('bun', ['run', 'test'], {stdio: 'inherit'});
 assert.equal(snapshot(), expected, 'compiled catalog must match baseline byte for byte');
 const generated = readFileSync('test/CompilerFixtures.js', 'utf8');
 assert.match(generated, /function resxTemplate\d+\(output/);
+assert(!/exports\.resxTemplate/.test(generated), 'writers must not change module exports');
 const card = generated.match(/function card\([\s\S]*?\n\}/)?.[0];
 assert(card?.includes('.template('), 'ordinary JSX must become a template');
 assert(!card.includes('.jsx(') && !card.includes('.jsxs('), 'card must eliminate native element construction');

@@ -105,8 +105,11 @@ let transform structure =
   let generated = ref [] in
   let serial = ref 0 in
   let default = Tast_mapper.default in
+  let depth = ref 0 in
   let mapper = {default with expr = (fun self expr ->
-    try
+    let outermost = !depth = 0 in
+    incr depth;
+    let result = try
       let parent, _, _, _ = native expr in
       let plan = coalesce (pieces expr) in
       let loc = expr.exp_loc in
@@ -143,8 +146,7 @@ let transform structure =
       let binding = {vb_pat = {pat_desc = Tpat_var (id, lid name); pat_loc = loc;
           pat_extra = []; pat_type = emitter.exp_type; pat_env = expr.exp_env; pat_attributes = []};
         vb_expr = emitter; vb_attributes = []; vb_loc = loc} in
-      generated := {str_desc = Tstr_value (Nonrecursive, [binding]); str_loc = loc;
-        str_env = expr.exp_env} :: !generated;
+      generated := binding :: !generated;
       let fnref = {emitter with exp_desc = Texp_ident (Path.Pident id, lid (Longident.Lident name), desc)} in
       let make_lid = runtime "template" in
       let make_path, make_desc = Env.lookup_value ~loc make_lid expr.exp_env in
@@ -158,9 +160,15 @@ let transform structure =
       {expr with exp_desc = Texp_apply {funct = make;
         args = [(Nolabel, Some fnref); (Nolabel, Some values)]; partial = false;
         transformed_jsx = false}}
-    with Unsupported -> default.expr self expr)} in
-  let result = mapper.structure mapper structure in
-  {result with str_items = List.rev !generated @ result.str_items}
+    with Unsupported -> default.expr self expr in
+    decr depth;
+    if outermost then (
+      let bindings = List.rev !generated in
+      generated := [];
+      List.fold_right (fun binding body ->
+        {body with exp_desc = Texp_let (Nonrecursive, [binding], body)}) bindings result
+    ) else result)} in
+  mapper.structure mapper structure
 
 let implementation structure =
   if Sys.getenv_opt "RESX_HTML_COMPILER" = Some "1" then transform structure else structure

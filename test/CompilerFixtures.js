@@ -68,6 +68,12 @@ function fallback(css, value) {
   });
 }
 
+function CompilerFixtures(props) {
+  return Hjsx$ResX.Elements.jsx("div", {
+    children: props.text
+  });
+}
+
 let context = H$ResX.Context.createContext("default");
 
 let make = context.Provider;
@@ -129,11 +135,14 @@ function literal() {
   });
 }
 
+let make$2 = CompilerFixtures;
+
 exports.card = card;
 exports.catalog = catalog;
 exports.staticText = staticText;
 exports.captureOrder = captureOrder;
 exports.fallback = fallback;
+exports.make = make$2;
 exports.context = context;
 exports.Provider = Provider;
 exports.Consumer = Consumer;

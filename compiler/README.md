@@ -61,7 +61,9 @@ versioned together before making this generally available.
 
 `node compiler/check.mjs` runs the full suite in both modes, verifies byte-identical
 catalog output, checks emitted specialization, and verifies invalid JSX props
-still fail type checking. `bun bench/compiler.mjs` measures the currently built
+still fail type checking. After installing demo dependencies and building Vite assets,
+`node compiler/check-demo.mjs` compares actual catalog, start, and 404 HTTP
+responses between modes. `bun bench/compiler.mjs` measures the currently built
 JSX fixtures, using the existing benchmark harness (one-second warmup, nine
 samples). Compare fresh baseline and template builds on the same machine, with
 no other builds or benchmarks running. Keep measurements in the PR description.

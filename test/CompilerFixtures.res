@@ -31,6 +31,9 @@ let fallback = (css, value) => {
   </section>
 }
 
+@jsx.component
+let make = (~text) => <div> {Hjsx.string(text)} </div>
+
 let context = H.Context.createContext("default")
 module Provider = {
   let make = context->H.Context.provider

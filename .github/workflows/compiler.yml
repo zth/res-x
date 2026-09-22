@@ -30,3 +30,10 @@ jobs:
         run: opam exec -- node compiler/build-toolchain.mjs compiler-source
       - name: Verify both rendering modes and type checking
         run: node compiler/check.mjs
+      - name: Install and build demo assets
+        working-directory: demo
+        run: |
+          npm ci
+          bun run build:vite
+      - name: Compare actual demo HTTP responses
+        run: node compiler/check-demo.mjs
