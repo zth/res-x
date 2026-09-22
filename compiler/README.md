@@ -1,74 +1,117 @@
-# Experimental HTML templates
+# Standalone ResX compiler prototype
 
-This opt-in prototype compiles ordinary, already type-checked ResX JSX into
-module-level HTML writers. Components still use `@jsx.component`, native JSX,
-`Hjsx.string`, and ordinary expressions. No template annotation or new authoring
-API is required. It changes server output code, not browser dependencies.
+ResX reads the **stock ReScript compiler's `.cmt` artifacts**, generates an
+optimized ReScript application in `.resx/build/`, and invokes **the same stock
+compiler** to turn it into JavaScript. It never patches or substitutes `bsc`.
 
-## Try it
+```text
+Original .res ── stock ReScript ── .cmt
+                                    │
+                            standalone ResX analyzer
+                                    │
+                        .resx/build/**/*.res
+                                    │
+                             stock ReScript
+                                    │
+                        .resx/build/**/*.js
+```
 
-Use ReScript **12.3.0** and a matching ReScript compiler source checkout. Building
-the custom compiler requires OCaml 5.3, dune (>=3.17), and cppo on `PATH`:
+The architecture follows ResGraph's typed-artifact reader/generator approach.
+The native analyzer links against unmodified ReScript typed-tree/CMT libraries;
+it does not implement a JavaScript backend or link the compiler backend. This
+first pass is local JSX analysis; ResGraph-style cross-module resolution and
+whole-program specialization remain future work.
+
+## Build the analyzer once
+
+The prototype supports ReScript **12.3.0**. It currently requires a source-built
+analyzer (OCaml 5.3, dune, and upstream library dependencies); distributing
+prebuilt analyzer binaries is separate packaging work.
 
 ```sh
 npm ci
+# Use a ReScript source checkout containing the upstream v12.3.0 tag.
 opam install /path/to/rescript-compiler/rescript.opam --deps-only
-opam exec -- node compiler/build-toolchain.mjs /path/to/rescript-compiler
-node compiler/check.mjs
-cd demo
-npm install
-bun run link:resx
-bun run build:vite
-bun run build:res:templates
-PORT=4444 bun run start
+opam exec -- node compiler/build-analyzer.mjs /path/to/rescript-compiler
 ```
 
-Visit `/catalog`. Its source is `demo/src/Catalog.res`; compare the emitted
-`demo/src/Catalog.js`. The reading-room page uses the same JSX as any other ResX
-page. Existing demo pages also participate automatically.
+The builder extracts the upstream tag into an ignored cache and adds only the
+standalone executable's source/build definition. No existing compiler source is
+changed, and no ReScript compiler executable is built. Re-run after changing the
+analyzer. `RESX_ANALYZER=/path/to/resx_templates.exe` can select an existing build.
 
-The toolchain builder reads the supplied checkout's **v12.3.0 tag**, creates
-an isolated ignored cache, installs the pass and one backend hook, and builds
-only the compiler executable. The upstream opam manifest includes ReScript's
-pinned Flow parser dependency; installing only dune and cppo is insufficient. It never modifies the supplied checkout. This is
-a source-built prototype, not a published compiler distribution. It has been
-targeted at upstream ReScript `v12.3.0` (`44b1e4d22`).
+## Build and run the demo
 
-`RESX_BSC=/absolute/path/to/custom/bsc node compiler/build.mjs` can use an already
-built executable instead. `RESX_COMPILER_REPORT=1` reports transformed locations.
-The wrapper cleans when switching compiler binaries or optimization modes;
-ordinary incremental builds work within one mode, including mode switches across
-linked apps that share this compiler wrapper. Use `node compiler/build.mjs
---baseline` for a reliable baseline build. Do not mix the wrapper with direct
-`rescript` builds without cleaning: ReScript does not track this optimization's
-environment variable in its cache. Watch mode is not integrated yet.
+```sh
+cd demo
+npm ci
+bun run build:vite
+bun run build:res:templates
+PORT=4444 bun run start:templates
+```
 
-## Boundaries
+Open `/catalog`. `src/Catalog.res` stays ordinary JSX. Inspect:
 
-The pass combines nested native elements, literal text, and literal `className`,
-`id`, and `title` attributes. Dynamic children become captured slots. Static HTML
-is escaped once at build time; captured children use the existing renderer.
-Native element and props allocations disappear inside a combined region.
+- `.resx/build/src/Catalog.res`: generated ReScript with private HTML writers.
+- `.resx/build/src/Catalog.js`: the stock compiler's optimized JavaScript.
+- `.resx/build/src/Demo.js`: the generated application's entry point.
+- `.resx/build-report.json`: module/template counts and build-stage durations.
 
-Dynamic attributes, spreads, style objects, raw HTML, void elements, and source
-strings containing escape sequences use the normal rendering path. Supported
-children inside those elements can still specialize. Components retain their
-existing evaluation, context, and asynchronous rendering behavior. There is no
-whole-app constant evaluation, component inlining, ResGraph analysis, or
-streaming optimization in this first pass.
+The generated application mirrors local modules, JavaScript FFI, and assets and
+uses the installed dependencies through a symlink. Run it from `.resx/build/` so
+relative filesystem asset paths work. This is a local build directory, not yet a
+self-contained deployment bundle. The original `bun run build:res` and
+`bun run start` remain the ordinary stock-built application.
 
-The runtime helpers in `Hjsx.Elements` are an internal experimental ABI, not an
-API app authors should call. Compiler and runtime changes should be reviewed and
-versioned together before making this generally available.
+The wrapper first runs stock ReScript on original sources, then generates and
+compiles the separate application. Original source and JavaScript are never
+rewritten with optimized code. `RESCRIPT_BSC_EXE` is deliberately not passed to
+either stage. Both stages must use the npm-installed compiler.
+
+## Optimization and boundaries
+
+Eligible native JSX regions become static HTML chunks and captured child slots.
+Private writer functions are created at module initialization. Static HTML is
+escaped at build time; dynamic children retain the existing renderer's escaping,
+context, component, and asynchronous behavior. Stock ReScript type-checks both
+the authored program and the generated program.
+
+Supported: nested native elements, literal text, and literal class/id/title.
+Dynamic attributes, spreads, style, raw HTML, void elements, and escaped source
+literals conservatively use normal rendering; supported descendants can still
+specialize. Application authoring requires no template annotations.
+
+The analyzer verifies source digests against CMT artifacts and rejects stale or
+partial input. Source ranges preserve original dynamic expressions; generated
+helpers use `%%private` to preserve public exports. UTF-16 compiler columns are
+converted to UTF-8 byte offsets before source edits.
+
+Current integration limits: `jsx.module = Hjsx`, source directories within the
+project, and project-local transformations. Dependencies are not rewritten. The
+generated project is rebuilt from scratch each time; the first stock stage can
+be incremental. Watch integration and incremental generated-project updates are
+not implemented. A cold optimized build includes two stock compilation stages.
 
 ## Verify and measure
 
-`node compiler/check.mjs` runs the full suite in both modes, verifies byte-identical
-catalog output, checks emitted specialization, and verifies invalid JSX props
-still fail type checking. After building demo assets, `node compiler/check-demo.mjs`
-compares catalog, start, and 404 HTTP responses between modes. After installing demo dependencies and building Vite assets,
-`node compiler/check-demo.mjs` compares actual catalog, start, and 404 HTTP
-responses between modes. `bun bench/compiler.mjs` measures the currently built
-JSX fixtures, using the existing benchmark harness (one-second warmup, nine
-samples). Compare fresh baseline and template builds on the same machine, with
-no other builds or benchmarks running. Keep measurements in the PR description.
+```sh
+node compiler/check.mjs
+# After building demo assets:
+node compiler/check-demo.mjs
+```
+
+Checks run the full suite against both applications, verify identical HTML and
+public exports, unchanged authored source/stock JS, actual stock compiler identity,
+rejection of stale CMTs and invalid JSX, and actual demo HTTP/stylesheet parity.
+
+After `node compiler/build.mjs`, benchmark each application in fresh processes:
+
+```sh
+bun bench/compiler.mjs
+(cd .resx/build && bun bench/compiler.mjs)
+```
+
+Both use the existing benchmark harness: one-second warmup and nine samples.
+Run serially with no concurrent builds. Keep measurements in the PR description,
+not committed experiment logs. `build-report.json` records timings for the last
+local build only.

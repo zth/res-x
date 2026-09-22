@@ -54,3 +54,9 @@ module AsyncChild = {
 let asynchronous = value => <div> <AsyncChild value /> <span> {Hjsx.string("after")} </span> </div>
 
 let literal = () => <div title="A & B's" className=""> {Hjsx.string("<safe> & sound")} </div>
+
+let unicode = () => <p> {Hjsx.string("🦊 café <&>" )} </p>
+
+// Keep these on one line: compiler columns after non-ASCII text need conversion.
+let unicodeBefore = () => {let text = "🦊 café"; <p> {Hjsx.string(text)} </p>}
+let unicodeCapture = visit => <p> {Hjsx.string(visit("🦊 café"))} </p>

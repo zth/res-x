@@ -1,6 +1,5 @@
-(* ResX prototype: specialize typed native JSX after ordinary type checking.
-   Dynamic expressions stay in the captured values array; emitters run only
-   when the existing renderer visits the block. *)
+(* Standalone ResX analysis of stock ReScript CMT artifacts.
+   Produces ReScript source; never modifies the ReScript compiler. *)
 open Asttypes
 open Typedtree
 
@@ -10,11 +9,6 @@ type piece = Static of string | Child of expression
 
 let marked name attributes =
   List.exists (fun ({Location.txt}, _) -> txt = name) attributes
-
-let rec longident = function
-  | Path.Pident id -> Longident.Lident (Ident.name id)
-  | Pdot (parent, name, _) -> Ldot (longident parent, name)
-  | Papply _ -> raise Unsupported
 
 let rec identity expr =
   match expr.exp_desc with
@@ -101,74 +95,109 @@ let coalesce pieces =
     | Static a :: rest, Static b -> Static (a ^ b) :: rest
     | _ -> piece :: acc) [] pieces |> List.rev
 
-let transform structure =
-  let generated = ref [] in
-  let serial = ref 0 in
-  let default = Tast_mapper.default in
-  let depth = ref 0 in
-  let mapper = {default with expr = (fun self expr ->
-    let outermost = !depth = 0 in
-    incr depth;
-    let result = try
-      let parent, _, _, _ = native expr in
-      let plan = coalesce (pieces expr) in
-      let loc = expr.exp_loc in
-      let lid txt = {Location.txt; loc} in
-      let runtime name = Longident.Ldot (longident parent, name) in
-      let ident name = Ast_helper.Exp.ident ~loc (lid (Longident.Lident name)) in
-      let call name args = Ast_helper.Exp.apply ~loc
-        (Ast_helper.Exp.ident ~loc (lid (runtime name)))
-        (List.map (fun e -> (Nolabel, e)) args) in
-      let holes = ref [] in
-      let statements = List.map (function
-        | Static text -> call "templateStatic"
-            [ident "output"; Ast_helper.Exp.constant ~loc (Pconst_string (text, None))]
-        | Child value ->
-          let index = List.length !holes in
-          holes := self.expr self value :: !holes;
-          call "templateChild" [ident "output"; ident "_context";
-            call "templateValue" [ident "_values"; Ast_helper.Exp.constant ~loc (Pconst_integer (string_of_int index, None))]]) plan in
-      let body = match List.rev statements with
-        | last :: rest -> List.fold_left (fun body first -> Ast_helper.Exp.sequence ~loc first body) last rest
-        | [] -> raise Unsupported in
-      let fn = List.fold_right (fun (name, arity) body ->
-        Ast_helper.Exp.fun_ ~loc ~arity Nolabel None
-          (Ast_helper.Pat.var ~loc (lid name)) body)
-        [("output", Some 3); ("_context", None); ("_values", None)] body in
-      let bindings, _ = Typecore.type_binding ~context:None expr.exp_env Nonrecursive
-        [Ast_helper.Vb.mk ~loc (Ast_helper.Pat.any ~loc ()) fn] None in
-      let emitter = (List.hd bindings).vb_expr in
-      let name = "resxTemplate" ^ string_of_int !serial in
-      incr serial;
-      let id = Ident.create name in
-      let desc = {Types.val_type = emitter.exp_type; val_kind = Val_reg;
-        val_loc = loc; val_attributes = []} in
-      let binding = {vb_pat = {pat_desc = Tpat_var (id, lid name); pat_loc = loc;
-          pat_extra = []; pat_type = emitter.exp_type; pat_env = expr.exp_env; pat_attributes = []};
-        vb_expr = emitter; vb_attributes = []; vb_loc = loc} in
-      generated := binding :: !generated;
-      let fnref = {emitter with exp_desc = Texp_ident (Path.Pident id, lid (Longident.Lident name), desc)} in
-      let make_lid = runtime "template" in
-      let make_path, make_desc = Env.lookup_value ~loc make_lid expr.exp_env in
-      let make = {expr with exp_desc = Texp_ident (make_path, lid make_lid, make_desc);
-        exp_type = make_desc.val_type; exp_extra = []; exp_attributes = []} in
-      let values = {expr with exp_desc = Texp_array (List.rev !holes);
-        exp_type = Predef.type_array expr.exp_type; exp_extra = []; exp_attributes = []} in
-      if Sys.getenv_opt "RESX_COMPILER_REPORT" = Some "1" then
-        Printf.eprintf "[resx] %s:%d: template with %d dynamic slots\n%!"
-          loc.loc_start.pos_fname loc.loc_start.pos_lnum (List.length !holes);
-      {expr with exp_desc = Texp_apply {funct = make;
-        args = [(Nolabel, Some fnref); (Nolabel, Some values)]; partial = false;
-        transformed_jsx = false}}
-    with Unsupported -> default.expr self expr in
-    decr depth;
-    if outermost then (
-      let bindings = List.rev !generated in
-      generated := [];
-      List.fold_right (fun binding body ->
-        {body with exp_desc = Texp_let (Nonrecursive, [binding], body)}) bindings result
-    ) else result)} in
-  mapper.structure mapper structure
 
-let implementation structure =
-  if Sys.getenv_opt "RESX_HTML_COMPILER" = Some "1" then transform structure else structure
+let read_file path =
+  let channel = open_in_bin path in
+  Fun.protect ~finally:(fun () -> close_in channel)
+    (fun () -> really_input_string channel (in_channel_length channel))
+
+let quote text =
+  let output = Buffer.create (String.length text + 2) in
+  Buffer.add_char output '"';
+  String.iter (fun c -> match c with
+    | '"' -> Buffer.add_string output "\\\""
+    | '\\' -> Buffer.add_string output "\\\\"
+    | c when Char.code c < 32 -> Buffer.add_string output (Printf.sprintf "\\u%04x" (Char.code c))
+    | c -> Buffer.add_char output c) text;
+  Buffer.add_char output '"';
+  Buffer.contents output
+
+let generate ~source structure =
+  let helpers = ref [] in
+  let serial = ref 0 in
+  let prefix = "resxHtml" ^ Digest.to_hex (Digest.string source) ^ "Writer" in
+  (* Stock ReScript positions use a byte offset for the line start and
+     UTF-16 code units for the column, as editor-facing positions do. *)
+  let byte_offset (position : Lexing.position) =
+    let column = position.pos_cnum - position.pos_bol in
+    let rec walk offset units =
+      if units = column then offset
+      else if units > column || offset >= String.length source then raise Unsupported
+      else
+        let byte = Char.code source.[offset] in
+        let width = if byte >= 0xf0 then 4 else if byte >= 0xe0 then 3 else if byte >= 0xc0 then 2 else 1 in
+        walk (offset + width) (units + if width = 4 then 2 else 1)
+    in
+    if position.pos_bol < 0 || column < 0 then raise Unsupported;
+    walk position.pos_bol 0
+  in
+  let bounds expr =
+    let loc = expr.exp_loc in
+    let first = byte_offset loc.loc_start and last = byte_offset loc.loc_end in
+    if first < 0 || last <= first || last > String.length source then raise Unsupported;
+    (first, last)
+  in
+  let apply first last edits =
+    let buffer = Buffer.create (last - first) in
+    let cursor = ref first in
+    List.sort (fun (a, _, _) (b, _, _) -> compare a b) edits
+    |> List.iter (fun (start, finish, text) ->
+      if start < !cursor || finish > last then failwith "Overlapping JSX source locations";
+      Buffer.add_substring buffer source !cursor (start - !cursor);
+      Buffer.add_string buffer text;
+      cursor := finish);
+    Buffer.add_substring buffer source !cursor (last - !cursor);
+    Buffer.contents buffer
+  in
+  let rec mapper edits : Tast_mapper.mapper =
+    let default = Tast_mapper.default in
+    {default with expr = (fun self expr ->
+      try
+        let _, _, _, _ = native expr in
+        let first, last = bounds expr in
+        let plan = coalesce (pieces expr) in
+        List.iter (function Static _ -> () | Child value ->
+          let start, finish = bounds value in
+          if start < first || finish > last then raise Unsupported) plan;
+        let values = ref [] in
+        let statements = List.map (function
+          | Static text -> "Hjsx.Elements.templateStatic(output, " ^ quote text ^ ")"
+          | Child value ->
+            let index = List.length !values in
+            let start, finish = bounds value in
+            let nested = ref [] in
+            let visitor = mapper nested in
+            ignore (visitor.expr visitor value);
+            values := ("(" ^ apply start finish !nested ^ ")") :: !values;
+            Printf.sprintf "Hjsx.Elements.templateChild(output, _context, Hjsx.Elements.templateValue(_values, %d))" index) plan in
+        let name = prefix ^ string_of_int !serial in
+        incr serial;
+        helpers := ("%%private(let " ^ name ^ " = (output, _context, _values) => {\n"
+          ^ String.concat "\n" statements ^ "\n})\n") :: !helpers;
+        edits := (first, last, "{Hjsx.Elements.template(" ^ name ^ ", [" ^ String.concat ", " (List.rev !values) ^ "])}") :: !edits;
+        expr
+      with Unsupported -> default.expr self expr)}
+  in
+  let edits = ref [] in
+  let visitor = mapper edits in
+  ignore (visitor.structure visitor structure);
+  String.concat "\n" (List.rev !helpers) ^ apply 0 (String.length source) !edits,
+  !serial
+
+let () =
+  if Array.length Sys.argv <> 4 then (prerr_endline "Usage: resx-analyze file.cmt source.res output.res"; exit 2);
+  let artifact = Sys.argv.(1) and input = Sys.argv.(2) and output = Sys.argv.(3) in
+  try
+    let source = read_file input in
+    let infos = Cmt_format.read_cmt artifact in
+    (match infos.cmt_source_digest with
+    | Some digest when digest = Digest.string source -> ()
+    | _ -> failwith ("Stale compiler artifact: " ^ input));
+    let structure = match infos.cmt_annots with
+      | Implementation structure -> structure
+      | _ -> failwith "Expected a complete implementation CMT" in
+    let generated, count = generate ~source structure in
+    let channel = open_out_bin output in
+    Fun.protect ~finally:(fun () -> close_out channel) (fun () -> output_string channel generated);
+    Printf.printf "%d\n" count
+  with error -> prerr_endline (Printexc.to_string error); exit 1

@@ -1,0 +1,4 @@
+(executable
+ (name resx_templates)
+ (libraries ml)
+ (flags (:standard -w -9)))

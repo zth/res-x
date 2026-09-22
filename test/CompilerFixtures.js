@@ -135,6 +135,24 @@ function literal() {
   });
 }
 
+function unicode() {
+  return Hjsx$ResX.Elements.jsx("p", {
+    children: "🦊 café <&>"
+  });
+}
+
+function unicodeBefore() {
+  return Hjsx$ResX.Elements.jsx("p", {
+    children: "🦊 café"
+  });
+}
+
+function unicodeCapture(visit) {
+  return Hjsx$ResX.Elements.jsx("p", {
+    children: visit("🦊 café")
+  });
+}
+
 let make$2 = CompilerFixtures;
 
 exports.card = card;
@@ -150,4 +168,7 @@ exports.contextual = contextual;
 exports.AsyncChild = AsyncChild;
 exports.asynchronous = asynchronous;
 exports.literal = literal;
+exports.unicode = unicode;
+exports.unicodeBefore = unicodeBefore;
+exports.unicodeCapture = unicodeCapture;
 /* context Not a pure module */

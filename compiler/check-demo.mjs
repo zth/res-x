@@ -5,7 +5,8 @@ import {fileURLToPath} from 'node:url';
 const demo = fileURLToPath(new URL('../demo', import.meta.url));
 async function capture(baseline) {
   execFileSync(process.execPath, ['../compiler/build.mjs', ...(baseline ? ['--baseline'] : [])], {cwd: demo, stdio: 'inherit'});
-  const server = spawn('bun', ['run', 'src/Demo.js'], {cwd: demo, env: {...process.env, PORT: '0', NODE_ENV: 'production'}, stdio: ['ignore', 'pipe', 'inherit']});
+  const cwd = baseline ? demo : fileURLToPath(new URL('../demo/.resx/build', import.meta.url));
+  const server = spawn('bun', ['run', 'src/Demo.js'], {cwd, env: {...process.env, PORT: '0', NODE_ENV: 'production'}, stdio: ['ignore', 'pipe', 'inherit']});
   try {
     const port = await new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('Demo did not start')), 15000);
@@ -30,6 +31,13 @@ async function capture(baseline) {
         assert.equal((html.match(/<article /g) || []).length, 3);
       }
       results.push({path, status: response.status, contentType: response.headers.get('content-type'), html});
+      if (path === '/catalog') {
+        const stylesheet = html.match(/href="([^"]+\.css)"/)?.[1];
+        assert(stylesheet, 'catalog must include its stylesheet');
+        const asset = await fetch(`http://127.0.0.1:${port}${stylesheet}`, {signal: AbortSignal.timeout(10000)});
+        assert.equal(asset.status, 200);
+        results.push({path: stylesheet, css: await asset.text()});
+      }
     }
     return results;
   } finally {

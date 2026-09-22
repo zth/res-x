@@ -29,8 +29,8 @@ jobs:
           opam install dune.3.23.1
           opam install ./compiler-source/rescript.opam --deps-only
       - run: npm ci
-      - name: Build compiler overlay
-        run: opam exec -- node compiler/build-toolchain.mjs compiler-source
+      - name: Build standalone CMT analyzer
+        run: opam exec -- node compiler/build-analyzer.mjs compiler-source
       - name: Verify both rendering modes and type checking
         run: node compiler/check.mjs
       - name: Install and build demo assets

@@ -28,3 +28,10 @@ test('async component slots preserve output order and sync rejection', async () 
 test('static regions escape attributes, text, and omit an empty class', () => {
   expect(renderSync(fixtures.literal())).toBe('<div title="A &amp; B&#x27;s">&lt;safe&gt; &amp; sound</div>');
 });
+test('generated static HTML preserves UTF-8 source bytes', () => {
+  expect(renderSync(fixtures.unicode())).toBe('<p>🦊 café &lt;&amp;&gt;</p>');
+});
+test('source locations preserve JSX and captured expressions after Unicode', () => {
+  expect(renderSync(fixtures.unicodeBefore())).toBe('<p>🦊 café</p>');
+  expect(renderSync(fixtures.unicodeCapture(value => `${value} <&>`))).toBe('<p>🦊 café &lt;&amp;&gt;</p>');
+});
