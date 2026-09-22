@@ -15,5 +15,8 @@ let make = () => {
       href="/user/1">
       {Hjsx.string("To User 1")}
     </a>
+    <a href="/catalog" className="ml-4 underline text-blue-700">
+      {Hjsx.string("Reading room")}
+    </a>
   </div>
 }

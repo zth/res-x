@@ -15,16 +15,23 @@ function Navigation(props) {
   } else {
     tmp = "";
   }
-  return Hjsx$ResX.Elements.jsx("div", {
-    children: Hjsx$ResX.Elements.jsx("a", {
-      children: "To User 1",
-      className: U.tw([
-        tmp,
-        "underline text-blue-700 visited:text-purple-700"
-      ]),
-      href: "/user/1",
-      "hx-boost": true
-    })
+  return Hjsx$ResX.Elements.jsxs("div", {
+    children: [
+      Hjsx$ResX.Elements.jsx("a", {
+        children: "To User 1",
+        className: U.tw([
+          tmp,
+          "underline text-blue-700 visited:text-purple-700"
+        ]),
+        href: "/user/1",
+        "hx-boost": true
+      }),
+      Hjsx$ResX.Elements.jsx("a", {
+        children: "Reading room",
+        className: "ml-4 underline text-blue-700",
+        href: "/catalog"
+      })
+    ]
   });
 }
 

@@ -25,6 +25,18 @@ external string: string => Jsx.element = "%identity"
 external array: array<Jsx.element> => Jsx.element = "%identity"
 
 module Elements = {
+  // Internal compiler/runtime ABI. App authors continue to use ordinary JSX.
+  type templateOutput
+  type templateContext
+  type templateRenderer = (templateOutput, templateContext, array<element>) => unit
+  @module("./vendor/hyperons.js")
+  external template: (templateRenderer, array<element>) => element = "createTemplate"
+  @module("./vendor/hyperons.js")
+  external templateStatic: (templateOutput, string) => unit = "templateStatic"
+  @module("./vendor/hyperons.js")
+  external templateChild: (templateOutput, templateContext, element) => unit = "templateChild"
+  external templateValue: (array<element>, int) => element = "%array_unsafe_get"
+
   external someElement: Jsx.element => option<Jsx.element> = "%identity"
 
   type method = POST | GET
@@ -622,9 +634,11 @@ module Elements = {
     ...DOM.domProps,
   }
 
+  @resx.html
   @module("./vendor/hyperons.js")
   external jsx: (string, props) => Jsx.element = "jsx"
 
+  @resx.html
   @module("./vendor/hyperons.js")
   external jsxs: (string, props) => Jsx.element = "jsx"
 }

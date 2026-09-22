@@ -2,6 +2,7 @@
 'use strict';
 
 let Html = require("./Html.js");
+let Catalog = require("./Catalog.js");
 let SiteMap = require("./SiteMap.js");
 let Hjsx$ResX = require("rescript-x/src/Hjsx.js");
 let FourOhFour = require("./FourOhFour.js");
@@ -42,6 +43,11 @@ let server = Bun.serve({
         if (path !== 0) {
           let exit$2 = 0;
           switch (path.hd) {
+            case "catalog" :
+              tmp = path.tl !== 0 ? Hjsx$ResX.jsx(FourOhFour.make, {
+                  setGenericTitle: true
+                }) : Hjsx$ResX.jsx(Catalog.make, {});
+              break;
             case "moved" :
               tmp = path.tl !== 0 ? Hjsx$ResX.jsx(FourOhFour.make, {
                   setGenericTitle: true

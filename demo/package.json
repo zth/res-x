@@ -13,7 +13,8 @@
     "dev:vite": "vite",
     "dev": "concurrently 'bun:dev:*'",
     "link:resx": "node scripts/link-local-rescript-x.mjs",
-    "postinstall": "node scripts/link-local-rescript-x.mjs"
+    "postinstall": "node scripts/link-local-rescript-x.mjs",
+    "build:res:templates": "node ../compiler/build.mjs"
   },
   "keywords": [
     "rescript"
@@ -23,7 +24,7 @@
   "dependencies": {
     "concurrently": "^8.2.1",
     "fast-glob": "^3.3.1",
-    "rescript": "12.0.0-rc.3",
+    "rescript": "12.3.0",
     "rescript-bun": "2.1.0",
     "vite": "^4.4.11"
   },

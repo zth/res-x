@@ -6,10 +6,10 @@ let HtmxHandler = require("./HtmxHandler.js");
 
 function FourOhFour(props) {
   let __setGenericTitle = props.setGenericTitle;
-  let setGenericTitle = __setGenericTitle !== undefined ? __setGenericTitle : false;
+  let __setGenericTitle_value = __setGenericTitle !== undefined ? __setGenericTitle : false;
   let context = HtmxHandler.useContext();
   context.requestController.setStatus(404);
-  if (setGenericTitle) {
+  if (__setGenericTitle_value) {
     context.requestController.setFullTitle("Not Found");
   }
   return Hjsx$ResX.Elements.jsx("div", {
