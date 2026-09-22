@@ -11,6 +11,7 @@ Use ReScript **12.3.0** and a matching ReScript compiler source checkout. Buildi
 the custom compiler requires OCaml 5.3, dune (>=3.17), and cppo on `PATH`:
 
 ```sh
+npm ci
 opam install /path/to/rescript-compiler/rescript.opam --deps-only
 opam exec -- node compiler/build-toolchain.mjs /path/to/rescript-compiler
 node compiler/check.mjs
@@ -36,7 +37,8 @@ targeted at upstream ReScript `v12.3.0` (`44b1e4d22`).
 `RESX_BSC=/absolute/path/to/custom/bsc node compiler/build.mjs` can use an already
 built executable instead. `RESX_COMPILER_REPORT=1` reports transformed locations.
 The wrapper cleans when switching compiler binaries or optimization modes;
-ordinary incremental builds work within one mode. Use `node compiler/build.mjs
+ordinary incremental builds work within one mode, including mode switches across
+linked apps that share this compiler wrapper. Use `node compiler/build.mjs
 --baseline` for a reliable baseline build. Do not mix the wrapper with direct
 `rescript` builds without cleaning: ReScript does not track this optimization's
 environment variable in its cache. Watch mode is not integrated yet.
