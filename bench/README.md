@@ -51,7 +51,7 @@ The streaming callback receives the ready prefix before the first async subtree,
 
 Routes use dictionaries instead of persistent balanced trees: registration mutates internal tables, and request lookup performs direct property access. Route matching, method separation, first-registration-wins behavior and form-action precedence remain covered by tests. Response construction skips awaiting a default no-op callback when no after-render hook is supplied.
 
-See [RESULTS.md](RESULTS.md) for the first pass, [ROUND2.md](ROUND2.md) for further gains against that PR, and [RENDERER-RESEARCH.md](RENDERER-RESEARCH.md) for techniques investigated in KitaJS, Hono and Preact.
+See [MERGE-RESULTS.md](MERGE-RESULTS.md) for the final direct comparison against main, [RESULTS.md](RESULTS.md) for the first pass, [ROUND2.md](ROUND2.md) for further gains against that PR, and [RENDERER-RESEARCH.md](RENDERER-RESEARCH.md) for techniques investigated in KitaJS, Hono and Preact.
 
 For buffered-rendering comparisons without streaming, set `BENCH_EXCLUDE=stream`. This applies to individual runs and the comparison command.
 

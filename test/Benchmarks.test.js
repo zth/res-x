@@ -63,3 +63,12 @@ test('isolated second-pass results reproduce from the committed samples', () => 
   expect(compareReports(before, after)).toEqual(read('comparison'));
   expect(before[0].results.some(r => r.name.includes('stream'))).toBe(false);
 });
+
+test('merge-level results reproduce from the committed samples', () => {
+  const read = name => JSON.parse(readFileSync(new URL(`../bench/results/merge/${name}.json`, import.meta.url), 'utf8'));
+  const before = [1, 2, 3].map(i => read(`baseline-${i}`));
+  const after = [1, 2, 3].map(i => read(`candidate-${i}`));
+  expect(before.every(r => r.isolation === 'workload')).toBe(true);
+  expect(compareReports(before, after)).toEqual(read('comparison'));
+  expect(before[0].results.some(r => r.name.includes('stream'))).toBe(false);
+});
