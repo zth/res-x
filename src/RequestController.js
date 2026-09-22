@@ -4,14 +4,23 @@
 let H$ResX = require("./H.js");
 let Stdlib_Option = require("@rescript/runtime/lib/js/Stdlib_Option.js");
 
+function append(items, item) {
+  if (items !== undefined) {
+    items.push(item);
+    return items;
+  } else {
+    return [item];
+  }
+}
+
 function make() {
   let state = {
     status: 200,
     redirect: undefined,
     docHeader: "<!DOCTYPE html>",
-    headContent: [],
-    bodyEndContent: [],
-    titleSegments: []
+    headContent: undefined,
+    bodyEndContent: undefined,
+    titleSegments: undefined
   };
   return {
     setStatus: status => {
@@ -26,37 +35,49 @@ function make() {
     },
     getCurrentStatus: () => state.status,
     getCurrentRedirect: () => state.redirect,
-    getTitleSegments: () => state.titleSegments.slice(),
+    getTitleSegments: () => {
+      let segments = state.titleSegments;
+      if (segments !== undefined) {
+        return segments.slice();
+      } else {
+        return [];
+      }
+    },
     getDocHeader: () => Stdlib_Option.getOr(state.docHeader, ""),
     setDocHeader: docHeader => {
       state.docHeader = docHeader;
     },
     appendToHead: content => {
-      state.headContent.push(content);
+      state.headContent = append(state.headContent, content);
     },
     getAppendedHeadContent: async () => {
       let headContent = state.headContent;
-      if (headContent.length !== 0) {
+      if (headContent !== undefined) {
         return await H$ResX.renderToString(headContent);
       }
     },
     appendBeforeBodyEnd: content => {
-      state.bodyEndContent.push(content);
+      state.bodyEndContent = append(state.bodyEndContent, content);
     },
     getAppendedBeforeBodyEndContent: async () => {
       let bodyEndContent = state.bodyEndContent;
-      if (bodyEndContent.length !== 0) {
+      if (bodyEndContent !== undefined) {
         return await H$ResX.renderToString(bodyEndContent);
       }
     },
     appendTitleSegment: segment => {
-      state.titleSegments.push(segment);
+      state.titleSegments = append(state.titleSegments, segment);
     },
     prependTitleSegment: segment => {
-      state.titleSegments.unshift(segment);
+      let segments = state.titleSegments;
+      if (segments !== undefined) {
+        segments.unshift(segment);
+      } else {
+        state.titleSegments = [segment];
+      }
     },
     setFullTitle: title => {
-      state.titleSegments.splice(0, state.titleSegments.length, title);
+      state.titleSegments = [title];
     }
   };
 }

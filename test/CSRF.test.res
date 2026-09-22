@@ -211,9 +211,8 @@ describe("CSRF", () => {
       )
 
     // Start server manually for this custom handler
-    let (port, unsubPort) = getPort()
     let server = Bun.serve({
-      port,
+      port: 0,
       development: true,
       fetch: async (request, _server) =>
         await customHandler.handleRequest({
@@ -225,7 +224,7 @@ describe("CSRF", () => {
 
     // Missing token should 403
     let res1 = await fetch(
-      `http://localhost:${port->Int.toString}/_api/csrf-default`,
+      `http://localhost:${server->Bun.Server.port->Int.toString}/_api/csrf-default`,
       ~init={method: "POST"},
     )
     expect(res1->Response.status)->Expect.toBe(403)
@@ -234,7 +233,7 @@ describe("CSRF", () => {
     let token = Bun.CSRF.generate()
     let headers: HeadersInit.t = HeadersInit.FromArray([("X-CSRF-Token", token)])
     let res2 = await fetch(
-      `http://localhost:${port->Int.toString}/_api/csrf-default`,
+      `http://localhost:${server->Bun.Server.port->Int.toString}/_api/csrf-default`,
       ~init={method: "POST", headers},
     )
     let text2 = await res2->Response.text
@@ -242,7 +241,6 @@ describe("CSRF", () => {
     expect(text2)->Expect.toBe(`<!DOCTYPE html>ok`)
 
     server->Bun.Server.stop(~closeActiveConnections=true)
-    unsubPort()
   })
 
   testAsync("per-method default: POST enforced, GET relaxed", async () => {
@@ -272,9 +270,8 @@ describe("CSRF", () => {
         ~handler=async _ => Hjsx.string("ok"),
       )
 
-    let (port, unsubPort) = getPort()
     let server = Bun.serve({
-      port,
+      port: 0,
       development: true,
       fetch: async (request, _server) =>
         await customHandler.handleRequest({
@@ -285,14 +282,14 @@ describe("CSRF", () => {
     })
 
     // GET should be allowed without token
-    let resGet = await fetch(`http://localhost:${port->Int.toString}/_api/pm`)
+    let resGet = await fetch(`http://localhost:${server->Bun.Server.port->Int.toString}/_api/pm`)
     let textGet = await resGet->Response.text
     expect(resGet->Response.status)->Expect.toBe(200)
     expect(textGet)->Expect.toBe(`<!DOCTYPE html>ok`)
 
     // POST should be 403 without token
     let resPostNo = await fetch(
-      `http://localhost:${port->Int.toString}/_api/pm`,
+      `http://localhost:${server->Bun.Server.port->Int.toString}/_api/pm`,
       ~init={method: "POST"},
     )
     expect(resPostNo->Response.status)->Expect.toBe(403)
@@ -301,7 +298,7 @@ describe("CSRF", () => {
     let token = Bun.CSRF.generate()
     let headers: HeadersInit.t = HeadersInit.FromArray([("X-CSRF-Token", token)])
     let resPostYes = await fetch(
-      `http://localhost:${port->Int.toString}/_api/pm`,
+      `http://localhost:${server->Bun.Server.port->Int.toString}/_api/pm`,
       ~init={method: "POST", headers},
     )
     let textPostYes = await resPostYes->Response.text
@@ -309,6 +306,5 @@ describe("CSRF", () => {
     expect(textPostYes)->Expect.toBe(`<!DOCTYPE html>ok`)
 
     server->Bun.Server.stop(~closeActiveConnections=true)
-    unsubPort()
   })
 })

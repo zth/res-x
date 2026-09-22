@@ -75,8 +75,8 @@ type defaultCsrfCheck =
     })
 
 type state<'ctx> = {
-  mutable htmxHandlersByRoute: Belt.Map.String.t<htmxRegistration<'ctx>>,
-  mutable formActionHandlersByPath: Belt.Map.String.t<formActionRegistration<'ctx>>,
+  htmxHandlersByRoute: Dict.t<htmxRegistration<'ctx>>,
+  formActionHandlersByPath: Dict.t<formActionRegistration<'ctx>>,
   requestToContext: Request.t => promise<'ctx>,
   asyncLocalStorage: AsyncHooks.AsyncLocalStorage.t<renderConfig<'ctx>>,
   htmxApiPrefix: string,
@@ -121,17 +121,17 @@ let warnHtmxHandlerShadowedByFormAction = (method: method, path) => {
 }
 
 let warnIfFormActionShadowsHtmxHandler = (state: state<_>, path) => {
-  if state.htmxHandlersByRoute->Belt.Map.String.has(getHtmxRouteKey(GET, path)) {
+  if state.htmxHandlersByRoute->Dict.has(getHtmxRouteKey(GET, path)) {
     warnFormActionShadowsHtmxHandler(GET, path)
   }
-  if state.htmxHandlersByRoute->Belt.Map.String.has(getHtmxRouteKey(POST, path)) {
+  if state.htmxHandlersByRoute->Dict.has(getHtmxRouteKey(POST, path)) {
     warnFormActionShadowsHtmxHandler(POST, path)
   }
 }
 
 let warnIfHtmxHandlerIsShadowedByFormAction = (state: state<_>, method: method, path) =>
   switch method {
-  | GET | POST if state.formActionHandlersByPath->Belt.Map.String.has(path) =>
+  | GET | POST if state.formActionHandlersByPath->Dict.has(path) =>
     warnHtmxHandlerShadowedByFormAction(method, path)
   | _ => ()
   }
@@ -140,9 +140,9 @@ let registerFormActionHandler = (
   state: state<'ctx>,
   registration: formActionRegistration<'ctx>,
 ) => {
-  if !(state.formActionHandlersByPath->Belt.Map.String.has(registration.path)) {
+  if !(state.formActionHandlersByPath->Dict.has(registration.path)) {
     state->warnIfFormActionShadowsHtmxHandler(registration.path)
-    state.formActionHandlersByPath = state.formActionHandlersByPath->Belt.Map.String.set(
+    state.formActionHandlersByPath->Dict.set(
       registration.path,
       registration,
     )
@@ -153,9 +153,9 @@ let registerFormActionHandler = (
 
 let registerHtmxHandler = (state: state<'ctx>, registration: htmxRegistration<'ctx>) => {
   let routeKey = getHtmxRouteKey(registration.method, registration.path)
-  if !(state.htmxHandlersByRoute->Belt.Map.String.has(routeKey)) {
+  if !(state.htmxHandlersByRoute->Dict.has(routeKey)) {
     state->warnIfHtmxHandlerIsShadowedByFormAction(registration.method, registration.path)
-    state.htmxHandlersByRoute = state.htmxHandlersByRoute->Belt.Map.String.set(
+    state.htmxHandlersByRoute->Dict.set(
       routeKey,
       registration,
     )
@@ -166,12 +166,12 @@ let registerHtmxHandler = (state: state<'ctx>, registration: htmxRegistration<'c
 
 let getTargetFormActionHandler = (state: state<_>, requestMethod, pathname) =>
   switch requestMethod {
-  | GET | POST => state.formActionHandlersByPath->Belt.Map.String.get(pathname)
+  | GET | POST => state.formActionHandlersByPath->Dict.get(pathname)
   | _ => None
   }
 
 let getTargetHtmxHandler = (state: state<_>, requestMethod, pathname) =>
-  state.htmxHandlersByRoute->Belt.Map.String.get(getHtmxRouteKey(requestMethod, pathname))
+  state.htmxHandlersByRoute->Dict.get(getHtmxRouteKey(requestMethod, pathname))
 
 let isCsrfEnabledFor = (state: state<_>, m: method) =>
   switch state.defaultCsrfCheck {
@@ -196,11 +196,14 @@ let renderWithDocType = async (
   el,
   ~requestController: RequestController.t,
   ~renderTitle=defaultRenderTitle,
-  ~onAfterRender: unit => promise<unit>=async () => (),
+  ~onAfterRender: option<unit => promise<unit>>=?,
 ) => {
   let content = await H.renderToString(el)
 
-  await onAfterRender()
+  switch onAfterRender {
+  | Some(onAfterRender) => await onAfterRender()
+  | None => ()
+  }
   let appendToHead = await requestController.getAppendedHeadContent()
   let appendBeforeBodyEnd = await requestController.getAppendedBeforeBodyEndContent()
 
@@ -225,7 +228,7 @@ let renderWithDocType = async (
 
   requestController.getDocHeader() ++ content
 }
-let defaultHeaders = [("Content-Type", "text/html")]
+let defaultHeaders = dict{"Content-Type": "text/html"}
 
 type responseType = Default | FormActionHandler | HtmxHandler
 
@@ -361,7 +364,7 @@ let handleRequestWithState = async (
 
   let headers = switch config.setupHeaders {
   | Some(setupHeaders) => setupHeaders()
-  | None => Headers.make(~init=FromArray(defaultHeaders))
+  | None => Headers.make(~init=FromDict(defaultHeaders))
   }
   let renderConfig = {
     context: ctx,
@@ -628,8 +631,8 @@ let hxPatchToEndpointURL = s => s
 
 let make = (~requestToContext, ~options=?): t<'ctx> => {
   let state: state<'ctx> = {
-    htmxHandlersByRoute: Belt.Map.String.empty,
-    formActionHandlersByPath: Belt.Map.String.empty,
+    htmxHandlersByRoute: dict{},
+    formActionHandlersByPath: dict{},
     requestToContext,
     asyncLocalStorage: AsyncHooks.AsyncLocalStorage.make(),
     htmxApiPrefix: options

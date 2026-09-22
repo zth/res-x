@@ -10,19 +10,19 @@ function dangerouslyOutputUnescapedContent(prim) {
 }
 
 function jsx(prim0, prim1) {
-  return HyperonsJs.h(prim0, prim1);
+  return HyperonsJs.jsx(prim0, prim1);
 }
 
 function jsxs(prim0, prim1) {
-  return HyperonsJs.h(prim0, prim1);
+  return HyperonsJs.jsx(prim0, prim1);
 }
 
 function jsx$1(prim0, prim1) {
-  return HyperonsJs.h(prim0, prim1);
+  return HyperonsJs.jsx(prim0, prim1);
 }
 
 function jsxs$1(prim0, prim1) {
-  return HyperonsJs.h(prim0, prim1);
+  return HyperonsJs.jsx(prim0, prim1);
 }
 
 let Elements = {

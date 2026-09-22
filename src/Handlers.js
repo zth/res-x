@@ -5,7 +5,6 @@ let H$ResX = require("./H.js");
 let CSRF$ResX = require("./CSRF.js");
 let Stdlib_List = require("@rescript/runtime/lib/js/Stdlib_List.js");
 let Stdlib_Option = require("@rescript/runtime/lib/js/Stdlib_Option.js");
-let Belt_MapString = require("@rescript/runtime/lib/js/Belt_MapString.js");
 let Primitive_option = require("@rescript/runtime/lib/js/Primitive_option.js");
 let Nodeasync_hooks = require("node:async_hooks");
 let HyperonsJs = require("./vendor/hyperons.js");
@@ -33,10 +32,10 @@ function warnFormActionShadowsHtmxHandler(method, path) {
 }
 
 function warnIfFormActionShadowsHtmxHandler(state, path) {
-  if (Belt_MapString.has(state.htmxHandlersByRoute, getHtmxRouteKey("GET", path))) {
+  if (getHtmxRouteKey("GET", path) in state.htmxHandlersByRoute) {
     warnFormActionShadowsHtmxHandler("GET", path);
   }
-  if (Belt_MapString.has(state.htmxHandlersByRoute, getHtmxRouteKey("POST", path))) {
+  if (getHtmxRouteKey("POST", path) in state.htmxHandlersByRoute) {
     return warnFormActionShadowsHtmxHandler("POST", path);
   }
 }
@@ -49,20 +48,20 @@ function warnIfHtmxHandlerIsShadowedByFormAction(state, method, path) {
     default:
       return;
   }
-  if (Belt_MapString.has(state.formActionHandlersByPath, path)) {
+  if (path in state.formActionHandlersByPath) {
     console.warn(`[ResX.Handlers] HTMX handler registration for ` + method + ` ` + path + ` is shadowed by an existing form action route on the same path.`);
     return;
   }
 }
 
 function registerFormActionHandler(state, registration) {
-  if (Belt_MapString.has(state.formActionHandlersByPath, registration.path)) {
+  if (registration.path in state.formActionHandlersByPath) {
     let path = registration.path;
     console.warn(`[ResX.Handlers] Duplicate form action registration ignored for ` + path + `.`);
     return;
   } else {
     warnIfFormActionShadowsHtmxHandler(state, registration.path);
-    state.formActionHandlersByPath = Belt_MapString.set(state.formActionHandlersByPath, registration.path, registration);
+    state.formActionHandlersByPath[registration.path] = registration;
     return;
   }
 }
@@ -71,14 +70,14 @@ function getTargetFormActionHandler(state, requestMethod, pathname) {
   switch (requestMethod) {
     case "GET" :
     case "POST" :
-      return Belt_MapString.get(state.formActionHandlersByPath, pathname);
+      return state.formActionHandlersByPath[pathname];
     default:
       return;
   }
 }
 
 function getTargetHtmxHandler(state, requestMethod, pathname) {
-  return Belt_MapString.get(state.htmxHandlersByRoute, getHtmxRouteKey(requestMethod, pathname));
+  return state.htmxHandlersByRoute[getHtmxRouteKey(requestMethod, pathname)];
 }
 
 function isCsrfEnabledFor(state, m) {
@@ -106,11 +105,12 @@ function defaultRenderTitle(segments) {
   return segments.join(" | ");
 }
 
-async function renderWithDocType(el, requestController, renderTitleOpt, onAfterRenderOpt) {
+async function renderWithDocType(el, requestController, renderTitleOpt, onAfterRender) {
   let renderTitle = renderTitleOpt !== undefined ? renderTitleOpt : defaultRenderTitle;
-  let onAfterRender = onAfterRenderOpt !== undefined ? onAfterRenderOpt : async () => {};
   let content = await H$ResX.renderToString(el);
-  await onAfterRender();
+  if (onAfterRender !== undefined) {
+    await onAfterRender();
+  }
   let appendToHead = await requestController.getAppendedHeadContent();
   let appendBeforeBodyEnd = await requestController.getAppendedBeforeBodyEndContent();
   let match = requestController.getTitleSegments();
@@ -130,10 +130,9 @@ async function renderWithDocType(el, requestController, renderTitleOpt, onAfterR
   return requestController.getDocHeader() + content$2;
 }
 
-let defaultHeaders = [[
-    "Content-Type",
-    "text/html"
-  ]];
+let defaultHeaders = {
+  "Content-Type": "text/html"
+};
 
 async function handleRequestWithState(t, config) {
   let onAfterBuildResponse = config.onAfterBuildResponse;
@@ -323,14 +322,14 @@ function registerHtmxPath(state, httpMethod, path, securityPolicy, handler, csrf
     run: run
   };
   let routeKey = getHtmxRouteKey(registration.method, registration.path);
-  if (Belt_MapString.has(state.htmxHandlersByRoute, routeKey)) {
+  if (routeKey in state.htmxHandlersByRoute) {
     let method = registration.method;
     let path$1 = registration.path;
     console.warn(`[ResX.Handlers] Duplicate HTMX handler registration ignored for ` + method + ` ` + path$1 + `.`);
     return;
   } else {
     warnIfHtmxHandlerIsShadowedByFormAction(state, registration.method, registration.path);
-    state.htmxHandlersByRoute = Belt_MapString.set(state.htmxHandlersByRoute, routeKey, registration);
+    state.htmxHandlersByRoute[routeKey] = registration;
     return;
   }
 }
@@ -364,25 +363,31 @@ function hxPatchToEndpointURL(s) {
 }
 
 function make(requestToContext, options) {
+  let state_htmxHandlersByRoute = {};
+  let state_formActionHandlersByPath = {};
+  let state_asyncLocalStorage = new Nodeasync_hooks.AsyncLocalStorage();
+  let state_htmxApiPrefix = Stdlib_Option.getOr(Stdlib_Option.flatMap(options, options => options.htmxApiPrefix), "/_api");
+  let state_formActionHandlerApiPrefix = Stdlib_Option.getOr(Stdlib_Option.flatMap(options, options => options.formActionHandlerApiPrefix), "/_form");
+  let state_defaultCsrfCheck = Stdlib_Option.getOr(Stdlib_Option.flatMap(options, options => options.defaultCsrfCheck), {
+    TAG: "ForAllMethods",
+    _0: false
+  });
   let state = {
-    htmxHandlersByRoute: undefined,
-    formActionHandlersByPath: undefined,
+    htmxHandlersByRoute: state_htmxHandlersByRoute,
+    formActionHandlersByPath: state_formActionHandlersByPath,
     requestToContext: requestToContext,
-    asyncLocalStorage: new Nodeasync_hooks.AsyncLocalStorage(),
-    htmxApiPrefix: Stdlib_Option.getOr(Stdlib_Option.flatMap(options, options => options.htmxApiPrefix), "/_api"),
-    formActionHandlerApiPrefix: Stdlib_Option.getOr(Stdlib_Option.flatMap(options, options => options.formActionHandlerApiPrefix), "/_form"),
-    defaultCsrfCheck: Stdlib_Option.getOr(Stdlib_Option.flatMap(options, options => options.defaultCsrfCheck), {
-      TAG: "ForAllMethods",
-      _0: false
-    })
+    asyncLocalStorage: state_asyncLocalStorage,
+    htmxApiPrefix: state_htmxApiPrefix,
+    formActionHandlerApiPrefix: state_formActionHandlerApiPrefix,
+    defaultCsrfCheck: state_defaultCsrfCheck
   };
-  let useContext = () => state.asyncLocalStorage.getStore();
+  let useContext = () => state_asyncLocalStorage.getStore();
   let handleRequest = config => handleRequestWithState(state, config);
   return {
     useContext: useContext,
     handleRequest: handleRequest,
     formAction: (path, securityPolicy, handler, csrfCheck) => {
-      let path$1 = state.formActionHandlerApiPrefix + path;
+      let path$1 = state_formActionHandlerApiPrefix + path;
       let run = makeFormActionRunner(securityPolicy, handler);
       registerFormActionHandler(state, {
         path: path$1,
@@ -392,19 +397,19 @@ function make(requestToContext, options) {
       return path$1;
     },
     hxGet: (path, securityPolicy, handler, csrfCheck) => createHtmxRoute(state, "GET", path, securityPolicy, handler, csrfCheck),
-    hxGetRef: path => state.htmxApiPrefix + path,
+    hxGetRef: path => state_htmxApiPrefix + path,
     hxGetDefine: (path, securityPolicy, handler, csrfCheck) => defineHtmxRoute(state, "GET", path, securityPolicy, handler, csrfCheck),
     hxPost: (path, securityPolicy, handler, csrfCheck) => createHtmxRoute(state, "POST", path, securityPolicy, handler, csrfCheck),
-    hxPostRef: path => state.htmxApiPrefix + path,
+    hxPostRef: path => state_htmxApiPrefix + path,
     hxPostDefine: (path, securityPolicy, handler, csrfCheck) => defineHtmxRoute(state, "POST", path, securityPolicy, handler, csrfCheck),
     hxPut: (path, securityPolicy, handler, csrfCheck) => createHtmxRoute(state, "PUT", path, securityPolicy, handler, csrfCheck),
-    hxPutRef: path => state.htmxApiPrefix + path,
+    hxPutRef: path => state_htmxApiPrefix + path,
     hxPutDefine: (path, securityPolicy, handler, csrfCheck) => defineHtmxRoute(state, "PUT", path, securityPolicy, handler, csrfCheck),
     hxDelete: (path, securityPolicy, handler, csrfCheck) => createHtmxRoute(state, "DELETE", path, securityPolicy, handler, csrfCheck),
-    hxDeleteRef: path => state.htmxApiPrefix + path,
+    hxDeleteRef: path => state_htmxApiPrefix + path,
     hxDeleteDefine: (path, securityPolicy, handler, csrfCheck) => defineHtmxRoute(state, "DELETE", path, securityPolicy, handler, csrfCheck),
     hxPatch: (path, securityPolicy, handler, csrfCheck) => createHtmxRoute(state, "PATCH", path, securityPolicy, handler, csrfCheck),
-    hxPatchRef: path => state.htmxApiPrefix + path,
+    hxPatchRef: path => state_htmxApiPrefix + path,
     hxPatchDefine: (path, securityPolicy, handler, csrfCheck) => defineHtmxRoute(state, "PATCH", path, securityPolicy, handler, csrfCheck)
   };
 }

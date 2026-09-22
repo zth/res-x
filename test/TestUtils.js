@@ -60,11 +60,9 @@ let Html = {
 async function getResponseForHandler(handler, methodOpt, getContent, onBeforeSendResponse, onBeforeBuildResponse, onAfterBuildResponse, urlOpt) {
   let method = methodOpt !== undefined ? methodOpt : "GET";
   let url = urlOpt !== undefined ? urlOpt : "/";
-  let match = getPort();
-  let port = match[0];
   let server = Bun.serve({
     development: true,
-    port: port,
+    port: 0,
     fetch: async (request, _server) => await handler.handleRequest({
       request: request,
       render: async renderConfig => {
@@ -87,7 +85,7 @@ async function getResponseForHandler(handler, methodOpt, getContent, onBeforeSen
   let exit = 0;
   let res$1;
   try {
-    res$1 = await fetch(`http://localhost:` + port.toString() + url, {
+    res$1 = await fetch(`http://localhost:` + server.port.toString() + url, {
       method: method
     });
     exit = 1;
@@ -109,7 +107,6 @@ async function getResponseForHandler(handler, methodOpt, getContent, onBeforeSen
     };
   }
   server.stop(true);
-  match[1]();
   if (res.TAG === "Ok") {
     return res._0;
   } else {
@@ -130,11 +127,9 @@ async function getContentInBody(getContent) {
 
 async function getResponseWithInitForHandler(handler, urlOpt, init) {
   let url = urlOpt !== undefined ? urlOpt : "/";
-  let match = getPort();
-  let port = match[0];
   let server = Bun.serve({
     development: true,
-    port: port,
+    port: 0,
     fetch: async (request, _server) => await handler.handleRequest({
       request: request,
       render: async _renderConfig => null,
@@ -148,7 +143,7 @@ async function getResponseWithInitForHandler(handler, urlOpt, init) {
   let exit = 0;
   let res$1;
   try {
-    res$1 = await fetch(`http://localhost:` + port.toString() + url, init);
+    res$1 = await fetch(`http://localhost:` + server.port.toString() + url, init);
     exit = 1;
   } catch (raw_exn) {
     let exn = Primitive_exceptions.internalToException(raw_exn);
@@ -168,7 +163,6 @@ async function getResponseWithInitForHandler(handler, urlOpt, init) {
     };
   }
   server.stop(true);
-  match[1]();
   if (res.TAG === "Ok") {
     return res._0;
   } else {

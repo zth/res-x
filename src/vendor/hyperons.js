@@ -31,6 +31,12 @@ function createElement(type, props, ...children) {
     children.length === 0 && props.children ? props.children : children;
   return { type, props };
 }
+// ReScript JSX already supplies children in props. Unlike the legacy h()
+// API this path needs no rest arguments, child arrays, or props mutation.
+// Components remain deferred so providers and request context work as before.
+function jsx(type, props) {
+  return { type, props };
+}
 const Fragment = Symbol("Fragment");
 const UPPERCASE = /([A-Z])/g;
 const MS = /^ms-/;
@@ -176,21 +182,25 @@ const VOID_ELEMENTS = /* @__PURE__ */ new Set([
 ]);
 const EMPTY_OBJECT = Object.freeze({});
 function renderToString(element, context = {}, controller) {
-  dispatcher.context = context;
-
   // Check for raw HTML objects first
   if (element && typeof element === "object" && RAW in element) {
-    return controller.content.push(element[RAW]);
+    controller.content += element[RAW];
+    return;
   }
 
   if (typeof element === "string") {
-    return controller.content.push(escapeString(element));
+    controller.content += escapeString(element);
+    return;
   } else if (typeof element === "number") {
-    return controller.content.push(String(element));
+    controller.content += String(element);
+    return;
   } else if (typeof element === "boolean" || element == null) {
     return;
   } else if (Array.isArray(element)) {
-    return element.forEach((e) => renderToString(e, context, controller));
+    for (let i = 0; i < element.length; i++) {
+      renderToString(element[i], context, controller);
+    }
+    return;
   } else if (element instanceof Promise) {
     return controller.handleAsync(element, context, controller);
   }
@@ -198,22 +208,20 @@ function renderToString(element, context = {}, controller) {
   if (type) {
     const props = element.props || EMPTY_OBJECT;
     if (type.contextRef) {
+      dispatcher.context = context;
       context = Object.assign({}, context, {
         [type.contextRef.id]: props.value,
       });
       if (type.contextRef.id === "errorBoundary") {
         try {
-          return controller.content.push(
-            renderToString(type(props), context, controller)
-          );
+          return renderToString(type(props), context, controller);
         } catch (e) {
-          return controller.content.push(
-            renderToString(context["errorBoundary"](e), context, controller)
-          );
+          return renderToString(context["errorBoundary"](e), context, controller);
         }
       }
     }
     if (typeof type === "function") {
+      dispatcher.context = context;
       return renderToString(type(props), context, controller);
     }
     if (type === Fragment) {
@@ -265,17 +273,26 @@ function renderToString(element, context = {}, controller) {
       }
       if (VOID_ELEMENTS.has(type)) {
         html += "/>";
-        return controller.content.push(html);
+        controller.content += html;
+        return;
       } else {
         html += ">";
+        const children = props.children;
+        // Text leaves are common: append the complete element without
+        // another recursive call.
         if (innerHTML) {
           html += innerHTML;
-          controller.content.push(html);
-        } else {
-          controller.content.push(html);
-          renderToString(props.children, context, controller);
+        } else if (typeof children === "string") {
+          html += escapeString(children);
+        } else if (typeof children === "number") {
+          html += String(children);
+        } else if (children != null && typeof children !== "boolean") {
+          controller.content += html;
+          renderToString(children, context, controller);
+          controller.content += `</${type}>`;
+          return;
         }
-        controller.content.push(`</${type}>`);
+        controller.content += html + `</${type}>`;
       }
       return;
     }
@@ -283,41 +300,68 @@ function renderToString(element, context = {}, controller) {
 }
 function makeController(onChunk) {
   const controller = {
-    content: [],
+    content: "",
+    pending: null,
     onChunk,
     hasAsync: false,
     handleAsync(promise, context, controller2) {
-      this.hasAsync = true;
-      if (controller2.onChunk != null) {
-        controller2.onChunk(this.content.join(""));
-        this.content = [];
+      // Only the prefix before the first async subtree is ready to stream.
+      // Later siblings must remain buffered until preceding promises settle.
+      if (!this.hasAsync) {
+        this.pending = [];
+        if (controller2.onChunk != null) {
+          controller2.onChunk(this.content);
+          this.content = "";
+        }
+        this.hasAsync = true;
       }
-      this.content.push({ promise, context, controller: controller2 });
+      this.pending.push(this.content, { promise, context });
+      this.content = "";
     },
   };
   return controller;
 }
-async function renderController(controller) {
-  if (controller.hasAsync) {
-    return (
-      await Promise.all(
-        controller.content.map(async (item) => {
-          if (item == null) return "";
-          if (typeof item === "string") return item;
-          const controller2 = makeController(controller.onChunk);
-          const element = await item.promise;
-          renderToString(element, item.context, controller2);
-          return await renderController(controller2);
-        })
-      )
-    ).join("");
-  } else {
-    return controller.content.join("");
+function renderAsyncItem(item) {
+  return item.promise.then(element => {
+    const child = makeController();
+    renderToString(element, item.context, child);
+    return renderController(child);
+  });
+}
+function renderController(controller) {
+  if (!controller.hasAsync) return controller.content;
+  const content = controller.pending;
+  content.push(controller.content);
+  // One async child is common (for example a page with an async footer).
+  // There is no fan-out to coordinate in this case.
+  if (content.length === 3) {
+    return renderAsyncItem(content[1]).then(html => content[0] + html + content[2]);
   }
+  const pending = [];
+  for (let i = 0; i < content.length; i++) {
+    const item = content[i];
+    if (item == null || typeof item === "string" || typeof item === "number") continue;
+    // Only async subtrees need promises. Each static span stays a string,
+    // regardless of how many HTML elements it contains.
+    pending.push(item.promise.then(element => {
+      const child = makeController();
+      renderToString(element, item.context, child);
+      const rendered = renderController(child);
+      if (typeof rendered === "string") {
+        content[i] = rendered;
+      } else {
+        return rendered.then(html => { content[i] = html; });
+      }
+    }));
+  }
+  return Promise.all(pending).then(() => content.join(""));
 }
 async function render(element, onChunk) {
   const controller = makeController(onChunk);
   renderToString(element, {}, controller);
+  // Preserve the promise-returning API without suspending for a sync tree.
+  // Callback rendering still crosses the await boundary as before.
+  if (!controller.hasAsync && onChunk == null) return controller.content;
   const res = await renderController(controller);
   if (onChunk != null) {
     onChunk(res);
@@ -331,7 +375,7 @@ function renderSync(element) {
   if (controller.hasAsync) {
     throw new Error("Tried to render async tree sync.");
   } else {
-    return controller.content.join("");
+    return controller.content;
   }
 }
 function useContext(instance) {
@@ -341,6 +385,7 @@ export {
   Fragment,
   createContext,
   createElement as h,
+  jsx,
   render,
   renderSync,
   useContext,

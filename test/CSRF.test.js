@@ -145,11 +145,9 @@ Buntest.describe("CSRF", () => {
       }
     });
     customHandler.hxPost("/csrf-default", SecurityPolicy$ResX.allow, async param => "ok", undefined);
-    let match = TestUtils$ResX.getPort();
-    let port = match[0];
     let server = Bun.serve({
       development: true,
-      port: port,
+      port: 0,
       fetch: async (request, _server) => await customHandler.handleRequest({
         request: request,
         render: async param => null,
@@ -159,7 +157,7 @@ Buntest.describe("CSRF", () => {
           ]])
       })
     });
-    let res1 = await fetch(`http://localhost:` + port.toString() + `/_api/csrf-default`, {
+    let res1 = await fetch(`http://localhost:` + server.port.toString() + `/_api/csrf-default`, {
       method: "POST"
     });
     Buntest.expect(res1.status).toBe(403);
@@ -168,7 +166,7 @@ Buntest.describe("CSRF", () => {
         "X-CSRF-Token",
         token
       ]];
-    let res2 = await fetch(`http://localhost:` + port.toString() + `/_api/csrf-default`, {
+    let res2 = await fetch(`http://localhost:` + server.port.toString() + `/_api/csrf-default`, {
       headers: headers,
       method: "POST"
     });
@@ -176,7 +174,6 @@ Buntest.describe("CSRF", () => {
     Buntest.expect(res2.status).toBe(200);
     Buntest.expect(text2).toBe(`<!DOCTYPE html>ok`);
     server.stop(true);
-    return match[1]();
   });
   Buntest.test("per-method default: POST enforced, GET relaxed", async () => {
     let customHandler = Handlers$ResX.make(async param => ({
@@ -193,11 +190,9 @@ Buntest.describe("CSRF", () => {
     });
     customHandler.hxGet("/pm", SecurityPolicy$ResX.allow, async param => "ok", undefined);
     customHandler.hxPost("/pm", SecurityPolicy$ResX.allow, async param => "ok", undefined);
-    let match = TestUtils$ResX.getPort();
-    let port = match[0];
     let server = Bun.serve({
       development: true,
-      port: port,
+      port: 0,
       fetch: async (request, _server) => await customHandler.handleRequest({
         request: request,
         render: async param => null,
@@ -207,11 +202,11 @@ Buntest.describe("CSRF", () => {
           ]])
       })
     });
-    let resGet = await fetch(`http://localhost:` + port.toString() + `/_api/pm`);
+    let resGet = await fetch(`http://localhost:` + server.port.toString() + `/_api/pm`);
     let textGet = await resGet.text();
     Buntest.expect(resGet.status).toBe(200);
     Buntest.expect(textGet).toBe(`<!DOCTYPE html>ok`);
-    let resPostNo = await fetch(`http://localhost:` + port.toString() + `/_api/pm`, {
+    let resPostNo = await fetch(`http://localhost:` + server.port.toString() + `/_api/pm`, {
       method: "POST"
     });
     Buntest.expect(resPostNo.status).toBe(403);
@@ -220,7 +215,7 @@ Buntest.describe("CSRF", () => {
         "X-CSRF-Token",
         token
       ]];
-    let resPostYes = await fetch(`http://localhost:` + port.toString() + `/_api/pm`, {
+    let resPostYes = await fetch(`http://localhost:` + server.port.toString() + `/_api/pm`, {
       headers: headers,
       method: "POST"
     });
@@ -228,7 +223,6 @@ Buntest.describe("CSRF", () => {
     Buntest.expect(resPostYes.status).toBe(200);
     Buntest.expect(textPostYes).toBe(`<!DOCTYPE html>ok`);
     server.stop(true);
-    return match[1]();
   });
 });
 

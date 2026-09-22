@@ -45,3 +45,6 @@ jobs:
 
       - name: Run tests
         run: bun run test
+
+      - name: Benchmark smoke test
+        run: bun run bench:smoke

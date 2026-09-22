@@ -54,10 +54,8 @@ let getResponseForHandler = async (
   ~onAfterBuildResponse=?,
   ~url="/",
 ) => {
-  let (port, unsubPort) = getPort()
-
   let server = Bun.serve({
-    port,
+    port: 0,
     development: true,
     fetch: async (request, _server) => {
       await handler.handleRequest({
@@ -79,7 +77,7 @@ let getResponseForHandler = async (
   })
 
   let res = switch await fetch(
-    `http://localhost:${port->Int.toString}${url}`,
+    `http://localhost:${server->Bun.Server.port->Int.toString}${url}`,
     ~init={method: (method :> string)},
   ) {
   | res => Ok(res)
@@ -87,7 +85,6 @@ let getResponseForHandler = async (
   }
 
   server->Bun.Server.stop(~closeActiveConnections=true)
-  unsubPort()
 
   switch res {
   | Ok(res) => res
@@ -123,10 +120,8 @@ let getResponseWithInitForHandler = async (
   ~url="/",
   ~init,
 ) => {
-  let (port, unsubPort) = getPort()
-
   let server = Bun.serve({
-    port,
+    port: 0,
     development: true,
     fetch: async (request, _server) => {
       await handler.handleRequest({
@@ -139,13 +134,12 @@ let getResponseWithInitForHandler = async (
     },
   })
 
-  let res = switch await fetch(`http://localhost:${port->Int.toString}${url}`, ~init) {
+  let res = switch await fetch(`http://localhost:${server->Bun.Server.port->Int.toString}${url}`, ~init) {
   | res => Ok(res)
   | exception JsExn(_) => Error("Failed to fetch.")
   }
 
   server->Bun.Server.stop(~closeActiveConnections=true)
-  unsubPort()
 
   switch res {
   | Ok(res) => res

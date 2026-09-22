@@ -15,4 +15,11 @@ Buntest.describe("rendering HTML via JSX", () => {
   });
 });
 
+Buntest.test("numeric zero is preserved by the compiled JSX factory", () => {
+  let jsx = Hjsx$ResX.Elements.jsx("div", {
+    children: 0
+  });
+  Buntest.expect(H$ResX.renderSyncToString(jsx)).toBe("<div>0</div>");
+});
+
 /*  Not a pure module */
