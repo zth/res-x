@@ -14,8 +14,8 @@
     "dev": "concurrently 'bun:dev:*'",
     "link:resx": "node scripts/link-local-rescript-x.mjs",
     "postinstall": "node scripts/link-local-rescript-x.mjs",
-    "build:res:templates": "node ../compiler/build.mjs",
-    "start:templates": "cd .resx/build && NODE_ENV=production bun run src/Demo.js"
+    "build:res:templates": "bun ../compiler/build.mjs",
+    "start:templates": "NODE_ENV=production bun run .resx/optimized/app.mjs"
   },
   "keywords": [
     "rescript"

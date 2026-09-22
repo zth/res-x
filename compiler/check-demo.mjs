@@ -5,8 +5,9 @@ import {fileURLToPath} from 'node:url';
 const demo = fileURLToPath(new URL('../demo', import.meta.url));
 async function capture(baseline) {
   execFileSync(process.execPath, ['../compiler/build.mjs', ...(baseline ? ['--baseline'] : [])], {cwd: demo, stdio: 'inherit'});
-  const cwd = baseline ? demo : fileURLToPath(new URL('../demo/.resx/build', import.meta.url));
-  const server = spawn('bun', ['run', 'src/Demo.js'], {cwd, env: {...process.env, PORT: '0', NODE_ENV: 'production'}, stdio: ['ignore', 'pipe', 'inherit']});
+  const cwd = demo;
+  const entry = baseline ? '.resx/baseline/app.mjs' : '.resx/optimized/app.mjs';
+  const server = spawn('bun', ['run', entry], {cwd, env: {...process.env, PORT: '0', NODE_ENV: 'production'}, stdio: ['ignore', 'pipe', 'inherit']});
   try {
     const port = await new Promise((resolve, reject) => {
       const timer = setTimeout(() => reject(new Error('Demo did not start')), 15000);

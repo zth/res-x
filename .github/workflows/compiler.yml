@@ -4,39 +4,30 @@ on:
     branches: [main]
   push:
     branches: [main]
-
 jobs:
   compiler:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/checkout@v4
-        with:
-          repository: rescript-lang/rescript
-          ref: v12.3.0
-          path: compiler-source
       - uses: actions/setup-node@v4
         with:
           node-version: 24
       - uses: oven-sh/setup-bun@v1
         with:
           bun-version: 1.3.14
-      - uses: ocaml/setup-ocaml@v3
+      - uses: dtolnay/rust-toolchain@stable
         with:
-          ocaml-compiler: 5.3.0
-      - name: Install upstream compiler dependencies
-        run: |
-          opam install dune.3.23.1
-          opam install ./compiler-source/rescript.opam --deps-only
+          toolchain: 1.96.0
       - run: npm ci
-      - name: Build standalone CMT analyzer
-        run: opam exec -- node compiler/build-analyzer.mjs compiler-source
-      - name: Verify both rendering modes and type checking
-        run: node compiler/check.mjs
+      - run: bun run compiler:build
+      - run: bun run res:build
+        env:
+          RAYON_NUM_THREADS: 2
+      - run: bun test compiler/oxc.test.mjs
+      - run: bun compiler/check.mjs
       - name: Install and build demo assets
         working-directory: demo
         run: |
           npm ci
           bun run build:vite
-      - name: Compare actual demo HTTP responses
-        run: node compiler/check-demo.mjs
+      - run: bun compiler/check-demo.mjs

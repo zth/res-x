@@ -21,7 +21,8 @@
     "test": "bun test ./test/*.test.js ./test/*.test.mjs",
     "bench": "bun bench/runner.mjs",
     "bench:smoke": "bun bench/runner.mjs --smoke",
-    "res:build:templates": "node compiler/build.mjs"
+    "res:build:templates": "bun compiler/build.mjs",
+    "compiler:build": "cargo build --release --locked --manifest-path compiler/oxc/Cargo.toml"
   },
   "keywords": [
     "rescript"
@@ -47,6 +48,7 @@
   },
   "dependencies": {
     "chokidar": "^4.0.3",
-    "fast-glob": "^3.3.1"
+    "fast-glob": "^3.3.1",
+    "magic-string": "0.30.21"
   }
 }
