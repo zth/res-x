@@ -11,7 +11,8 @@ Use ReScript **12.3.0** and a matching ReScript compiler source checkout. Buildi
 the custom compiler requires OCaml 5.3, dune (>=3.17), and cppo on `PATH`:
 
 ```sh
-node compiler/build-toolchain.mjs /path/to/rescript-compiler
+opam install /path/to/rescript-compiler/rescript.opam --deps-only
+opam exec -- node compiler/build-toolchain.mjs /path/to/rescript-compiler
 node compiler/check.mjs
 cd demo
 npm install
@@ -27,7 +28,8 @@ page. Existing demo pages also participate automatically.
 
 The toolchain builder reads the supplied checkout's **v12.3.0 tag**, creates
 an isolated ignored cache, installs the pass and one backend hook, and builds
-only the compiler executable. It never modifies the supplied checkout. This is
+only the compiler executable. The upstream opam manifest includes ReScript's
+pinned Flow parser dependency; installing only dune and cppo is insufficient. It never modifies the supplied checkout. This is
 a source-built prototype, not a published compiler distribution. It has been
 targeted at upstream ReScript `v12.3.0` (`44b1e4d22`).
 
@@ -61,7 +63,8 @@ versioned together before making this generally available.
 
 `node compiler/check.mjs` runs the full suite in both modes, verifies byte-identical
 catalog output, checks emitted specialization, and verifies invalid JSX props
-still fail type checking. After installing demo dependencies and building Vite assets,
+still fail type checking. After building demo assets, `node compiler/check-demo.mjs`
+compares catalog, start, and 404 HTTP responses between modes. After installing demo dependencies and building Vite assets,
 `node compiler/check-demo.mjs` compares actual catalog, start, and 404 HTTP
 responses between modes. `bun bench/compiler.mjs` measures the currently built
 JSX fixtures, using the existing benchmark harness (one-second warmup, nine

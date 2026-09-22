@@ -24,7 +24,10 @@ jobs:
       - uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: 5.3.0
-      - run: opam install dune.3.23.1 cppo.1.8.0
+      - name: Install upstream compiler dependencies
+        run: |
+          opam install dune.3.23.1
+          opam install ./compiler-source/rescript.opam --deps-only
       - run: npm ci
       - name: Build compiler overlay
         run: opam exec -- node compiler/build-toolchain.mjs compiler-source
