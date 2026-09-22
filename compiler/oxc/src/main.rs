@@ -133,6 +133,12 @@ enum Piece<'a> {
     Static(String),
     Child(&'a Expression<'a>),
 }
+fn push_static(pieces: &mut Vec<Piece<'_>>, text: String) {
+    match pieces.last_mut() {
+        Some(Piece::Static(previous)) => previous.push_str(&text),
+        _ => pieces.push(Piece::Static(text)),
+    }
+}
 struct Plan<'a> {
     runtime: String,
     pieces: Vec<Piece<'a>>,
@@ -144,6 +150,7 @@ struct Transform<'s, 'a> {
     edits: Vec<Edit>,
     helpers: String,
     serial: usize,
+    names: HashSet<String>,
     templates: usize,
 }
 impl<'a> Transform<'_, 'a> {
@@ -237,7 +244,7 @@ impl<'a> Transform<'_, 'a> {
     }
     fn pieces(&self, expr: &'a Expression<'a>, out: &mut Vec<Piece<'a>>) {
         if let Some(value) = string(expr) {
-            out.push(Piece::Static(escape(value)));
+            push_static(out, escape(value));
         } else if let Expression::ArrayExpression(array) = expr {
             // Spread iterators and holes stay on the existing renderer path.
             if array.elements.iter().all(|e| e.as_expression().is_some()) {
@@ -248,30 +255,23 @@ impl<'a> Transform<'_, 'a> {
                 out.push(Piece::Child(expr));
             }
         } else if let Some((_, before, children, after)) = self.native(expr) {
-            out.push(Piece::Static(before));
+            push_static(out, before);
             if let Some(children) = children {
                 self.pieces(children, out);
             }
-            out.push(Piece::Static(after));
+            push_static(out, after);
         } else {
             out.push(Piece::Child(expr));
         }
     }
     fn plan(&self, expr: &'a Expression<'a>) -> Option<Plan<'a>> {
-        let (runtime, _, _, _) = self.native(expr)?;
-        let mut pieces = Vec::new();
-        self.pieces(expr, &mut pieces);
-        let mut combined = Vec::new();
-        for piece in pieces {
-            match (combined.last_mut(), piece) {
-                (Some(Piece::Static(a)), Piece::Static(b)) => a.push_str(&b),
-                (_, p) => combined.push(p),
-            }
+        let (runtime, before, children, after) = self.native(expr)?;
+        let mut pieces = vec![Piece::Static(before)];
+        if let Some(children) = children {
+            self.pieces(children, &mut pieces);
         }
-        Some(Plan {
-            runtime,
-            pieces: combined,
-        })
+        push_static(&mut pieces, after);
+        Some(Plan { runtime, pieces })
     }
     fn render_child(&mut self, expr: &'a Expression<'a>) -> String {
         let outer = std::mem::take(&mut self.edits);
@@ -287,30 +287,41 @@ impl<'a> Visit<'a> for Transform<'_, 'a> {
             let name = loop {
                 let name = format!("__resxWriter{}", self.serial);
                 self.serial += 1;
-                if !self.source.contains(&name) {
+                if self.names.insert(name.clone()) {
                     break name;
                 }
             };
+            // Only the runtime binding is referenced from the writer's scope.
+            let parameter = |base: &str| {
+                if plan.runtime == base {
+                    format!("_{base}")
+                } else {
+                    base.to_string()
+                }
+            };
+            let output = parameter("output");
+            let context = parameter("context");
+            let captured = parameter("values");
             let mut values = Vec::new();
             let runtime = format!("{}.Elements", plan.runtime);
             let mut body = String::new();
             for piece in plan.pieces {
                 match piece {
                     Piece::Static(text) => body.push_str(&format!(
-                        "{runtime}.templateStatic(output, {});\n",
+                        "{runtime}.templateStatic({output}, {});\n",
                         quote(&text)
                     )),
                     Piece::Child(expr) => {
                         let index = values.len();
                         values.push(format!("({})", self.render_child(expr)));
                         body.push_str(&format!(
-                            "{runtime}.templateChild(output, context, values[{index}]);\n"
+                            "{runtime}.templateChild({output}, {context}, {captured}[{index}]);\n"
                         ));
                     }
                 }
             }
             self.helpers.push_str(&format!(
-                "\nfunction {name}(output, context, values) {{\n{body}}}\n"
+                "\nfunction {name}({output}, {context}, {captured}) {{\n{body}}}\n"
             ));
             self.edits.push(Edit {
                 start: expr.span().start,
@@ -385,6 +396,18 @@ fn transform(request: Request) -> Result<Response, String> {
         edits: Vec::new(),
         helpers: String::new(),
         serial: 0,
+        names: semantic
+            .scoping()
+            .symbol_names()
+            .chain(
+                semantic
+                    .scoping()
+                    .root_unresolved_references()
+                    .keys()
+                    .map(|name| name.as_str()),
+            )
+            .map(str::to_string)
+            .collect(),
         templates: 0,
     };
     visitor.visit_program(&parsed.program);

@@ -1,20 +1,23 @@
 import {readFile} from 'node:fs/promises';
 import {createResxTransform} from './oxc-transform.mjs';
 
-export function createResxBunPlugin(options) {
-  const transform = createResxTransform(options);
+// A regular build plugin: the bundler owns each compiler worker's lifetime.
+export function resxBunPlugin(options) {
+  let stats;
   return {
-    transform,
-    plugin: {
-      name: 'resx-oxc',
-      setup(build) {
-        build.onLoad({filter: /\.[cm]?js$/}, async ({path}) => {
-          const code = await readFile(path, 'utf8');
-          const result = await transform.transform(code, path);
-          if (!result) return {contents: code, loader: 'js'};
-          return {contents: result.code + '\n//# sourceMappingURL=data:application/json;base64,' + Buffer.from(result.map).toString('base64'), loader: 'js'};
-        });
-      },
+    name: 'resx-oxc',
+    get stats() { return stats; },
+    setup(build) {
+      const transform = createResxTransform(options);
+      stats = transform.stats;
+      build.onEnd(() => transform.close());
+      build.onLoad({filter: /\.[cm]?js$/}, async ({path}) => {
+        const code = await readFile(path, 'utf8');
+        const result = await transform.transform(code, path);
+        // Let later plugins and Bun's loader handle modules we don't change.
+        if (!result) return undefined;
+        return {contents: result.code + '\n//# sourceMappingURL=data:application/json;base64,' + Buffer.from(result.map).toString('base64'), loader: 'js'};
+      });
     },
   };
 }

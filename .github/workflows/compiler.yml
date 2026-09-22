@@ -23,7 +23,7 @@ jobs:
       - run: bun run res:build
         env:
           RAYON_NUM_THREADS: 2
-      - run: bun test compiler/oxc.test.mjs
+      - run: bun test compiler/oxc.test.mjs compiler/plugins.test.mjs
       - run: bun compiler/check.mjs
       - name: Install and build demo assets
         working-directory: demo

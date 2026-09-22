@@ -55,15 +55,17 @@ export function createResxTransform({binary = process.env.RESX_OXC || join(here,
   return {
     stats,
     async transform(code, filename) {
+      if (closed) throw new Error('ResX transform is closed');
       filename = resolve(filename);
       if (!code.includes('.Elements.')) return null;
       const runtimeSpecifiers = specifiers(filename);
       if (!runtimeSpecifiers.some(specifier => code.includes(specifier))) return null;
       const key = createHash('sha256').update(version).update(filename).update(JSON.stringify(runtimeSpecifiers)).update(code).digest('hex');
-      if (memory.has(key)) { stats.cacheHits++; return memory.get(key); }
+      const cached = memory.get(filename);
+      if (cached?.key === key) { stats.cacheHits++; return cached.result; }
       const cacheFile = cacheDir && join(cacheDir, key + '.json');
       if (cacheFile) {
-        try { const result = JSON.parse(await readFile(cacheFile, 'utf8')); memory.set(key, result); stats.cacheHits++; return result; }
+        try { const result = JSON.parse(await readFile(cacheFile, 'utf8')); memory.set(filename, {key, result}); stats.cacheHits++; return result; }
         catch (error) { if (error.code !== 'ENOENT' && !(error instanceof SyntaxError)) throw error; }
       }
       const plan = await send({code, filename, runtimeSpecifiers});
@@ -75,7 +77,7 @@ export function createResxTransform({binary = process.env.RESX_OXC || join(here,
         result = {code: output.toString(), map: output.generateMap({source: filename, includeContent: true, hires: true}).toString(), templates: plan.templates};
         stats.transformed++; stats.templates += plan.templates;
       }
-      memory.set(key, result);
+      memory.set(filename, {key, result});
       if (cacheFile) {
         await mkdir(cacheDir, {recursive: true});
         const temporary = cacheFile + '.' + process.pid + '.' + temporarySerial++ + '.tmp';
@@ -84,20 +86,24 @@ export function createResxTransform({binary = process.env.RESX_OXC || join(here,
       }
       return result;
     },
-    close() { closed = true; if (child) child.stdin.end(); },
+    close() { closed = true; memory.clear(); if (child) child.stdin.end(); },
   };
 }
 
 // Conventional transform(code, id) adapter for Vite/Rollup-compatible pipelines.
 export function resxOxcPlugin(options) {
   let transform;
+  const close = () => { transform?.close(); transform = undefined; };
   return {
     name: 'resx-oxc', enforce: 'pre',
-    buildStart() { transform = createResxTransform(options); },
     async transform(code, id) {
-      if (!/\.[cm]?js$/.test(id)) return null;
-      return transform.transform(code, id);
+      const filename = id.split('?')[0];
+      if (filename.startsWith('\0') || !/\.[cm]?js$/.test(filename)) return null;
+      transform ??= createResxTransform(options);
+      return transform.transform(code, filename);
     },
-    closeBundle() { transform?.close(); },
+    closeBundle: close,
+    closeWatcher: close,
+    buildEnd(error) { if (error) close(); },
   };
 }

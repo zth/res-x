@@ -90,3 +90,37 @@ test('content cache reuses plans and invalidates changed source', async () => {
     }, {cacheDir});
   } finally { rmSync(cacheDir, {recursive: true, force: true}); }
 });
+
+for (const alias of ['output', 'context', 'values']) {
+  test('writer parameters do not shadow runtime import ' + alias, () => withTransform(async t => {
+    const code = header.replace('var H =', `var ${alias} =`) + `exports.tree = ${jsx.replaceAll('H.Elements', alias + '.Elements')};`;
+    const result = await t.transform(code, filename);
+    expect(renderSync(evaluate(result.code).tree)).toBe(renderSync(evaluate(code).tree));
+  }));
+}
+test('writer names respect decoded identifiers and unresolved references', () => withTransform(async t => {
+  const code = header + 'const __resxWrit\\u0065r0 = 1; function nested(__resxWriter1) {return ' + jsx + ';} exports.tree = ' + jsx + '; exports.missing = typeof __resxWrit\\u0065r2;';
+  const result = await t.transform(code, filename);
+  expect(evaluate(result.code).missing).toBe('undefined');
+  expect(renderSync(evaluate(result.code).tree)).toBe(renderSync(evaluate(code).tree));
+}));
+
+test('generated combinations match ordinary rendering and expression evaluation', () => withTransform(async t => {
+  const attributes = ['', 'className: "",', 'title: "<&\\\"\'",', 'id: read("id"),', '...{className: "spread"},'];
+  const children = ['"🦊<&>"', 'read(0)', 'read(null)', '[read("a"), , read("b")]', 'H.Elements.jsx("b", {children: read("nested")})', 'read(false)'];
+  for (const tag of ['div', 'input']) for (const props of attributes) for (const child of children) {
+    const code = header + `let calls = []; const read = value => (calls.push(value), value);
+exports.tree = H.Elements.jsx(${JSON.stringify(tag)}, {${props} children: ${child}}); exports.calls = calls;`;
+    const result = await t.transform(code, filename);
+    const before = evaluate(code), after = evaluate(result?.code ?? code);
+    expect(renderSync(after.tree)).toBe(renderSync(before.tree));
+    expect(after.calls).toEqual(before.calls);
+  }
+}));
+
+test('closed compiler cannot return stale cached output', async () => {
+  const transform = createResxTransform();
+  try { await transform.transform(header + jsx, filename); }
+  finally { transform.close(); }
+  await expect(transform.transform(header + jsx, filename)).rejects.toThrow('closed');
+});
