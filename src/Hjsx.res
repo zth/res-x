@@ -634,11 +634,9 @@ module Elements = {
     ...DOM.domProps,
   }
 
-  @resx.html
   @module("./vendor/hyperons.js")
   external jsx: (string, props) => Jsx.element = "jsx"
 
-  @resx.html
   @module("./vendor/hyperons.js")
   external jsxs: (string, props) => Jsx.element = "jsx"
 }

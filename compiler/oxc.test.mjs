@@ -42,6 +42,7 @@ for (const [name, code] of [
   ['factory write', header + 'H.Elements.jsx = custom;'],
   ['namespace escape', header + 'unknown(H);'],
   ['elements escape', header + 'unknown(H.Elements);'],
+  ['direct eval', header + 'eval("H.Elements.jsx = custom");'],
 ]) test(name + ' disables the transform', () => withTransform(async t => {
   expect(await t.transform(code + `exports.tree = ${jsx};`, filename)).toBeNull();
 }));

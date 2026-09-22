@@ -358,6 +358,14 @@ fn transform(request: Request) -> Result<Response, String> {
         ));
     }
     let semantic = built.semantic;
+    // Direct eval can mutate an import without a statically visible reference.
+    if semantic
+        .scoping()
+        .scope_flags(semantic.scoping().root_scope_id())
+        .contains_direct_eval()
+    {
+        return Ok(Response::default());
+    }
     let mut imports = Imports {
         semantic: &semantic,
         approved: &request.runtime_specifiers,

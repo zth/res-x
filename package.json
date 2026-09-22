@@ -21,7 +21,7 @@
     "test": "bun test ./test/*.test.js ./test/*.test.mjs",
     "bench": "bun bench/runner.mjs",
     "bench:smoke": "bun bench/runner.mjs --smoke",
-    "res:build:templates": "bun compiler/build.mjs",
+    "res:build:templates": "bun compiler/build.mjs --entry test/CompilerFixtures.js",
     "compiler:build": "cargo build --release --locked --manifest-path compiler/oxc/Cargo.toml"
   },
   "keywords": [
