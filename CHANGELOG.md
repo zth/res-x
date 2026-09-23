@@ -1,6 +1,11 @@
 # master
 
+# 1.4.1
+
 - Fix minor path resolution issue in the new static assets setup.
+- Reduce allocations in HTML rendering, handler routing, request paths, and request metadata.
+- Add rendering and request regression tests, reusable performance benchmarks, and a CI benchmark smoke test.
+- Link the ResX starter template from the getting started guide.
 
 # 1.4.0
 
