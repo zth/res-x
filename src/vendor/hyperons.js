@@ -37,6 +37,12 @@ function createElement(type, props, ...children) {
 function jsx(type, props) {
   return { type, props };
 }
+const TEMPLATE = Symbol("ResXTemplate");
+function createTemplate(writer, values) {
+  return {type: TEMPLATE, props: {writer, values}};
+}
+function templateStatic(output, html) { output.content += html; }
+function templateChild(output, context, child) { renderToString(child, context, output); }
 const Fragment = Symbol("Fragment");
 const UPPERCASE = /([A-Z])/g;
 const MS = /^ms-/;
@@ -207,6 +213,10 @@ function renderToString(element, context = {}, controller) {
   const type = element.type;
   if (type) {
     const props = element.props || EMPTY_OBJECT;
+    if (type === TEMPLATE) {
+      props.writer(controller, context, props.values);
+      return;
+    }
     if (type.contextRef) {
       dispatcher.context = context;
       context = Object.assign({}, context, {
@@ -382,6 +392,9 @@ function useContext(instance) {
   return instance.getChildContext(dispatcher.context);
 }
 export {
+  createTemplate,
+  templateStatic,
+  templateChild,
   Fragment,
   createContext,
   createElement as h,

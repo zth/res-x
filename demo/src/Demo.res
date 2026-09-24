@@ -26,6 +26,7 @@ let server = Bun.serve({
               | list{"start" | ""} | list{} =>
                 headers->Headers.set("Cache-Control", "public, immutable, max-age=900")
                 <div> {Hjsx.string("Start page!")} </div>
+              | list{"catalog"} => <Catalog />
               | list{"moved"} =>
                 requestController.redirect("/start", ~status=302)
               | list{"user", ...userRoutes} =>

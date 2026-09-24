@@ -1,3 +1,6 @@
 node_modules
 lib
 dist
+compiler/.toolchain/
+.resx/
+compiler/oxc/target/

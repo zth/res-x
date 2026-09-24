@@ -17,6 +17,18 @@ function jsxs(prim0, prim1) {
   return HyperonsJs.jsx(prim0, prim1);
 }
 
+function template(prim0, prim1) {
+  return HyperonsJs.createTemplate(prim0, prim1);
+}
+
+function templateStatic(prim0, prim1) {
+  HyperonsJs.templateStatic(prim0, prim1);
+}
+
+function templateChild(prim0, prim1, prim2) {
+  HyperonsJs.templateChild(prim0, prim1, prim2);
+}
+
 function jsx$1(prim0, prim1) {
   return HyperonsJs.jsx(prim0, prim1);
 }
@@ -26,6 +38,9 @@ function jsxs$1(prim0, prim1) {
 }
 
 let Elements = {
+  template: template,
+  templateStatic: templateStatic,
+  templateChild: templateChild,
   jsx: jsx$1,
   jsxs: jsxs$1
 };
